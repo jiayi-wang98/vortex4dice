@@ -1,0 +1,370 @@
+xmverilog(64): 22.09-s001: (c) Copyright 1995-2022 Cadence Design Systems, Inc.
+TOOL:	xmverilog	22.09-s001: Started on Jul 15, 2025 at 16:07:16 PDT
+xmverilog
+	-f filelist.f
+		../../../../cgra_core/cta_schedule/simt_stack_controller.sv
+		../../../../cgra_core/cta_schedule/simt_stack.sv
+		../../../../dice_ram/dice_ram_1w1r.sv
+		../../../../sram/v/sram_0rw1r1w_320_32_freepdk45.v
+		./tb_simt_stack_controller.sv
+	-sv
+	-64bit
+	+access+rcw
+	-top
+	tb_simt_stack_controller
+	-stop_on_build_error
+	-timescale
+	1ns/1ps
+file: ../../../../cgra_core/cta_schedule/simt_stack_controller.sv
+	module worklib.simt_stack_controller:sv
+		errors: 0, warnings: 0
+file: ../../../../cgra_core/cta_schedule/simt_stack.sv
+	module worklib.simt_stack:sv
+		errors: 0, warnings: 0
+file: ../../../../dice_ram/dice_ram_1w1r.sv
+	module worklib.dice_ram_1w1r:sv
+		errors: 0, warnings: 0
+file: ../../../../sram/v/sram_0rw1r1w_320_32_freepdk45.v
+	module worklib.sram_0rw1r1w_320_32_freepdk45:v
+		errors: 0, warnings: 0
+file: ./tb_simt_stack_controller.sv
+	module worklib.tb_simt_stack_controller:sv
+		errors: 0, warnings: 0
+	Elaborating the design hierarchy:
+		Caching library 'worklib' ....... Done
+xmelab: *W,DSEMEL: This SystemVerilog design will be simulated as per IEEE 1800-2009 SystemVerilog simulation semantics. Use -disable_sem2009 option for turning off SV 2009 simulation semantics.
+	Building instance overlay tables: .................... Done
+	Generating native compiled code:
+		worklib.sram_0rw1r1w_320_32_freepdk45:v <0x008aa4a7>
+			streams:   5, words:  3828
+		worklib.simt_stack:sv <0x4c0b19c1>
+			streams:  20, words: 13122
+		worklib.tb_simt_stack_controller:sv <0x66213886>
+			streams:  39, words: 81307
+		worklib.simt_stack_controller:sv <0x722e32a3>
+			streams:  41, words: 54378
+	Building instance specific data structures.
+	Loading native compiled code:     .................... Done
+	Design hierarchy summary:
+		                 Instances  Unique
+		Modules:                10       4
+		Registers:             255     162
+		Scalar wires:           71       -
+		Vectored wires:         92       -
+		Always blocks:          40      19
+		Initial blocks:          7       7
+		Cont. assignments:      24      10
+		Pseudo assignments:     99      42
+		Simulation timescale:  1ps
+	Writing initial simulation snapshot: worklib.tb_simt_stack_controller:sv
+Loading snapshot worklib.tb_simt_stack_controller:sv .................... Done
+xmsim: *W,DSEM2009: This SystemVerilog design is simulated as per IEEE 1800-2009 SystemVerilog simulation semantics. Use -disable_sem2009 option for turning off SV 2009 simulation semantics.
+xcelium> source /data/eda_tools/cadence/XCELIUM2209/tools/xcelium/files/xmsimrc
+xcelium> run
+=== SIMT Stack Controller Testbench Started ===
+Time=9000: update_ready=1, init_ready=1, top_valid=0, top_pc=0xxxxxxxxx, empty=1
+Time=11000: update_ready=1, init_ready=1, top_valid=0, top_pc=0xxxxxxxxx, empty=1
+
+--- Test 1: Initial Empty Stack ---
+Time=14000: update_ready=1, init_ready=1, top_valid=0, top_pc=0xxxxxxxxx, empty=1
+✓ Initial State: Stack is empty as expected
+
+--- Test 2: Initialization Single Stack ---
+Time=16000: update_ready=1, init_ready=1, top_valid=0, top_pc=0xxxxxxxxx, empty=1
+Time=19000: update_ready=0, init_ready=1, top_valid=0, top_pc=0xxxxxxxxx, empty=1
+SIMT Controller: State IDLE -> INIT_PUSH
+Sent init: cta_id=0, cta_size=0, pc=0x00001000, reconv_pc=0x00001100
+Time=21000: update_ready=0, init_ready=0, top_valid=0, top_pc=0xxxxxxxxx, empty=1
+SIMT Controller: State INIT_PUSH -> FINAL_READ
+Time=24000: update_ready=0, init_ready=0, top_valid=0, top_pc=0xxxxxxxxx, empty=0
+SIMT Controller: State FINAL_READ -> IDLE
+Time=26000: update_ready=1, init_ready=1, top_valid=1, top_pc=0x00001000, empty=0
+✓ After Init Single: Stack top match - PC=0x00001000, ReconvPC=0x00001100
+
+--- Test 3: Initialization Two Stacks ---
+Time=29000: update_ready=1, init_ready=1, top_valid=1, top_pc=0x00001000, empty=0
+Time=31000: update_ready=0, init_ready=1, top_valid=1, top_pc=0x00001000, empty=0
+SIMT Controller: State IDLE -> INIT_PUSH
+Sent init: cta_id=1, cta_size=1, pc=0x00001200, reconv_pc=0x00001300
+Time=34000: update_ready=0, init_ready=0, top_valid=1, top_pc=0x00001000, empty=0
+SIMT Controller: State INIT_PUSH -> FINAL_READ
+Time=36000: update_ready=0, init_ready=0, top_valid=1, top_pc=0x00001000, empty=0
+SIMT Controller: State FINAL_READ -> IDLE
+Time=39000: update_ready=1, init_ready=1, top_valid=1, top_pc=0x00001000, empty=0
+✓ After Init Two: Stack top match - PC=0x00001200, ReconvPC=0x00001300
+
+--- Test 4: Init Priority Over Update ---
+Time=41000: update_ready=1, init_ready=1, top_valid=1, top_pc=0x00001000, empty=0
+Time=44000: update_ready=0, init_ready=1, top_valid=1, top_pc=0x00001000, empty=0
+SIMT Controller: State IDLE -> INIT_PUSH
+Time=46000: update_ready=0, init_ready=0, top_valid=1, top_pc=0x00001000, empty=0
+SIMT Controller: State INIT_PUSH -> FINAL_READ
+Time=49000: update_ready=0, init_ready=0, top_valid=1, top_pc=0x00001000, empty=0
+Time=51000: update_ready=0, init_ready=0, top_valid=1, top_pc=0x00001000, empty=0
+SIMT Controller: State FINAL_READ -> IDLE
+✓ Init Priority: Stack top match - PC=0x00001400, ReconvPC=0x00001500
+
+--- Test 5: No Divergence Update ---
+Time=54000: update_ready=1, init_ready=1, top_valid=1, top_pc=0x00001000, empty=0
+Time=56000: update_ready=1, init_ready=1, top_valid=1, top_pc=0x00001000, empty=0
+SIMT Controller: State IDLE -> READ_TOP
+Sent no-divergence update: next_pc=0x00001004
+Time=59000: update_ready=0, init_ready=0, top_valid=1, top_pc=0x00001000, empty=0
+SIMT Controller: State READ_TOP -> MODIFY_TOP
+SIMT Controller: READ_TOP analysis - pop=0, modify=1, push1=0, push2=0
+SIMT Controller: Will use new_top_pc=0x00001004 in next cycle
+Time=61000: update_ready=0, init_ready=0, top_valid=1, top_pc=0x00001000, empty=0
+SIMT Controller: State MODIFY_TOP -> FINAL_READ
+                  61 WARNING: Writing and reading addr0=00000 and addr1=00000 simultaneously!
+Time=64000: update_ready=0, init_ready=0, top_valid=1, top_pc=0x00001000, empty=0
+SIMT Controller: State FINAL_READ -> IDLE
+Time=66000: update_ready=1, init_ready=1, top_valid=1, top_pc=0x00001004, empty=0
+✓ After No Div Update: Stack top match - PC=0x00001004, ReconvPC=0x00001100
+
+--- Test 6: No Divergence with Metadata ---
+Time=69000: update_ready=1, init_ready=1, top_valid=1, top_pc=0x00001004, empty=0
+Time=71000: update_ready=1, init_ready=1, top_valid=1, top_pc=0x00001004, empty=0
+SIMT Controller: State IDLE -> READ_TOP
+Sent no-divergence update: next_pc=0x0000100c
+Time=74000: update_ready=0, init_ready=0, top_valid=1, top_pc=0x00001004, empty=0
+SIMT Controller: State READ_TOP -> MODIFY_TOP
+SIMT Controller: READ_TOP analysis - pop=0, modify=1, push1=0, push2=0
+SIMT Controller: Will use new_top_pc=0x0000100c in next cycle
+Time=76000: update_ready=0, init_ready=0, top_valid=1, top_pc=0x00001004, empty=0
+SIMT Controller: State MODIFY_TOP -> FINAL_READ
+                  76 WARNING: Writing and reading addr0=00000 and addr1=00000 simultaneously!
+Time=79000: update_ready=0, init_ready=0, top_valid=1, top_pc=0x00001004, empty=0
+SIMT Controller: State FINAL_READ -> IDLE
+Time=81000: update_ready=1, init_ready=1, top_valid=1, top_pc=0x0000100c, empty=0
+✓ After Metadata Update: Stack top match - PC=0x0000100c, ReconvPC=0x00001100
+
+--- Test 7: Unconditional Branch ---
+Time=84000: update_ready=1, init_ready=1, top_valid=1, top_pc=0x0000100c, empty=0
+Time=86000: update_ready=1, init_ready=1, top_valid=1, top_pc=0x0000100c, empty=0
+SIMT Controller: State IDLE -> READ_TOP
+Sent no-divergence update: next_pc=0x00001100
+Time=89000: update_ready=0, init_ready=0, top_valid=1, top_pc=0x0000100c, empty=0
+SIMT Controller: State READ_TOP -> POP_STACK
+SIMT Controller: READ_TOP analysis - pop=1, modify=0, push1=0, push2=0
+Time=91000: update_ready=0, init_ready=0, top_valid=1, top_pc=0x0000100c, empty=0
+SIMT Controller: State POP_STACK -> FINAL_READ
+Time=94000: update_ready=0, init_ready=0, top_valid=0, top_pc=0x0000100c, empty=1
+SIMT Controller: State FINAL_READ -> IDLE
+✓ Unconditional branch target updated correctly
+
+--- Test 8: Divergence All Taken ---
+Time=96000: update_ready=1, init_ready=1, top_valid=0, top_pc=0xxxxxxxxx, empty=1
+Time=99000: update_ready=0, init_ready=1, top_valid=0, top_pc=0xxxxxxxxx, empty=1
+SIMT Controller: State IDLE -> INIT_PUSH
+Sent init: cta_id=0, cta_size=0, pc=0x00001000, reconv_pc=0x00001500
+Time=101000: update_ready=0, init_ready=0, top_valid=0, top_pc=0xxxxxxxxx, empty=1
+SIMT Controller: State INIT_PUSH -> FINAL_READ
+Time=104000: update_ready=0, init_ready=0, top_valid=0, top_pc=0xxxxxxxxx, empty=0
+Time=106000: update_ready=0, init_ready=0, top_valid=1, top_pc=0x00001000, empty=0
+SIMT Controller: State FINAL_READ -> IDLE
+Time=109000: update_ready=1, init_ready=1, top_valid=1, top_pc=0x00001000, empty=0
+Time=111000: update_ready=1, init_ready=1, top_valid=1, top_pc=0x00001000, empty=0
+SIMT Controller: State IDLE -> READ_TOP
+Sent divergence update: taken=0x00001200, not_taken=0x00001020, reconvergence=0x00001400
+Time=114000: update_ready=0, init_ready=0, top_valid=1, top_pc=0x00001000, empty=0
+SIMT Controller: State READ_TOP -> MODIFY_TOP
+SIMT Controller: READ_TOP analysis - pop=0, modify=1, push1=0, push2=0
+SIMT Controller: Will use new_top_pc=0x00001200 in next cycle
+Time=116000: update_ready=0, init_ready=0, top_valid=1, top_pc=0x00001000, empty=0
+SIMT Controller: State MODIFY_TOP -> FINAL_READ
+                 116 WARNING: Writing and reading addr0=00000 and addr1=00000 simultaneously!
+Time=119000: update_ready=0, init_ready=0, top_valid=1, top_pc=0x00001000, empty=0
+SIMT Controller: State FINAL_READ -> IDLE
+Time=121000: update_ready=1, init_ready=1, top_valid=1, top_pc=0x00001200, empty=0
+✓ All Taken Branch: Stack top match - PC=0x00001200, ReconvPC=0x00001500
+
+--- Test 9: Divergence All Not Taken ---
+Time=124000: update_ready=1, init_ready=1, top_valid=1, top_pc=0x00001200, empty=0
+Time=126000: update_ready=1, init_ready=1, top_valid=1, top_pc=0x00001200, empty=0
+SIMT Controller: State IDLE -> READ_TOP
+Sent divergence update: taken=0x00001500, not_taken=0x00001220, reconvergence=0x00001500
+Time=129000: update_ready=0, init_ready=0, top_valid=1, top_pc=0x00001200, empty=0
+SIMT Controller: State READ_TOP -> MODIFY_TOP
+SIMT Controller: READ_TOP analysis - pop=0, modify=1, push1=0, push2=0
+SIMT Controller: Will use new_top_pc=0x00001220 in next cycle
+Time=131000: update_ready=0, init_ready=0, top_valid=1, top_pc=0x00001200, empty=0
+SIMT Controller: State MODIFY_TOP -> FINAL_READ
+                 131 WARNING: Writing and reading addr0=00000 and addr1=00000 simultaneously!
+Time=134000: update_ready=0, init_ready=0, top_valid=1, top_pc=0x00001200, empty=0
+SIMT Controller: State FINAL_READ -> IDLE
+Time=136000: update_ready=1, init_ready=1, top_valid=1, top_pc=0x00001220, empty=0
+✓ All Not Taken Branch: Stack top match - PC=0x00001220, ReconvPC=0x00001500
+
+--- Test 10: Real Divergence Case 2 ---
+Time=139000: update_ready=1, init_ready=1, top_valid=1, top_pc=0x00001220, empty=0
+Time=141000: update_ready=1, init_ready=1, top_valid=1, top_pc=0x00001220, empty=0
+SIMT Controller: State IDLE -> READ_TOP
+Sent no-divergence update: next_pc=0x00001240
+Time=144000: update_ready=0, init_ready=0, top_valid=1, top_pc=0x00001220, empty=0
+SIMT Controller: State READ_TOP -> MODIFY_TOP
+SIMT Controller: READ_TOP analysis - pop=0, modify=1, push1=0, push2=0
+SIMT Controller: Will use new_top_pc=0x00001240 in next cycle
+Time=146000: update_ready=0, init_ready=0, top_valid=1, top_pc=0x00001220, empty=0
+SIMT Controller: State MODIFY_TOP -> FINAL_READ
+                 146 WARNING: Writing and reading addr0=00000 and addr1=00000 simultaneously!
+Time=149000: update_ready=0, init_ready=0, top_valid=1, top_pc=0x00001220, empty=0
+SIMT Controller: State FINAL_READ -> IDLE
+Time=151000: update_ready=1, init_ready=1, top_valid=1, top_pc=0x00001240, empty=0
+Time=154000: update_ready=1, init_ready=1, top_valid=1, top_pc=0x00001240, empty=0
+SIMT Controller: State IDLE -> READ_TOP
+Sent divergence update: taken=0x00001300, not_taken=0x00001260, reconvergence=0x00001400
+Time=156000: update_ready=0, init_ready=0, top_valid=1, top_pc=0x00001240, empty=0
+SIMT Controller: State READ_TOP -> MODIFY_TOP
+SIMT Controller: READ_TOP analysis - pop=0, modify=1, push1=0, push2=0
+SIMT Controller: Will use new_top_pc=0x00001300 in next cycle
+Time=159000: update_ready=0, init_ready=0, top_valid=1, top_pc=0x00001240, empty=0
+SIMT Controller: State MODIFY_TOP -> FINAL_READ
+                 159 WARNING: Writing and reading addr0=00000 and addr1=00000 simultaneously!
+Time=161000: update_ready=0, init_ready=0, top_valid=1, top_pc=0x00001240, empty=0
+SIMT Controller: State FINAL_READ -> IDLE
+Time=164000: update_ready=1, init_ready=1, top_valid=1, top_pc=0x00001300, empty=0
+✓ Case 2 Setup: Stack top match - PC=0x00001300, ReconvPC=0x00001500
+Time=166000: update_ready=1, init_ready=1, top_valid=1, top_pc=0x00001300, empty=0
+Time=169000: update_ready=1, init_ready=1, top_valid=1, top_pc=0x00001300, empty=0
+SIMT Controller: State IDLE -> READ_TOP
+Sent divergence update: taken=0x00001340, not_taken=0x00001320, reconvergence=0x00001400
+Time=171000: update_ready=0, init_ready=0, top_valid=1, top_pc=0x00001300, empty=0
+SIMT Controller: State READ_TOP -> MODIFY_TOP
+SIMT Controller: READ_TOP analysis - pop=0, modify=1, push1=1, push2=1
+SIMT Controller: Will use new_top_pc=0x00001400 in next cycle
+Time=174000: update_ready=0, init_ready=0, top_valid=1, top_pc=0x00001300, empty=0
+SIMT Controller: State MODIFY_TOP -> PUSH_FIRST
+                 174 WARNING: Writing and reading addr0=00000 and addr1=00000 simultaneously!
+Time=176000: update_ready=0, init_ready=0, top_valid=1, top_pc=0x00001300, empty=0
+SIMT Controller: State PUSH_FIRST -> PUSH_SECOND
+Time=179000: update_ready=0, init_ready=0, top_valid=1, top_pc=0x00001400, empty=0
+SIMT Controller: State PUSH_SECOND -> FINAL_READ
+Time=181000: update_ready=0, init_ready=0, top_valid=1, top_pc=0x00001340, empty=0
+SIMT Controller: State FINAL_READ -> IDLE
+Time=184000: update_ready=1, init_ready=1, top_valid=1, top_pc=0x00001320, empty=0
+✓ Case 2 Top After Divergence: Stack top match - PC=0x00001320, ReconvPC=0x00001400
+Time=186000: update_ready=1, init_ready=1, top_valid=1, top_pc=0x00001320, empty=0
+Time=189000: update_ready=1, init_ready=1, top_valid=1, top_pc=0x00001320, empty=0
+SIMT Controller: State IDLE -> READ_TOP
+Sent no-divergence update: next_pc=0x00001400
+Time=191000: update_ready=0, init_ready=0, top_valid=1, top_pc=0x00001320, empty=0
+SIMT Controller: State READ_TOP -> POP_STACK
+SIMT Controller: READ_TOP analysis - pop=1, modify=0, push1=0, push2=0
+Time=194000: update_ready=0, init_ready=0, top_valid=1, top_pc=0x00001320, empty=0
+SIMT Controller: State POP_STACK -> FINAL_READ
+Time=196000: update_ready=0, init_ready=0, top_valid=1, top_pc=0x00001320, empty=0
+SIMT Controller: State FINAL_READ -> IDLE
+Time=199000: update_ready=1, init_ready=1, top_valid=1, top_pc=0x00001340, empty=0
+✓ Case 2 Not taken path Reach Reconvergence, taken path should be on top: Stack top match - PC=0x00001340, ReconvPC=0x00001400
+Time=201000: update_ready=1, init_ready=1, top_valid=1, top_pc=0x00001340, empty=0
+Time=204000: update_ready=1, init_ready=1, top_valid=1, top_pc=0x00001340, empty=0
+SIMT Controller: State IDLE -> READ_TOP
+Sent no-divergence update: next_pc=0x00001400
+Time=206000: update_ready=0, init_ready=0, top_valid=1, top_pc=0x00001340, empty=0
+SIMT Controller: State READ_TOP -> POP_STACK
+SIMT Controller: READ_TOP analysis - pop=1, modify=0, push1=0, push2=0
+Time=209000: update_ready=0, init_ready=0, top_valid=1, top_pc=0x00001340, empty=0
+SIMT Controller: State POP_STACK -> FINAL_READ
+Time=211000: update_ready=0, init_ready=0, top_valid=1, top_pc=0x00001340, empty=0
+SIMT Controller: State FINAL_READ -> IDLE
+Time=214000: update_ready=1, init_ready=1, top_valid=1, top_pc=0x00001400, empty=0
+✓ Case 2 Taken path Reach Reconvergence: Stack top match - PC=0x00001400, ReconvPC=0x00001500
+
+--- Test 11: Real Divergence Case 3 ---
+Time=216000: update_ready=1, init_ready=1, top_valid=1, top_pc=0x00001400, empty=0
+Time=219000: update_ready=1, init_ready=1, top_valid=1, top_pc=0x00001400, empty=0
+SIMT Controller: State IDLE -> READ_TOP
+Sent divergence update: taken=0x00001500, not_taken=0x00001420, reconvergence=0x00001500
+Time=221000: update_ready=0, init_ready=0, top_valid=1, top_pc=0x00001400, empty=0
+SIMT Controller: State READ_TOP -> MODIFY_TOP
+SIMT Controller: READ_TOP analysis - pop=0, modify=1, push1=0, push2=0
+SIMT Controller: Will use new_top_pc=0x00001500 in next cycle
+Time=224000: update_ready=0, init_ready=0, top_valid=1, top_pc=0x00001400, empty=0
+SIMT Controller: State MODIFY_TOP -> FINAL_READ
+                 224 WARNING: Writing and reading addr0=00000 and addr1=00000 simultaneously!
+Time=226000: update_ready=0, init_ready=0, top_valid=1, top_pc=0x00001400, empty=0
+SIMT Controller: State FINAL_READ -> IDLE
+Time=229000: update_ready=1, init_ready=1, top_valid=1, top_pc=0x00001420, empty=0
+✓ Case 3 After Divergence: Stack top match - PC=0x00001420, ReconvPC=0x00001500
+
+--- Test 12: Real Divergence Case 4 ---
+Time=231000: update_ready=1, init_ready=1, top_valid=1, top_pc=0x00001420, empty=0
+Time=234000: update_ready=1, init_ready=1, top_valid=1, top_pc=0x00001420, empty=0
+SIMT Controller: State IDLE -> READ_TOP
+Sent divergence update: taken=0x00001100, not_taken=0x00001500, reconvergence=0x00001500
+Time=236000: update_ready=0, init_ready=0, top_valid=1, top_pc=0x00001420, empty=0
+SIMT Controller: State READ_TOP -> MODIFY_TOP
+SIMT Controller: READ_TOP analysis - pop=0, modify=1, push1=0, push2=0
+SIMT Controller: Will use new_top_pc=0x00001500 in next cycle
+Time=239000: update_ready=0, init_ready=0, top_valid=1, top_pc=0x00001420, empty=0
+SIMT Controller: State MODIFY_TOP -> FINAL_READ
+                 239 WARNING: Writing and reading addr0=00000 and addr1=00000 simultaneously!
+Time=241000: update_ready=0, init_ready=0, top_valid=1, top_pc=0x00001420, empty=0
+SIMT Controller: State FINAL_READ -> IDLE
+Time=244000: update_ready=1, init_ready=1, top_valid=1, top_pc=0x00001100, empty=0
+✓ Case 4 After Divergence: Stack top match - PC=0x00001100, ReconvPC=0x00001500
+Time=246000: update_ready=1, init_ready=1, top_valid=1, top_pc=0x00001100, empty=0
+Time=249000: update_ready=1, init_ready=1, top_valid=1, top_pc=0x00001100, empty=0
+SIMT Controller: State IDLE -> READ_TOP
+Sent no-divergence update: next_pc=0x00001500
+Time=251000: update_ready=0, init_ready=0, top_valid=1, top_pc=0x00001100, empty=0
+SIMT Controller: State READ_TOP -> POP_STACK
+SIMT Controller: READ_TOP analysis - pop=1, modify=0, push1=0, push2=0
+Time=254000: update_ready=0, init_ready=0, top_valid=1, top_pc=0x00001100, empty=0
+SIMT Controller: State POP_STACK -> FINAL_READ
+Time=256000: update_ready=0, init_ready=0, top_valid=0, top_pc=0x00001100, empty=1
+SIMT Controller: State FINAL_READ -> IDLE
+✓ Unconditional branch target updated correctly
+
+--- Test 13: Real Divergence Case 1 ---
+Time=259000: update_ready=1, init_ready=1, top_valid=0, top_pc=0xxxxxxxxx, empty=1
+Time=261000: update_ready=0, init_ready=1, top_valid=0, top_pc=0xxxxxxxxx, empty=1
+SIMT Controller: State IDLE -> INIT_PUSH
+Sent init: cta_id=0, cta_size=0, pc=0x00001000, reconv_pc=0x00001500
+Time=264000: update_ready=0, init_ready=0, top_valid=0, top_pc=0xxxxxxxxx, empty=1
+SIMT Controller: State INIT_PUSH -> FINAL_READ
+Time=266000: update_ready=0, init_ready=0, top_valid=0, top_pc=0xxxxxxxxx, empty=0
+Time=269000: update_ready=0, init_ready=0, top_valid=1, top_pc=0x00001000, empty=0
+SIMT Controller: State FINAL_READ -> IDLE
+Time=271000: update_ready=1, init_ready=1, top_valid=1, top_pc=0x00001000, empty=0
+✓ Test 13 Setup: Stack top match - PC=0x00001000, ReconvPC=0x00001500
+Time=274000: update_ready=1, init_ready=1, top_valid=1, top_pc=0x00001000, empty=0
+Time=276000: update_ready=1, init_ready=1, top_valid=1, top_pc=0x00001000, empty=0
+SIMT Controller: State IDLE -> READ_TOP
+Sent divergence update: taken=0x00001500, not_taken=0x00001020, reconvergence=0x00001500
+Time=279000: update_ready=0, init_ready=0, top_valid=1, top_pc=0x00001000, empty=0
+SIMT Controller: State READ_TOP -> MODIFY_TOP
+SIMT Controller: READ_TOP analysis - pop=0, modify=1, push1=0, push2=0
+SIMT Controller: Will use new_top_pc=0x00001500 in next cycle
+Time=281000: update_ready=0, init_ready=0, top_valid=1, top_pc=0x00001000, empty=0
+SIMT Controller: State MODIFY_TOP -> FINAL_READ
+                 281 WARNING: Writing and reading addr0=00000 and addr1=00000 simultaneously!
+Time=284000: update_ready=0, init_ready=0, top_valid=1, top_pc=0x00001000, empty=0
+SIMT Controller: State FINAL_READ -> IDLE
+Time=286000: update_ready=1, init_ready=1, top_valid=1, top_pc=0x00001020, empty=0
+✓ Case 1 After Divergence: Stack top match - PC=0x00001020, ReconvPC=0x00001500
+
+--- Test 16: Backpressure Test ---
+Time=289000: update_ready=1, init_ready=1, top_valid=1, top_pc=0x00001020, empty=0
+Time=291000: update_ready=1, init_ready=1, top_valid=1, top_pc=0x00001020, empty=0
+SIMT Controller: State IDLE -> READ_TOP
+Time=294000: update_ready=0, init_ready=0, top_valid=1, top_pc=0x00001020, empty=0
+SIMT Controller: State READ_TOP -> MODIFY_TOP
+SIMT Controller: READ_TOP analysis - pop=0, modify=1, push1=0, push2=0
+SIMT Controller: Will use new_top_pc=0x00002400 in next cycle
+Time=296000: update_ready=0, init_ready=0, top_valid=1, top_pc=0x00001020, empty=0
+SIMT Controller: State MODIFY_TOP -> FINAL_READ
+                 296 WARNING: Writing and reading addr0=00000 and addr1=00000 simultaneously!
+✓ Backpressure working - not ready during processing
+Time=299000: update_ready=0, init_ready=0, top_valid=1, top_pc=0x00001020, empty=0
+SIMT Controller: State FINAL_READ -> IDLE
+
+=== Test Summary ===
+Total Tests: 17
+Passed: 19
+Failed: 0
+🎉 ALL TESTS PASSED!
+Simulation complete via $finish(1) at time 300 NS + 0
+./tb_simt_stack_controller.sv:463         $finish;
+xcelium> exit
+TOOL:	xmverilog	22.09-s001: Exiting on Jul 15, 2025 at 16:07:17 PDT  (total: 00:00:01)

@@ -1,0 +1,6 @@
+Command exited with non-zero status 255
+{"vcs1":{"timestamp_begin":1750808712.855263886, "rt":0.05, "ut":0.02, "st":0.02}}
+{"SNPS_VCS_INTERNAL_ROOT_START_TIME": 1750808712.554591278}
+{"VCS_COMP_START_TIME": 1750808712.554591278}
+{"VCS_COMP_END_TIME": 1750808712.976122634}
+{"VCS_USER_OPTIONS": "-full64 -sverilog -debug_all -f filelist.f -l compile.log"}

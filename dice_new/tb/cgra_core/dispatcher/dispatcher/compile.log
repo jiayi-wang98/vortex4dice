@@ -1,0 +1,86 @@
+
+Warning-[LNX_OS_VERUN] Unsupported Linux version
+  Linux version 'AlmaLinux release 8.10 (Cerulean Leopard)' is not supported 
+  on 'x86_64' officially, assuming linux compatibility by default. Set 
+  VCS_ARCH_OVERRIDE to linux or suse32 to override.
+  Please refer to release notes for information on supported platforms.
+
+
+Warning-[DEBUG_DEP] Option will be deprecated
+  The option '-debug_all' will be deprecated in a future release.  Please use 
+  '-debug_acc+all+dmptf -debug_region+cell+encrypt' instead.
+
+Command: vcs -full64 -sverilog -debug_all -f filelist_basic.f -l compile.log -timescale=1ns/100ps \
+
+                         Chronologic VCS (TM)
+         Version T-2022.06_Full64 -- Thu Jun 26 00:26:11 2025
+
+                    Copyright (c) 1991 - 2022 Synopsys, Inc.
+   This software and the associated documentation are proprietary to Synopsys,
+ Inc. This software may only be used in accordance with the terms and conditions
+ of a written license agreement with Synopsys, Inc. All other use, reproduction,
+   or distribution of this software is strictly prohibited.  Licensed Products
+     communicate with Synopsys servers for the purpose of providing software
+    updates, detecting software piracy and verifying that customers are using
+    Licensed Products in conformity with the applicable License Key for such
+  Licensed Products. Synopsys will use information gathered in connection with
+    this process to deliver software updates and pursue software pirates and
+                                   infringers.
+
+ Inclusivity & Diversity - Visit SolvNetPlus to read the "Synopsys Statement on
+            Inclusivity and Diversity" (Refer to article 000036315 at
+                        https://solvnetplus.synopsys.com)
+
+
+Warning-[DEBUG_DEP] Option will be deprecated
+  The option '-debug_all' will be deprecated in a future release.  Please use 
+  '-debug_acc+all -debug_region+cell+encrypt' instead.
+
+Parsing design file '../../../../cgra_core/dispatcher/scoreboard.sv'
+Parsing design file '../../../../cgra_core/dispatcher/next_thread_logic_top.sv'
+Parsing design file '../../../../cgra_core/dispatcher/next_active_thread_logic.sv'
+Parsing design file '../../../../cgra_core/dispatcher/active_mask_mapper.sv'
+Parsing design file '../../../../cgra_core/dispatcher/priority_encoder_8bit.sv'
+Parsing design file '../../../../cgra_core/dispatcher/priority_encoder_64bit.sv'
+Parsing design file '../../../../cgra_core/dispatcher/reverse_mapper.sv'
+Parsing design file '../../../../cgra_core/dispatcher/thread_filter.sv'
+Parsing design file '../../../../cgra_core/dispatcher/sync_fifo.sv'
+Parsing design file '../../../../cgra_core/dispatcher/dispatcher.sv'
+Parsing design file '../../../../cgra_core/dispatcher/constant_scoreboard.sv'
+Parsing design file './tb_basic_dispatcher.sv'
+Top Level Modules:
+       dispatcher_basic_testbench
+TimeScale is 1 ns / 100 ps
+
+Warning-[PCWM-W] Port connection width mismatch
+./tb_basic_dispatcher.sv, 35
+"dispatcher dut( .clk (clk),  .rst_n (rst_n),  .unrolling_factor (unrolling_factor),  .input_register_bitmap (input_register_bitmap),  .active_mask (active_mask),  .cta_size (cta_size),  .fetch_done (fetch_done),  .wb_valid (wb_valid),  .wb_tid_bitmap (wb_tid_bitmap),  .ld_dest_reg (ld_dest_reg),  .dispatch_fifo_pop (dispatch_fifo_pop),  .dispatch_tid_0 (dispatch_tid_0),  .dispatch_valid_0 (dispatch_valid_0),  .dispatch_tid_1 (dispatch_tid_1),  .dispatch_valid_1 (dispatch_valid_1),  .dispatch_tid_2 (dispatch_tid_2),  .dispatch_valid_2 (dispatch_valid_2),  .dispatch_tid_3 (dispatch_tid_3),  .dispatch_valid_3 (dispatch_valid_3),  .dispatch_fifo_empty (dispatch_fifo_empty),  .dispatcher_busy (dispatcher_busy),  .dispatcher_done (dispatcher_done));"
+  The following 4-bit expression is connected to 1-bit port 
+  "dispatch_fifo_pop" of module "dispatcher", instance "dut".
+  Expression: dispatch_fifo_pop
+  Instantiated module defined at: 
+  "../../../../cgra_core/dispatcher/dispatcher.sv", 1
+  Use +lint=PCWM for more details.
+
+Starting vcs inline pass...
+
+6 modules and 0 UDP read.
+recompiling module scoreboard_tid_entry
+recompiling module scoreboard
+recompiling module priority_encoder_8bit
+recompiling module priority_encoder_64bit
+recompiling module sync_fifo
+recompiling module dispatcher_basic_testbench
+All of 6 modules done
+rm -f _cuarc*.so _csrc*.so pre_vcsobj_*.so share_vcsobj_*.so
+if [ -x ../simv ]; then chmod a-x ../simv; fi
+g++  -o ../simv      -rdynamic  -Wl,-rpath='$ORIGIN'/simv.daidir -Wl,-rpath=./simv.daidir \
+-Wl,-rpath=/data/eda_tools/synopsys/tools/vcs/T-2022.06/linux64/lib -L/data/eda_tools/synopsys/tools/vcs/T-2022.06/linux64/lib \
+-Wl,-rpath-link=./  /usr/lib64/libnuma.so.1   objs/amcQw_d.o   _2593201_archive_1.so \
+_prev_archive_1.so  SIM_l.o      rmapats_mop.o rmapats.o rmar.o rmar_nd.o  rmar_llvm_0_1.o \
+rmar_llvm_0_0.o           -lvirsim -lerrorinf -lsnpsmalloc -lvfs    -lvcsnew -lsimprofile \
+-luclinative /data/eda_tools/synopsys/tools/vcs/T-2022.06/linux64/lib/vcs_tls.o  \
+-Wl,-whole-archive  -lvcsucli    -Wl,-no-whole-archive          /data/eda_tools/synopsys/tools/vcs/T-2022.06/linux64/lib/vcs_save_restore_new.o \
+-ldl  -lc -lm -lpthread -ldl 
+../simv up to date
+CPU time: .418 seconds to compile + .213 seconds to elab + .170 seconds to link

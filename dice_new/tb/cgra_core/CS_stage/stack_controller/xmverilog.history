@@ -1,0 +1,1 @@
+s1(15Jul2025:16:07:16):  xmverilog -f filelist.f -sv -64bit +access+rcw -top tb_simt_stack_controller -stop_on_build_error -timescale 1ns/1ps 

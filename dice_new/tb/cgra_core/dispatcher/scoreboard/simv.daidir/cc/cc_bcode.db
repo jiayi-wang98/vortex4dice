@@ -1,0 +1,2 @@
+sid scoreboard_testbench
+bcid 0 0 WIDTH,34 CALL_ARG_VAL,2,0 CALL_ARG_VAL,3,0 AND RET

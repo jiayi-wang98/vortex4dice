@@ -1,0 +1,22 @@
+//
+// File created by:  xmverilog
+// Do not modify this file
+//
++access+rcw
+-MESSAGES
++EMGRLOG
+xmverilog.log
+-XLSTIME
+1752738220
+-XLKEEP
+-XLMODE
+./xcelium.d/run.lnx8664.22.09.d
+-RUNMODE
+-CDSLIB
+./xcelium.d/run.lnx8664.22.09.d/cds.lib
+-HDLVAR
+./xcelium.d/run.lnx8664.22.09.d/hdl.var
+-XLNAME
+xmverilog
+-XLVERSION
+"TOOL:	xmverilog	22.09-s001"

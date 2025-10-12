@@ -1,0 +1,14 @@
+//
+// File created by:  xmverilog
+// Do not modify this file
+//
+-f
+filelist.f
+-sv
+-64bit
++access+rcw
+-top
+tb_block_commit_table
+-stop_on_build_error
+-timescale
+1ns/1ps

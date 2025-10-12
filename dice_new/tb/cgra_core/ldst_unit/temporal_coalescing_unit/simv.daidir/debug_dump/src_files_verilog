@@ -1,0 +1,4 @@
+/data/jwang710/dice-rtl/cgra_core/dispatcher/sync_fifo_read_unreg.sv
+/data/jwang710/dice-rtl/cgra_core/ldst_unit/memory_cmd_coalesce_buffer.sv
+/data/jwang710/dice-rtl/cgra_core/ldst_unit/temporal_coalescing_unit.sv
+/data/jwang710/dice-rtl/tb/cgra_core/ldst_unit/temporal_coalescing_unit/tb_tcu.sv
