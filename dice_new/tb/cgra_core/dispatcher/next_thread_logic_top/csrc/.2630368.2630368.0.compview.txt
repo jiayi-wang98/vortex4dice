@@ -1,5 +1,0 @@
-{"vcs1":{"timestamp_begin":1750961154.265661605, "rt":0.10, "ut":0.03, "st":0.02}}
-{"SNPS_VCS_INTERNAL_ROOT_START_TIME": 1750961153.943350242}
-{"VCS_COMP_START_TIME": 1750961153.943350242}
-{"VCS_COMP_END_TIME": 1750961154.402604308}
-{"VCS_USER_OPTIONS": "-full64 -sverilog -debug_all -f filelist.f -l compile.log -timescale=1ns/100ps"}
