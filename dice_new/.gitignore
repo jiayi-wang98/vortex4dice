@@ -1,0 +1,17 @@
+*.vcd
+syn/*
+pwr/*
+*.sdf
+*.spef
+*.rpt
+*.log
+*csrc/*
+*simv*
+*ucli.key
+*.dsn
+*.trn
+*.so
+*.hsopt
+*.fsdb
+openRAM/__pycache__/*
+openRAM/*
