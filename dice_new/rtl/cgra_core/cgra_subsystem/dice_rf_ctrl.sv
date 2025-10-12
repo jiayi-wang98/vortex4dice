@@ -1,5 +1,5 @@
 //these module includes all 32-bit general-purpose register file banks (16 banks) and rf input/output address converter and input/output latency management
-module dice_rf_ctrl #()(
+module dice_rf_ctrl #(
     parameter int NUM_PORTS = 16,
     parameter int DATA_WIDTH = 32,
     parameter int NUM_TID = 512,
