@@ -28,13 +28,20 @@ detect_osversion() {
                     focal) osversion="ubuntu/focal";;
                     jammy) osversion="ubuntu/focal";;
                     noble) osversion="ubuntu/focal";;
-                    # Add new versions as needed
+                    # Add new Ubuntu versions as needed
                 esac
                 ;;
             centos)
                 case "$VERSION_ID" in
                     7) osversion="centos/7";;
-                    # Add new versions as needed
+                    # Add new CentOS versions as needed
+                esac
+                ;;
+            almalinux)
+                case "$VERSION_ID" in
+                    8.10) osversion="almalinux/8.10";;
+                    8*) osversion="almalinux/8";;   # Generic match for all 8.x versions
+                    9*) osversion="almalinux/9";;   # Optional: handle 9.x versions too
                 esac
                 ;;
         esac
