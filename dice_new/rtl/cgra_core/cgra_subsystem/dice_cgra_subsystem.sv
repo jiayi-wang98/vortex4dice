@@ -1,22 +1,45 @@
 module dice_cgra_subsystem #(
+    parameter int NUM_CGRA_IO = 32,
     parameter int NUM_PORTS = 16,
     parameter int DATA_WIDTH = 32,
     parameter int NUM_TID = 512,
+    parameter int TID_WIDTH = $clog2(NUM_TID),
+    parameter int MAX_CTA_ID = 65535,
+    parameter int CTA_ID_WIDTH = $clog2(MAX_CTA_ID),
     parameter int RF_ADDR_WIDTH = $clog2(NUM_TID),
     parameter int MAX_IO_PIPE_STAGE = 8,
     parameter int MAX_CGRA_PIPE_STAGE = 32,
-    parameter int CGRA_CFG_WIDTH = 16*156
+    parameter int CGRA_CFG_WIDTH = 16*156,
+    parameter int SPECIAL_REG_IO = NUM_CGRA_IO - NUM_PORTS //number of CGRA I/O used by special registers
 )(
     input  logic                             clk,
     input  logic                             rst_n,
     input  logic                             clr,
 
     // From Dispatcher
-    input  logic [$clog2(NUM_TID+1)-1:0]          disp_tid,
-    input  logic                            disp_valid,
+    input  logic [TID_WIDTH-1:0]          disp_tid,
+    input  logic                          disp_valid,
+    input  logic [TID_WIDTH-1:0]          tid_x,
+    input  logic [TID_WIDTH-1:0]          tid_y,
+    input  logic [TID_WIDTH-1:0]          tid_z,
+    input  logic [TID_WIDTH-1:0]          ntid_x,
+    input  logic [TID_WIDTH-1:0]          ntid_y,
+    input  logic [TID_WIDTH-1:0]          ntid_z,
+    input  logic [CTA_ID_WIDTH-1:0]          ctaid_x,
+    input  logic [CTA_ID_WIDTH-1:0]          ctaid_y,
+    input  logic [CTA_ID_WIDTH-1:0]          ctaid_z,
+    input  logic [CTA_ID_WIDTH-1:0]          nctaid_x,
+    input  logic [CTA_ID_WIDTH-1:0]          nctaid_y,
+    input  logic [CTA_ID_WIDTH-1:0]          nctaid_z,
     // From metadata to control RF read/write enables
+    // special reg
+    input logic [SPECIAL_REG_IO-1:0] spec_rd_enable,
+    input logic [4*SPECIAL_REG_IO-1:0] spec_rd_select,
+    input logic [SPECIAL_REG_IO*DATA_WIDTH-1:0] const_reg,
+    // general purpose register file
     input logic [NUM_PORTS-1:0]       rf_rd_en,
     input logic [NUM_PORTS-1:0]       rf_wr_en,
+    // predicate register file
     input logic [NUM_PORTS-1:0]       prf_rd_en,
     input logic [NUM_PORTS-1:0]       prf_wr_en,
 
@@ -39,7 +62,6 @@ module dice_cgra_subsystem #(
     // Wires
     //-----------------------------------------------------------
     // CGRA I/O
-    localparam int NUM_CGRA_IO = 32;
     localparam int CGRA_IO_PER_EDGE = NUM_CGRA_IO / 4;
     localparam int RF_PORTS_RATIO= NUM_CGRA_IO / NUM_PORTS; 
 
@@ -70,18 +92,18 @@ module dice_cgra_subsystem #(
     // CGRA port order:
     //                        N
     //                 0 1 2 3 4 5 6 7
-    //               r4  r5    r6    r7
+    //               r4c4r5 c5 r6 c6 r7 c7
     //               8 9 10 11 12 13 14 15
     //    0  r0  0 --|--------------------|-- 16   r8   0    
-    //    1      1 --|                    |-- 17        1
+    //    1  c0  1 --|                    |-- 17   c8   1
     //    2  r1  2 --|                    |-- 18   r9   2
-    // W  3      3 --|                    |-- 19        3   E
+    // W  3  c1  3 --|                    |-- 19   c9   3   E
     //    4  r2  4 --|                    |-- 20   r10  4
-    //    5      5 --|                    |-- 21        5
+    //    5  c2  5 --|                    |-- 21   c10  5
     //    6  r3  6 --|                    |-- 22   r11  6  
-    //    7      7 --|--------------------|-- 23        7      
+    //    7  c3  7 --|--------------------|-- 23   c11  7      
     //              24 25 26 27 28 29 30 31
-    //              r12   r13   r14   r15
+    //              r12c12r13c13r14c14r15c15
     //                   0 1 2 3 4 5 6 7
     //                         S
     always_comb begin
@@ -111,6 +133,54 @@ module dice_cgra_subsystem #(
     // cgra output tid and valid
     logic [$clog2(NUM_TID+1)-1:0] out_tid;
     logic out_valid;
+
+    //-----------------------------------------------------------
+    // Special Register
+    //-----------------------------------------------------------
+    logic [SPECIAL_REG_IO*DATA_WIDTH-1:0] spec_reg_out;
+
+    genvar i;
+    generate
+        for (i = 0; i < SPECIAL_REG_IO; i++) begin : gen_special_reg
+            dice_special_reg #(
+              .DATA_WIDTH(DATA_WIDTH),
+              .NUM_TID(NUM_TID),
+              .MAX_CTA_ID(65535)
+            ) u_special_reg_extra (
+              .clk(clk),
+              .rst_n(rst_n),
+              .clr(clr),
+              .rd_en(spec_rd_enable[i]),
+              .rd_sel(spec_rd_select[i*4 +: 4]),
+              .const_data(const_reg[i*DATA_WIDTH +: DATA_WIDTH]),
+              .tid_x(tid_x),
+              .tid_y(tid_y),
+              .tid_z(tid_z),
+              .ntid_x(ntid_x),
+              .ntid_y(ntid_y),
+              .ntid_z(ntid_z),
+              .ctaid_x(ctaid_x),
+              .ctaid_y(ctaid_y),
+              .ctaid_z(ctaid_z),
+              .nctaid_x(nctaid_x),
+              .nctaid_y(nctaid_y),
+              .nctaid_z(nctaid_z),
+              .out_data(spec_reg_out[i*DATA_WIDTH +: DATA_WIDTH]),
+            );
+        end
+    endgenerate
+
+    dice_special_reg #(
+      .DATA_WIDTH(DATA_WIDTH),
+      .NUM_PORTS(NUM_PORTS)
+    ) u_special_reg (
+      .clk(clk),
+      .rst_n(rst_n),
+      .clr(clr),
+      .in_data(CGRA_int),
+      .out_data(CGRA_outt)
+    );
+
     //-----------------------------------------------------------
     // TID Shift Register
     //-----------------------------------------------------------
@@ -139,10 +209,19 @@ module dice_cgra_subsystem #(
 
     // mapping from CGRA ports to RF ports
     always_comb begin
+        //set CGRA ports with special registers first
+        for (int i=0; i<NUM_PORTS; i++) begin
+            for(int j=0; j<RF_PORTS_RATIO; j++) begin
+                CGRA_in_t[i*RF_PORTS_RATIO+j] = spec_reg_out[i];
+            end
+        end
+        //overwrite CGRA ports with general purpose registers
         for (int i=0; i<NUM_PORTS; i++) begin
             CGRA_in_t[i*RF_PORTS_RATIO] = rf_rd_data[i];
             rf_wr_data[i] = CGRA_out_t[i*RF_PORTS_RATIO];
         end
+
+        //predicate register
         CGRA_in_p = '1; // all other unused predicate inputs are tied to high so that it can be use as a constant high input.
         for (int i=0; i<NUM_PORTS; i++) begin
             CGRA_in_p[i*RF_PORTS_RATIO] = prf_rd_data[i];
