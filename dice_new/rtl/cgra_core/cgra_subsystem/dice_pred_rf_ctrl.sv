@@ -1,8 +1,9 @@
-//these module includes all 32-bit general-purpose register file banks (16 banks) and rf input/output address converter and input/output latency management
-module dice_rf_ctrl #(
+//these module includes all 32-bit general-purpose register file banks (16 banks) and rf input/output address converter and input/output latency management and special register control
+module dice_pred_rf_ctrl #(
     parameter int NUM_PORTS = 16,
-    parameter int DATA_WIDTH = 32,
+    parameter int DATA_WIDTH = 1,
     parameter int NUM_TID = 512,
+    parameter int MAX_CTA_ID = 65535,
     parameter int RF_ADDR_WIDTH = $clog2(NUM_TID),
     parameter int MAX_IO_PIPE_STAGE = 8
 )(
@@ -34,11 +35,10 @@ module dice_rf_ctrl #(
     logic [NUM_PORTS*DATA_WIDTH-1:0] pipe_rd_data;
     logic [NUM_PORTS*DATA_WIDTH-1:0] pipe_wr_data;
 
-
     //generate individual instance for each port to ease debug from waveform
     genvar i;
     generate
-        for (i = 0; i < NUM_PORTS; i++) begin : gen_addr
+        for (i = 0; i < NUM_PORTS; i++) begin : gen_rf_banks
             latency_io #(
                 .NUM_PORTS(1),
                 .WIDTH(DATA_WIDTH),

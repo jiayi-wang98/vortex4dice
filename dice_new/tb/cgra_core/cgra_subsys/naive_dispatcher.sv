@@ -8,6 +8,12 @@ module naive_dispatcher #(
     input logic [$clog2(TOTAL_TID+1)-1:0] max_tid,
     output logic done,
     output logic [$clog2(TOTAL_TID+1)-1:0] dispatch_tid,
+    input logic [$clog2(TOTAL_TID+1)-1:0] ntid_x,
+    input logic [$clog2(TOTAL_TID+1)-1:0] ntid_y,
+    input logic [$clog2(TOTAL_TID+1)-1:0] ntid_z,
+    output logic [$clog2(TOTAL_TID+1)-1:0] tid_x,
+    output logic [$clog2(TOTAL_TID+1)-1:0] tid_y,
+    output logic [$clog2(TOTAL_TID+1)-1:0] tid_z,
     output logic tid_valid
 );
 
@@ -33,4 +39,8 @@ module naive_dispatcher #(
             tid_valid <= 0;
         end
     end
+
+    assign tid_x = dispatch_tid % (ntid_x+1);
+    assign tid_y = (dispatch_tid / (ntid_x+1)) % (ntid_y+1);
+    assign tid_z = (dispatch_tid / ((ntid_x+1) * (ntid_y+1))) % (ntid_z+1);
 endmodule

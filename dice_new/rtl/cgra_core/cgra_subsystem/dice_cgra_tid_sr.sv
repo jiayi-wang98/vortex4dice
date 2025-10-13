@@ -13,7 +13,9 @@ module dice_cgra_tid_sr #(
     input  logic                             in_valid,
 
     output logic [TID_WIDTH-1:0]            out_tid,
-    output logic                            out_valid
+    output logic                            out_valid,
+
+    output logic                            empty
 );
 
   //-------------------------------
@@ -30,5 +32,25 @@ module dice_cgra_tid_sr #(
     .in_data  ({in_valid, in_tid}),    // valid as MSB
     .out_data ({out_valid, out_tid})
   );
+
+  //empty is calculated by a counter to counter input valid and output valids
+  logic [$clog2(MAX_LATENCY+1)-1:0] counter;
+  always_ff @(posedge clk or negedge rst_n) begin
+    if (!rst_n) begin
+        counter <= 0;
+    end else if (clr) begin
+        counter <= 0;
+    end else begin
+        if (in_valid && !out_valid) begin
+            if (counter < MAX_LATENCY)
+                counter <= counter + 1;
+        end else if (!in_valid && out_valid) begin
+            if (counter > 0)
+                counter <= counter - 1;
+        end
+    end
+  end
+
+  assign empty = (counter == 0);
 
 endmodule

@@ -27,9 +27,42 @@ module simple_ram #(
       rd_data = mem[rd_addr];
   end
 
-  // Optional initialization for simulation
-  initial begin
-    for (int i = 0; i < DEPTH; i++)
-      mem[i] = '0;
-  end
+  //load memory from file for simulation
+  task load_memory_from_file(input string filename);
+    int fd;
+    int status;
+    string line;
+    fd = $fopen(filename, "r");
+    if (!fd) begin
+      $fatal("Cannot open memory initialization file: %s", filename);
+    end
+    int addr = 0;
+    while (!$feof(fd) && addr < DEPTH) begin
+      status = $fgets(line, fd);
+      line = line.trim();
+      if (line.len() < WIDTH) continue; //skip invalid lines
+      for (int b = 0; b < WIDTH; b++)
+        mem[addr][WIDTH-1 - b] = (line[b] == "1");
+      addr++;
+    end
+    $fclose(fd);
+    $display("[%0t] Loaded %0d words into RAM from %s", $time, addr, filename);
+  endtask
+
+  task save_memory_to_file(input string filename);
+    int fd;
+    fd = $fopen(filename, "w");
+    if (!fd) begin
+      $fatal("Cannot open memory output file: %s", filename);
+    end
+    for (int addr = 0; addr < DEPTH; addr++) begin
+      string line = "";
+      for (int b = 0; b < WIDTH; b++) begin
+        line = {line, mem[addr][WIDTH-1 - b] ? "1" : "0"};
+      end
+      $fwrite(fd, "%s\n", line);
+    end
+    $fclose(fd);
+    $display("[%0t] Saved %0d words from RAM to %s", $time, DEPTH, filename);
+  endtask
 endmodule
