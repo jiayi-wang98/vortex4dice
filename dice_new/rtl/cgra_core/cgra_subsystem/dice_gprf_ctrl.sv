@@ -5,6 +5,7 @@ module dice_gprf_ctrl #(
     parameter int NUM_TID = 512,
     parameter int MAX_CTA_ID = 65535,
     parameter int RF_ADDR_WIDTH = $clog2(NUM_TID),
+    parameter int CTAID_WIDTH = $clog2(MAX_CTA_ID),
     parameter int MAX_IO_PIPE_STAGE = 8
 )(
     input  logic              clk,
@@ -12,11 +13,11 @@ module dice_gprf_ctrl #(
     input logic               clr,
     // Read Input
     input  logic [NUM_PORTS-1:0]    rd_en,
-    input  logic [NUM_PORTS*RF_ADDR_WIDTH-1:0] rd_tid,
+    input  logic [RF_ADDR_WIDTH-1:0] rd_tid,
     output logic [NUM_PORTS*DATA_WIDTH-1:0] rd_data,
     // Write Input
     input  logic [NUM_PORTS-1:0]    wr_en,
-    input  logic [NUM_PORTS*RF_ADDR_WIDTH-1:0] wr_tid,
+    input  logic [RF_ADDR_WIDTH-1:0] wr_tid,
     input  logic [NUM_PORTS*DATA_WIDTH-1:0] wr_data,
     //rf control config
     input logic [NUM_PORTS*RF_ADDR_WIDTH-1:0] rd_addr_override_enable,
@@ -24,8 +25,8 @@ module dice_gprf_ctrl #(
     input logic [NUM_PORTS*RF_ADDR_WIDTH-1:0] wr_addr_override_enable,
     input logic [NUM_PORTS*RF_ADDR_WIDTH-1:0] wr_addr_override_address,
     //latency config
-    input logic [NUM_PORTS*$clog2(MAX_IO_PIPE_STAGE+1)-1:0] input_latency,
-    input logic [NUM_PORTS*$clog2(MAX_IO_PIPE_STAGE+1)-1:0] output_latency,
+    input logic [NUM_PORTS*$clog2(MAX_IO_PIPE_STAGE)-1:0] input_latency,
+    input logic [NUM_PORTS*$clog2(MAX_IO_PIPE_STAGE)-1:0] output_latency,
     // gprf/special reg select
     input logic [NUM_PORTS-1:0] spec_rd_enable,
     input logic [NUM_PORTS*4-1:0] spec_reg_sel,
@@ -37,14 +38,14 @@ module dice_gprf_ctrl #(
     input logic [RF_ADDR_WIDTH-1:0] ntid_x,
     input logic [RF_ADDR_WIDTH-1:0] ntid_y,
     input logic [RF_ADDR_WIDTH-1:0] ntid_z,
-    input logic [RF_ADDR_WIDTH-1:0] ctaid_x,
-    input logic [RF_ADDR_WIDTH-1:0] ctaid_y,
-    input logic [RF_ADDR_WIDTH-1:0] ctaid_z,
-    input logic [RF_ADDR_WIDTH-1:0] nctaid_x,
-    input logic [RF_ADDR_WIDTH-1:0] nctaid_y,
-    input logic [RF_ADDR_WIDTH-1:0] nctaid_z
+    input logic [CTAID_WIDTH-1:0] ctaid_x,
+    input logic [CTAID_WIDTH-1:0] ctaid_y,
+    input logic [CTAID_WIDTH-1:0] ctaid_z,
+    input logic [CTAID_WIDTH-1:0] nctaid_x,
+    input logic [CTAID_WIDTH-1:0] nctaid_y,
+    input logic [CTAID_WIDTH-1:0] nctaid_z
 );
-    localparam int LATW = $clog2(MAX_IO_PIPE_STAGE+1);
+    localparam int LATW = $clog2(MAX_IO_PIPE_STAGE);
     //address converter
     logic [NUM_PORTS*RF_ADDR_WIDTH-1:0] conv_rd_addr;
     logic [NUM_PORTS*RF_ADDR_WIDTH-1:0] conv_wr_addr;
@@ -81,7 +82,7 @@ module dice_gprf_ctrl #(
               .nctaid_x(nctaid_x),
               .nctaid_y(nctaid_y),
               .nctaid_z(nctaid_z),
-              .out_data(spec_reg_out[i*DATA_WIDTH +: DATA_WIDTH]),
+              .out_data(spec_reg_out[i*DATA_WIDTH +: DATA_WIDTH])
             );
 
             assign pipe_rd_data[i*DATA_WIDTH +: DATA_WIDTH] = spec_rd_enable[i] ? spec_reg_out[i*DATA_WIDTH +: DATA_WIDTH] : pipe_rf_rd_data[i*DATA_WIDTH +: DATA_WIDTH];
@@ -106,7 +107,7 @@ module dice_gprf_ctrl #(
                 .NUM_BANK(1),
                 .DEPTH(NUM_TID)
             ) u_rd_address_converter (
-                .disp_tid         (rd_tid[i*RF_ADDR_WIDTH +: RF_ADDR_WIDTH]),
+                .disp_tid         (rd_tid[0 +: RF_ADDR_WIDTH]),
                 .rf_addr         (conv_rd_addr[i*RF_ADDR_WIDTH +: RF_ADDR_WIDTH]),
                 .override_enable  (rd_addr_override_enable[i*RF_ADDR_WIDTH +: RF_ADDR_WIDTH]),
                 .override_address (rd_addr_override_address[i*RF_ADDR_WIDTH +: RF_ADDR_WIDTH])
@@ -116,7 +117,7 @@ module dice_gprf_ctrl #(
                 .NUM_BANK(1),
                 .DEPTH(NUM_TID)
             ) u_wr_address_converter (
-                .disp_tid         (wr_tid[i*RF_ADDR_WIDTH +: RF_ADDR_WIDTH]),
+                .disp_tid         (wr_tid[0 +: RF_ADDR_WIDTH]),
                 .rf_addr         (conv_wr_addr[i*RF_ADDR_WIDTH +: RF_ADDR_WIDTH]),
                 .override_enable  (wr_addr_override_enable[i*RF_ADDR_WIDTH +: RF_ADDR_WIDTH]),
                 .override_address (wr_addr_override_address[i*RF_ADDR_WIDTH +: RF_ADDR_WIDTH])

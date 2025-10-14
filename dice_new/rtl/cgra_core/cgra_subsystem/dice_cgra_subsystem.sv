@@ -8,7 +8,7 @@ module dice_cgra_subsystem #(
     parameter int RF_ADDR_WIDTH = $clog2(NUM_TID),
     parameter int MAX_IO_PIPE_STAGE = 8,
     parameter int MAX_CGRA_PIPE_STAGE = 32,
-    parameter int CGRA_CFG_WIDTH = 16*156,
+    parameter int CGRA_CFG_WIDTH = 16*156
 )(
     input  logic                             clk,
     input  logic                             rst_n,
@@ -44,17 +44,17 @@ module dice_cgra_subsystem #(
 
     // Config
     // Latency control
-    input  logic [NUM_CGRA_IO*$clog2(MAX_IO_PIPE_STAGE+1)-1:0] rf_latency_in_cgra,
-    input  logic [NUM_CGRA_IO*$clog2(MAX_IO_PIPE_STAGE+1)-1:0] rf_latency_out_cgra,
-    input  logic [NUM_CGRA_IO*$clog2(MAX_IO_PIPE_STAGE+1)-1:0] prf_latency_in_cgra,
-    input  logic [NUM_CGRA_IO*$clog2(MAX_IO_PIPE_STAGE+1)-1:0] prf_latency_out_cgra,
+    input  logic [NUM_CGRA_IO*$clog2(MAX_IO_PIPE_STAGE)-1:0] rf_latency_in_cgra,
+    input  logic [NUM_CGRA_IO*$clog2(MAX_IO_PIPE_STAGE)-1:0] rf_latency_out_cgra,
+    input  logic [NUM_CGRA_IO*$clog2(MAX_IO_PIPE_STAGE)-1:0] prf_latency_in_cgra,
+    input  logic [NUM_CGRA_IO*$clog2(MAX_IO_PIPE_STAGE)-1:0] prf_latency_out_cgra,
     // RF address override
     input logic [NUM_CGRA_IO*RF_ADDR_WIDTH-1:0] rd_override_enable,
     input logic [NUM_CGRA_IO*RF_ADDR_WIDTH-1:0] rd_override_address,
     input logic [NUM_CGRA_IO*RF_ADDR_WIDTH-1:0] wr_override_enable,
     input logic [NUM_CGRA_IO*RF_ADDR_WIDTH-1:0] wr_override_address,
     // CGRA config
-    input logic [$clog2(MAX_CGRA_PIPE_STAGE+1)-1:0] cgra_compute_latency,
+    input logic [$clog2(MAX_CGRA_PIPE_STAGE)-1:0] cgra_compute_latency,
     input logic [CGRA_CFG_WIDTH-1:0] cgra_cfg
 );
     //-----------------------------------------------------------
@@ -81,8 +81,8 @@ module dice_cgra_subsystem #(
     logic W_out_p[0:CGRA_IO_PER_EDGE-1];
 
     //indexer
-    logic [DATA_WIDTH-1:0] CGRA_int[0:NUM_CGRA_IO-1];
-    logic [DATA_WIDTH-1:0] CGRA_outt[0:NUM_CGRA_IO-1];
+    logic [DATA_WIDTH-1:0] CGRA_in_t[0:NUM_CGRA_IO-1];
+    logic [DATA_WIDTH-1:0] CGRA_out_t[0:NUM_CGRA_IO-1];
     logic [NUM_CGRA_IO-1:0] CGRA_in_p;
     logic [NUM_CGRA_IO-1:0] CGRA_out_p;
 
@@ -129,7 +129,7 @@ module dice_cgra_subsystem #(
     end
     
     // cgra output tid and valid
-    logic [$clog2(NUM_TID+1)-1:0] out_tid;
+    logic [$clog2(NUM_TID)-1:0] out_tid;
     logic out_valid;
 
     //-----------------------------------------------------------
@@ -150,8 +150,8 @@ module dice_cgra_subsystem #(
       .empty(done) //done when the pipe is empty
     );
 
-    logic [DATA_WIDTH-1:0] rf_rd_data[0:NUM_CGRA_IO-1];
-    logic [DATA_WIDTH-1:0] rf_wr_data[0:NUM_CGRA_IO-1];
+    logic [DATA_WIDTH*NUM_CGRA_IO-1:0] rf_rd_data;
+    logic [DATA_WIDTH*NUM_CGRA_IO-1:0] rf_wr_data;
     logic [NUM_CGRA_IO-1:0] rf_wr_enable_final;
     logic [NUM_CGRA_IO-1:0] rf_pred_in;
 
@@ -163,8 +163,8 @@ module dice_cgra_subsystem #(
     always_comb begin
         //overwrite CGRA ports with general purpose registers
         for (int i=0; i<NUM_CGRA_IO; i++) begin
-            CGRA_in_t[i] = rf_rd_data[i];
-            rf_wr_data[i] = CGRA_out_t[i];
+            CGRA_in_t[i] = rf_rd_data[i*DATA_WIDTH +: DATA_WIDTH];
+            rf_wr_data[i*DATA_WIDTH +: DATA_WIDTH] = CGRA_out_t[i];
         end
 
         //predicate register
@@ -188,7 +188,7 @@ module dice_cgra_subsystem #(
       .NUM_PORTS(NUM_CGRA_IO),
       .DATA_WIDTH(DATA_WIDTH),
       .NUM_TID(NUM_TID),
-      .MAX_IO_PIPE_STAGE(MAX_IO_PIPE_STAGE),
+      .MAX_IO_PIPE_STAGE(MAX_IO_PIPE_STAGE)
     ) u_gprf_ctrl (
       .clk(clk),
       .rst_n(rst_n),
@@ -233,7 +233,7 @@ module dice_cgra_subsystem #(
       .NUM_PORTS(NUM_CGRA_IO),
       .DATA_WIDTH(1),
       .NUM_TID(NUM_TID),
-      .MAX_IO_PIPE_STAGE(MAX_IO_PIPE_STAGE),
+      .MAX_IO_PIPE_STAGE(MAX_IO_PIPE_STAGE)
     ) u_pred_rf_ctrl (
       .clk(clk),
       .rst_n(rst_n),

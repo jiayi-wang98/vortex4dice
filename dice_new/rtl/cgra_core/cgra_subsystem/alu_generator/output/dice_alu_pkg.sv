@@ -51,7 +51,7 @@ package dice_alu_pkg;
       OPCODE_ADD_U32: op_latency = 0;
       OPCODE_SUB_U32: op_latency = 0;
       OPCODE_MUL_LO_U32: op_latency = 0;
-      OPCODE_MAD_U32: op_latency = 1;
+      OPCODE_MAD_U32: op_latency = 0;
       OPCODE_DIV_U32: op_latency = 2;
       OPCODE_REM_U32: op_latency = 2;
       OPCODE_ADD_S32: op_latency = 0;

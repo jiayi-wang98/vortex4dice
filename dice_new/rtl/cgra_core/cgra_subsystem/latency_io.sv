@@ -8,11 +8,11 @@ module latency_io #(
   input  logic                             clr,  
 
   // Latency control
-  input  logic [NUM_PORTS*$clog2(MAX_PIPE_STAGE+1)-1:0] latency_in,
-  input  logic [NUM_PORTS*$clog2(MAX_PIPE_STAGE+1)-1:0] latency_out,
+  input  logic [NUM_PORTS*$clog2(MAX_PIPE_STAGE)-1:0] latency_in,
+  input  logic [NUM_PORTS*$clog2(MAX_PIPE_STAGE)-1:0] latency_out,
 
   // Interface to RAM
-  output logic [NUM_PORTS*WIDTH-1:0]        rf_rdata,
+  input  logic [NUM_PORTS*WIDTH-1:0]        rf_rdata,
   output logic [NUM_PORTS*WIDTH-1:0]        rf_wdata,
   // Interface to CGRA
   output logic [NUM_PORTS*WIDTH-1:0]        cgra_in,
@@ -32,7 +32,7 @@ module latency_io #(
         .clk     (clk),
         .rst_n   (rst_n),
         .clr     (clr),
-        .latency (latency_in[i*$clog2(MAX_PIPE_STAGE+1)+:$clog2(MAX_PIPE_STAGE+1)-1]),
+        .latency (latency_in[i*$clog2(MAX_PIPE_STAGE)+:$clog2(MAX_PIPE_STAGE)]),
         .in_data (rf_rdata[(i+1)*WIDTH-1:i*WIDTH]),
         .out_data(cgra_in[(i+1)*WIDTH-1:i*WIDTH])
       );
@@ -44,7 +44,7 @@ module latency_io #(
         .clk     (clk),
         .rst_n   (rst_n),
         .clr     (clr),
-        .latency (latency_out[i*$clog2(MAX_PIPE_STAGE+1)+:$clog2(MAX_PIPE_STAGE+1)-1]),
+        .latency (latency_out[i*$clog2(MAX_PIPE_STAGE)+:$clog2(MAX_PIPE_STAGE)]),
         .in_data (cgra_out[(i+1)*WIDTH-1:i*WIDTH]),
         .out_data(rf_wdata[(i+1)*WIDTH-1:i*WIDTH])
       );

@@ -12,11 +12,11 @@ module dice_pred_rf_ctrl #(
     input logic               clr,
     // Read Input
     input  logic [NUM_PORTS-1:0]    rd_en,
-    input  logic [NUM_PORTS*RF_ADDR_WIDTH-1:0] rd_tid,
+    input  logic [RF_ADDR_WIDTH-1:0] rd_tid,
     output logic [NUM_PORTS*DATA_WIDTH-1:0] rd_data,
     // Write Input
     input  logic [NUM_PORTS-1:0]    wr_en,
-    input  logic [NUM_PORTS*RF_ADDR_WIDTH-1:0] wr_tid,
+    input  logic [RF_ADDR_WIDTH-1:0] wr_tid,
     input  logic [NUM_PORTS*DATA_WIDTH-1:0] wr_data,
     //rf control config
     input logic [NUM_PORTS*RF_ADDR_WIDTH-1:0] rd_addr_override_enable,
@@ -24,10 +24,10 @@ module dice_pred_rf_ctrl #(
     input logic [NUM_PORTS*RF_ADDR_WIDTH-1:0] wr_addr_override_enable,
     input logic [NUM_PORTS*RF_ADDR_WIDTH-1:0] wr_addr_override_address,
     //latency config
-    input logic [NUM_PORTS*$clog2(MAX_IO_PIPE_STAGE+1)-1:0] input_latency,
-    input logic [NUM_PORTS*$clog2(MAX_IO_PIPE_STAGE+1)-1:0] output_latency
+    input logic [NUM_PORTS*$clog2(MAX_IO_PIPE_STAGE)-1:0] input_latency,
+    input logic [NUM_PORTS*$clog2(MAX_IO_PIPE_STAGE)-1:0] output_latency
 );
-    localparam int LATW = $clog2(MAX_IO_PIPE_STAGE+1);
+    localparam int LATW = $clog2(MAX_IO_PIPE_STAGE);
     //address converter
     logic [NUM_PORTS*RF_ADDR_WIDTH-1:0] conv_rd_addr;
     logic [NUM_PORTS*RF_ADDR_WIDTH-1:0] conv_wr_addr;
@@ -59,7 +59,7 @@ module dice_pred_rf_ctrl #(
                 .NUM_BANK(1),
                 .DEPTH(NUM_TID)
             ) u_rd_address_converter (
-                .disp_tid         (rd_tid[i*RF_ADDR_WIDTH +: RF_ADDR_WIDTH]),
+                .disp_tid         (rd_tid[0 +: RF_ADDR_WIDTH]),
                 .rf_addr         (conv_rd_addr[i*RF_ADDR_WIDTH +: RF_ADDR_WIDTH]),
                 .override_enable  (rd_addr_override_enable[i*RF_ADDR_WIDTH +: RF_ADDR_WIDTH]),
                 .override_address (rd_addr_override_address[i*RF_ADDR_WIDTH +: RF_ADDR_WIDTH])
@@ -69,7 +69,7 @@ module dice_pred_rf_ctrl #(
                 .NUM_BANK(1),
                 .DEPTH(NUM_TID)
             ) u_wr_address_converter (
-                .disp_tid         (wr_tid[i*RF_ADDR_WIDTH +: RF_ADDR_WIDTH]),
+                .disp_tid         (wr_tid[0 +: RF_ADDR_WIDTH]),
                 .rf_addr         (conv_wr_addr[i*RF_ADDR_WIDTH +: RF_ADDR_WIDTH]),
                 .override_enable  (wr_addr_override_enable[i*RF_ADDR_WIDTH +: RF_ADDR_WIDTH]),
                 .override_address (wr_addr_override_address[i*RF_ADDR_WIDTH +: RF_ADDR_WIDTH])

@@ -186,7 +186,7 @@ module dice_cgra(
 
 
     //generate a row of 4 tiles
-    genvar i;
+    genvar i, j;
     generate
         for(i = 0; i < 4; i = i + 1) begin : row_tile_gen
             for (j = 0; j < 4; j = j + 1) begin : col_tile_gen
@@ -236,7 +236,7 @@ module dice_cgra(
 
                 //connect the tiles
                 //N-S connection, edge case define outside the generate block
-                if (i != 0) begin
+                if (i != 0) begin: north_south_connection
                     assign N_in_t0[i*4 + j] = S_out_t0[(i-1)*4 + j];
                     assign N_in_t1[i*4 + j] = S_out_t1[(i-1)*4 + j];
                     assign N_in_p0[i*4 + j] = S_out_p0[(i-1)*4 + j];
@@ -244,7 +244,7 @@ module dice_cgra(
                 end 
 
                 //S - N connection, edge case define outside the generate block
-                if (i != 3) begin
+                if (i != 3) begin: south_north_connection
                     assign S_in_t0[i*4 + j] = N_out_t0[(i+1)*4 + j];
                     assign S_in_t1[i*4 + j] = N_out_t1[(i+1)*4 + j];
                     assign S_in_p0[i*4 + j] = N_out_p0[(i+1)*4 + j]; 
@@ -252,7 +252,7 @@ module dice_cgra(
                 end
 
                 //E - W connection, edge case define outside the generate block
-                if (j != 3) begin
+                if (j != 3) begin: east_west_connection
                     assign E_in_t0[i*4 + j] = W_out_t0[i*4 + (j+1)];
                     assign E_in_t1[i*4 + j] = W_out_t1[i*4 + (j+1)];
                     assign E_in_p0[i*4 + j] = W_out_p0[i*4 + (j+1)];
@@ -260,7 +260,7 @@ module dice_cgra(
                 end
 
                 //W - E connection, edge case define outside the generate block
-                if (j != 0) begin
+                if (j != 0) begin: west_east_connection
                     assign W_in_t0[i*4 + j] = E_out_t0[i*4 + (j-1)];
                     assign W_in_t1[i*4 + j] = E_out_t1[i*4 + (j-1)];
                     assign W_in_p0[i*4 + j] = E_out_p0[i*4 + (j-1)];

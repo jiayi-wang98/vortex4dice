@@ -71,7 +71,7 @@ module dice_tile (
         // 32 bits for opcode
         // 1 bit for out_sel
     //total = 156
-    dice_2_1_router router_inst (
+    dice_2_1_router u_pred_router (
         .clk(clk),
         .rst_n(rst_n),
         .registered_mode_N_t0(tile_cfg[0]),
@@ -118,7 +118,7 @@ module dice_tile (
         .sel_L_t2(tile_cfg[54:51])
     );
 
-    dice_2_32_router router_inst (
+    dice_2_32_router u_data_router (
         .clk(clk),
         .rst_n(rst_n),
         .overload_en_N_t0(tile_cfg[55]),

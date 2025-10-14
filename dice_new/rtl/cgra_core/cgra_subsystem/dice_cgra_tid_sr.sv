@@ -7,7 +7,7 @@ module dice_cgra_tid_sr #(
     input  logic                             rst_n,
     // latency control
     input  logic                             clr,   // flush pipe
-    input  logic [$clog2(MAX_LATENCY+1)-1:0] latency,
+    input  logic [$clog2(MAX_LATENCY)-1:0] latency,
 
     input  logic [TID_WIDTH-1:0]             in_tid,
     input  logic                             in_valid,
@@ -34,7 +34,7 @@ module dice_cgra_tid_sr #(
   );
 
   //empty is calculated by a counter to counter input valid and output valids
-  logic [$clog2(MAX_LATENCY+1)-1:0] counter;
+  logic [$clog2(MAX_LATENCY)-1:0] counter;
   always_ff @(posedge clk or negedge rst_n) begin
     if (!rst_n) begin
         counter <= 0;

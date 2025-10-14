@@ -5,11 +5,11 @@ module latency_pipe #(
   input  logic                     clk,
   input  logic                     rst_n,   // asynchronous reset (active low)
   input  logic                     clr,     // synchronous clear (active high)
-  input  logic [LAT_W-1:0]         latency,
+  input  logic [$clog2(MAX_PIPE_STAGE)-1:0]         latency,
   input  logic [WIDTH-1:0]         in_data,
   output logic [WIDTH-1:0]         out_data
 );
-  localparam int LAT_W = (MAX_PIPE_STAGE > 1) ? $clog2(MAX_PIPE_STAGE+1) : 1;
+  localparam int LAT_W = (MAX_PIPE_STAGE > 1) ? $clog2(MAX_PIPE_STAGE) : 1;
 
   logic [WIDTH-1:0] pipe [0:MAX_PIPE_STAGE-1];
 

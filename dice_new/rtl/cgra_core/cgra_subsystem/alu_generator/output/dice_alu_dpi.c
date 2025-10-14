@@ -262,22 +262,7 @@ void dice_alu_cycle(uint64_t in0, uint64_t in1, uint64_t in2, uint64_t in3, uint
         break;
     }
     case OPCODE_MAD_U32: {
-        static uint64_t mad_u32_pipe_in[1][4] = {0};
-        static int mad_u32_valid[1] = {0};
-        for (int i=0; i>0; --i) {
-          for (int j=0;j<4;++j) mad_u32_pipe_in[i][j] = mad_u32_pipe_in[i-1][j];
-          mad_u32_valid[i] = mad_u32_valid[i-1];
-        }
-        for (int j=0;j<4;++j) mad_u32_pipe_in[0][j] = in[j];
-        mad_u32_valid[0] = 1;
-        if (mad_u32_valid[0]) {
-          uint64_t stage[4];
-          for (int j=0;j<4;++j) stage[j] = mad_u32_pipe_in[0][j];
-          out[0] = (stage[0] * stage[1]) + stage[2];
-        } else {
-          out[0] = 0ULL;
-          out[1] = 0ULL;
-        }
+        out[0] = (in[0] * in[1]) + in[2];
         break;
     }
     case OPCODE_DIV_U32: {

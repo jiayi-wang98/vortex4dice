@@ -13,8 +13,8 @@ module tb_dice_cgra;
   localparam CFG_WIDTH = TILE_BITS * NUM_TILES;
   localparam ADDR_WIDTH = $clog2(NUM_TID);
   localparam TID_WIDTH = $clog2(NUM_TID);
-  localparam IO_PIPE_SEL_WIDTH = $clog2(MAX_IO_PIPE_STAGE+1);
-  localparam CGRA_PIPE_SEL_WIDTH = $clog2(MAX_CGRA_PIPE_STAGE+1);
+  localparam IO_PIPE_SEL_WIDTH = $clog2(MAX_IO_PIPE_STAGE);
+  localparam CGRA_PIPE_SEL_WIDTH = $clog2(MAX_CGRA_PIPE_STAGE);
   localparam PRED_RF_CFG_BITS_PER_PORT = 2 + IO_PIPE_SEL_WIDTH*2; // (rd_en, wr_en), (out_lat, in_lat)
   localparam GPRF_CFG_BITS_PER_PORT = 2 + IO_PIPE_SEL_WIDTH*2 + 5 + TID_WIDTH*4; // (rd_en, wr_en), in_lat, out_lat, (spec_rd_en, spec_rd_sel), rd_addr_override, wr_addr_override, rd_addr_override_en, wr_addr_override_en
 
@@ -34,19 +34,6 @@ module tb_dice_cgra;
   logic S_in_p [0:NUM_CGRA_IO_PER_EDGE-1], S_out_p [0:NUM_CGRA_IO_PER_EDGE-1];
   logic W_in_p [0:NUM_CGRA_IO_PER_EDGE-1], W_out_p [0:NUM_CGRA_IO_PER_EDGE-1];
 
-  //-----------------------------------------------------------
-  // Clock / Reset
-  //-----------------------------------------------------------
-  initial begin
-    clk = 0;
-    forever #5 clk = ~clk;
-  end
-
-  initial begin
-    rst_n = 0;
-    #50;
-    rst_n = 1;
-  end
 
   logic [TID_WIDTH-1:0] dispatch_tid;
   logic disp_tid_valid;
@@ -109,7 +96,7 @@ module tb_dice_cgra;
     .MAX_CTA_ID(MAX_CTA_ID),
     .MAX_IO_PIPE_STAGE(MAX_IO_PIPE_STAGE),
     .MAX_CGRA_PIPE_STAGE(MAX_CGRA_PIPE_STAGE),
-    .CGRA_CFG_WIDTH(CFG_WIDTH),
+    .CGRA_CFG_WIDTH(CFG_WIDTH)
 ) u_cgra_subsystem (
     .clk(clk),
     .rst_n(rst_n),
@@ -125,12 +112,12 @@ module tb_dice_cgra;
     .ntid_x(ntid_x),
     .ntid_y(ntid_y),
     .ntid_z(ntid_z),
-    .ctaid_x(0),
-    .ctaid_y(0),
-    .ctaid_z(0),
-    .nctaid_x(1),
-    .nctaid_y(1),
-    .nctaid_z(1),
+    .ctaid_x(16'd0),
+    .ctaid_y(16'd0),
+    .ctaid_z(16'd0),
+    .nctaid_x(16'd1),
+    .nctaid_y(16'd1),
+    .nctaid_z(16'd1),
     // From metadata to control RF read/write enables
     // special register
     .spec_rd_enable(spec_rd_en),
@@ -200,39 +187,63 @@ end
     string line;
     int io_port_index = 0;
     int status;
+    int tile_idx = 0;
+    int last;
 
-    prf_latency_in = '0;
-    prf_latency_out = '0;
-    prf_rd_en = '0;
-    prf_wr_en = '0;
+    //prf_latency_in = '0;
+    //prf_latency_out = '0;
+    //prf_rd_en = '0;
+    //prf_wr_en = '0;
 
     fd = $fopen("bitstreams/predrf_bitstream.txt", "r");
     if (!fd) $fatal("Cannot open predrfbitstream.txt");
 
     while (!$feof(fd) && io_port_index < NUM_CGRA_IO) begin
       status = $fgets(line, fd);
-      line = line.trim();
-      if (line.len() < PRED_RF_CFG_BITS_PER_PORT) continue;
-      for (int b = 0; b < PRED_RF_CFG_BITS_PER_PORT; b++)
-        predrf_cfg[io_port_index*PRED_RF_CFG_BITS_PER_PORT + (PRED_RF_CFG_BITS_PER_PORT-1 - b)] = (line[b] == "1");
+
+      // -----------------------------------------------------
+      // Manually trim trailing whitespace and newline chars
+      // -----------------------------------------------------
+      last = line.len() - 1;
+      while (last >= 0 &&
+             (line[last] == "\n" || line[last] == "\r" ||
+              line[last] == " "  || line[last] == "\t"))
+        last--;
+      if (last >= 0)
+        line = line.substr(0, last);
+      else
+        continue;  // skip empty line
+
+      // -----------------------------------------------------
+      // Skip invalid lines that are shorter than expected
+      // -----------------------------------------------------
+      if (line.len() < PRED_RF_CFG_BITS_PER_PORT)
+        continue;
+
+      // -----------------------------------------------------
+      // Convert ASCII '1'/'0' to bits
+      // -----------------------------------------------------
+      for (int b = 0; b < PRED_RF_CFG_BITS_PER_PORT; b++) begin
+        predrf_cfg[io_port_index * PRED_RF_CFG_BITS_PER_PORT +
+                   (PRED_RF_CFG_BITS_PER_PORT - 1 - b)] = (line[b] == "1");
+      end
+
       io_port_index++;
     end
     $fclose(fd);
     $display("[%0t] Loaded bitstream into %0d predicate IO ports.", $time, io_port_index);
 
     //load gprf_bitstream
-    io_port_index = 0
-
-    rf_latency_in = '0;
-    rf_latency_out = '0;
-    rf_rd_en = '0;
-    rf_wr_en = '0;
-    rd_override_enable = '0;
-    rd_override_address = '0;
-    wr_override_enable = '0;
-    wr_override_address = '0;
-    spec_rd_en = '0;
-    spec_rd_select = '0;
+    //rf_latency_in = '0;
+    //rf_latency_out = '0;
+    //rf_rd_en = '0;
+    //rf_wr_en = '0;
+    //rd_override_enable = '0;
+    //rd_override_address = '0;
+    //wr_override_enable = '0;
+    //wr_override_address = '0;
+    //spec_rd_en = '0;
+    //spec_rd_select = '0;
 
 
     fd = $fopen("bitstreams/gprf_bitstream.txt", "r");
@@ -240,72 +251,153 @@ end
 
     while (!$feof(fd) && io_port_index < NUM_CGRA_IO) begin
       status = $fgets(line, fd);
-      line = line.trim();
-      if (line.len() < GPRF_CFG_BITS_PER_PORT) continue;
-      for (int b = 0; b < GPRF_CFG_BITS_PER_PORTRF_CFG_BITS_PER_PORT; b++)
-        gprf_cfg[io_port_index*GPRF_CFG_BITS_PER_PORT + (GPRF_CFG_BITS_PER_PORT-1 - b)] = (line[b] == "1");
+
+      // -----------------------------------------------------
+      // Manually trim trailing whitespace and newline chars
+      // -----------------------------------------------------
+      last = line.len() - 1;
+      while (last >= 0 &&
+             (line[last] == "\n" || line[last] == "\r" ||
+              line[last] == " "  || line[last] == "\t"))
+        last--;
+      if (last >= 0)
+        line = line.substr(0, last);
+      else
+        continue;  // skip empty line
+
+      // -----------------------------------------------------
+      // Skip invalid lines that are shorter than expected
+      // -----------------------------------------------------
+      if (line.len() < GPRF_CFG_BITS_PER_PORT)
+        continue;
+
+      // -----------------------------------------------------
+      // Convert ASCII '1'/'0' to bits
+      // -----------------------------------------------------
+      for (int b = 0; b < GPRF_CFG_BITS_PER_PORT; b++) begin
+        gprf_cfg[io_port_index * GPRF_CFG_BITS_PER_PORT +
+                   (GPRF_CFG_BITS_PER_PORT - 1 - b)] = (line[b] == "1");
+      end
+
       io_port_index++;
     end
     $fclose(fd);
     $display("[%0t] Loaded bitstream into %0d general-purpose IO ports.", $time, io_port_index);
     cgra_compute_latency = 5'd28; // Example compute latency
 
-    int tile_idx = 0;
+    
     cgra_cfg = '0;
     fd = $fopen("bitstreams/cgra_bitstream.txt", "r");
     if (!fd) $fatal("Cannot open cgra_bitstream.txt");
 
     while (!$feof(fd) && tile_idx < NUM_TILES) begin
-      status = $fgets(line, fd);
-      line = line.trim();
-      if (line.len() < TILE_BITS) continue;
-      for (int b = 0; b < TILE_BITS; b++)
-        cgra_cfg[tile_idx*TILE_BITS + (TILE_BITS-1 - b)] = (line[b] == "1");
-      tile_idx++;
+    status = $fgets(line, fd);
+
+    // -----------------------------------------------------
+    // Manually trim trailing whitespace and newline chars
+    // -----------------------------------------------------
+    last = line.len() - 1;
+    while (last >= 0 &&
+           (line[last] == "\n" || line[last] == "\r" ||
+            line[last] == " "  || line[last] == "\t"))
+      last--;
+    if (last >= 0)
+      line = line.substr(0, last);
+    else
+      continue; // skip empty lines
+
+    // -----------------------------------------------------
+    // Skip invalid lines shorter than expected bit width
+    // -----------------------------------------------------
+    if (line.len() < TILE_BITS)
+      continue;
+
+    // -----------------------------------------------------
+    // Convert ASCII '1'/'0' to bits (MSB-first)
+    // -----------------------------------------------------
+    for (int b = 0; b < TILE_BITS; b++) begin
+      cgra_cfg[tile_idx * TILE_BITS + (TILE_BITS - 1 - b)] = (line[b] == "1");
     end
+
+    tile_idx++;
+  end
     $fclose(fd);
     $display("[%0t] Loaded %0d tiles into CGRA config", $time, tile_idx);
   end
 
+  // -------------------------------------------------------------
+  // Load all register file memories and save outputs
+  // -------------------------------------------------------------
+  generate
+    for (genvar gi = 0; gi < NUM_CGRA_IO; gi++) begin : gen_rf_io
+
+      // ---------------------------
+      // Load memory after reset
+      // ---------------------------
+      initial begin
+        string rf_in_r, rf_in_p;
+        wait(rst_n);
+        #20;
+        rf_in_r = $sformatf("rf_input/r%0d_in.txt", gi);
+        rf_in_p = $sformatf("rf_input/p%0d_in.txt", gi);
+
+        // Each instance index (gi) is elaboration-time constant
+        u_cgra_subsystem.u_gprf_ctrl.gen_rf_banks[gi]
+          .u_dice_register_file.gen_bank[0].bank_ram.load_memory_from_file(rf_in_r);
+
+        u_cgra_subsystem.u_pred_rf_ctrl.gen_rf_banks[gi]
+          .u_dice_register_file.gen_bank[0].bank_ram.load_memory_from_file(rf_in_p);
+
+        $display("[%0t] Port %0d RF memories loaded", $time, gi);
+      end
+
+      // ---------------------------
+      // Save output memory at end
+      // ---------------------------
+      initial begin
+        string rf_out_r, rf_out_p;
+        wait(rst_n);
+        wait(cgra_done & disp_done);
+        rf_out_r = $sformatf("rf_output/r%0d_out.txt", gi);
+        rf_out_p = $sformatf("rf_output/p%0d_out.txt", gi);
+
+        u_cgra_subsystem.u_gprf_ctrl.gen_rf_banks[gi]
+          .u_dice_register_file.gen_bank[0].bank_ram.save_memory_to_file(rf_out_r);
+
+        u_cgra_subsystem.u_pred_rf_ctrl.gen_rf_banks[gi]
+          .u_dice_register_file.gen_bank[0].bank_ram.save_memory_to_file(rf_out_p);
+
+        $display("[%0t] Port %0d RF outputs saved", $time, gi);
+      end
+
+    end
+  endgenerate
   //-----------------------------------------------------------
-  // Test sequence
+  // Clock / Reset
   //-----------------------------------------------------------
   initial begin
-    wait(rst_n);
-    #20;
-    //load RF memory
-    for (int i=0; i<NUM_CGRA_IO; i++) begin
-        load_memory_from_file(0, i, f("rf_input/r{%d}_in.txt", i));
-        load_memory_from_file(1, i, f("rf_input/p{%d}_in.txt", i));
-    end
-    $display("[%0t] All input RAMs loaded", $time);
-    while (!(cgra_done & disp_done)) @(posedge clk);
-
-    $display("[%0t] Simulation completed", $time);
-    //save output
-    for (int i=0; i<NUM_CGRA_IO; i++) begin
-        save_output_to_file(0, i, f("rf_output/r{%d}_out.txt", i));
-        save_output_to_file(1, i, f("rf_output/p{%d}_out.txt", i));
-    end
-    $display("[%0t] All output RAMs saved", $time);
-    #100; 
-    $finish;
+    clk = 0;
+    forever #5 clk = ~clk;
   end
 
-  task load_memory_from_file(input pred, input [$clog2(NUM_CGRA_IO)-1:0] port_idx, input string filename);
-    if (pred) begin
-        u_cgra_subsystem.u_pred_rf_ctrl.u_dice_register_file[port_idx].bank_ram[0].load_memory_from_file(filename);
-    end else begin
-        u_cgra_subsystem.u_gprf_ctrl.u_dice_register_file[port_idx].bank_ram[0].load_memory_from_file(filename);
-    end
-  endtask
-
-  task save_output_to_file(input pred, input [$clog2(NUM_CGRA_IO)-1:0] port_idx, input string filename);
-    if (pred) begin
-        u_cgra_subsystem.u_pred_rf_ctrl.u_dice_register_file[port_idx].bank_ram[0].save_memory_to_file(filename);
-    end else begin
-        u_cgra_subsystem.u_gprf_ctrl.u_dice_register_file[port_idx].bank_ram[0].save_memory_to_file(filename);
-    end
-  endtask
-
+  // -------------------------------------------------------------
+  // Run simulation
+  // -------------------------------------------------------------
+  initial begin
+    rst_n = 0;
+    clr = 1;
+    disp_clr = 1;
+    disp_enable = 0;
+    repeat (10) @(posedge clk);
+    rst_n = 1;
+    repeat (10) @(posedge clk);
+    clr = 0;
+    disp_clr = 0;
+    disp_enable = 1;
+    repeat (10) @(posedge clk);
+    wait(cgra_done & disp_done);
+    #100;
+    $display("[%0t] Simulation completed", $time);
+    $finish;
+  end
 endmodule

@@ -4,7 +4,7 @@ module dice_special_reg#(
     parameter int NUM_TID = 512,
     parameter int TID_WIDTH = $clog2(NUM_TID),
     parameter int MAX_CTA_ID = 65535,
-    parameter int CTA_ID_WIDTH = $clog2(MAX_CTA_ID),
+    parameter int CTA_ID_WIDTH = $clog2(MAX_CTA_ID)
 )(
     input logic clk,
     input logic rst_n,
@@ -22,14 +22,14 @@ module dice_special_reg#(
     input logic [TID_WIDTH-1:0] ntid_x,
     input logic [TID_WIDTH-1:0] ntid_y,
     input logic [TID_WIDTH-1:0] ntid_z,
-    input logic [TID_WIDTH-1:0] ctaid_x,
-    input logic [TID_WIDTH-1:0] ctaid_y,
-    input logic [TID_WIDTH-1:0] ctaid_z,
-    input logic [TID_WIDTH-1:0] nctaid_x,
-    input logic [TID_WIDTH-1:0] nctaid_y,
-    input logic [TID_WIDTH-1:0] nctaid_z,
+    input logic [CTA_ID_WIDTH-1:0] ctaid_x,
+    input logic [CTA_ID_WIDTH-1:0] ctaid_y,
+    input logic [CTA_ID_WIDTH-1:0] ctaid_z,
+    input logic [CTA_ID_WIDTH-1:0] nctaid_x,
+    input logic [CTA_ID_WIDTH-1:0] nctaid_y,
+    input logic [CTA_ID_WIDTH-1:0] nctaid_z,
     //output
-    output logic [DATA_WIDTH-1:0] out_data,
+    output logic [DATA_WIDTH-1:0] out_data
 );  
 
     always_ff @(posedge clk or negedge rst_n) begin

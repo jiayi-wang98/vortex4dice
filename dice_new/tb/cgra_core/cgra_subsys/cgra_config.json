@@ -2,9 +2,9 @@
   "dice_tile_0": [
     {"dice_2_1_router":[
        {
-        "sel_N_t0": ["N[0]"],
+        "sel_N_t0": [""],
         "registered_mode_N_t0": [0],
-        "sel_N_t1": ["N[1]"],
+        "sel_N_t1": [""],
         "registered_mode_N_t1": [0],
         "sel_E_t0": ["E[0]"],
         "registered_mode_E_t0": [0],

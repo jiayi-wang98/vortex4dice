@@ -5,15 +5,15 @@ module naive_dispatcher #(
     input logic rst_n,
     input logic enable,
     input logic clr,
-    input logic [$clog2(TOTAL_TID+1)-1:0] max_tid,
+    input logic [$clog2(TOTAL_TID)-1:0] max_tid,
     output logic done,
-    output logic [$clog2(TOTAL_TID+1)-1:0] dispatch_tid,
-    input logic [$clog2(TOTAL_TID+1)-1:0] ntid_x,
-    input logic [$clog2(TOTAL_TID+1)-1:0] ntid_y,
-    input logic [$clog2(TOTAL_TID+1)-1:0] ntid_z,
-    output logic [$clog2(TOTAL_TID+1)-1:0] tid_x,
-    output logic [$clog2(TOTAL_TID+1)-1:0] tid_y,
-    output logic [$clog2(TOTAL_TID+1)-1:0] tid_z,
+    output logic [$clog2(TOTAL_TID)-1:0] dispatch_tid,
+    input logic [$clog2(TOTAL_TID)-1:0] ntid_x,
+    input logic [$clog2(TOTAL_TID)-1:0] ntid_y,
+    input logic [$clog2(TOTAL_TID)-1:0] ntid_z,
+    output logic [$clog2(TOTAL_TID)-1:0] tid_x,
+    output logic [$clog2(TOTAL_TID)-1:0] tid_y,
+    output logic [$clog2(TOTAL_TID)-1:0] tid_z,
     output logic tid_valid
 );
 
