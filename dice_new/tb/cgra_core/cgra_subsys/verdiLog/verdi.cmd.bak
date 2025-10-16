@@ -1,0 +1,8 @@
+debImport "-db"
+wvCreateWindow
+wvSetPosition -win $_nWave2 {("G1" 0)}
+wvOpenFile -win $_nWave2 \
+           {/data/jwang710/vortex4dice/dice_new/tb/cgra_core/cgra_subsys/tb_dice_cgra.fsdb}
+verdiSetActWin -win $_nWave2
+verdiSetActWin -dock widgetDock_MTB_SOURCE_TAB_1
+debExit

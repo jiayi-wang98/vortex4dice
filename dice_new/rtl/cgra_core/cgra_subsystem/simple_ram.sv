@@ -24,7 +24,7 @@ module simple_ram #(
 
   always @(posedge clk) begin
     if (rd_en)
-      rd_data = mem[rd_addr];
+      rd_data <= mem[rd_addr];
   end
 
   task automatic load_memory_from_file(input string filename);

@@ -31,12 +31,8 @@ def bits_from_int(value, width):
 
 def encode_sel_list(sel_list, selmap, outlet_key):
     """
-    Encode a list of sources like ["N[0]", "E[1]", ...] into concatenated binary bits.
-    We pick the selmap that corresponds to the *outlet* (e.g., sel_N_t0 -> use selmap["N[0]"] spec)
-    but the json selmaps you provided are structured by outlet name (N[0], N[1], E[0]...) – each has:
-      - sel_bits
-      - sources[]
-    To choose the correct sel_bits and source universe, we must use the outlet entry from selmap.
+    Encode a list of sources like ["N[0]", "E[1]", ""] into concatenated binary bits.
+    Empty string "" means "no connection" and encodes as all-zero bits.
     """
     if outlet_key not in selmap:
         raise KeyError(f"Outlet '{outlet_key}' not found in selmap keys: {list(selmap.keys())[:6]}...")
@@ -46,9 +42,15 @@ def encode_sel_list(sel_list, selmap, outlet_key):
 
     out = []
     for src in sel_list:
+        # Allow empty source ("no connect")
+        if src == "" or src is None:
+            out.append("0" * sel_bits)
+            continue
         if src not in src_to_idx:
-            raise KeyError(f"Source '{src}' not valid for outlet '{outlet_key}'. "
-                           f"Allowed: {sources}")
+            raise KeyError(
+                f"Source '{src}' not valid for outlet '{outlet_key}'. "
+                f"Allowed: {sources + ['(empty)']}"
+            )
         out.append(bits_from_int(src_to_idx[src], sel_bits))
     return "".join(out), sel_bits * len(sel_list)
 

@@ -54,7 +54,24 @@ module dice_gprf_ctrl #(
     logic [NUM_PORTS*DATA_WIDTH-1:0] pipe_rd_data;
     logic [NUM_PORTS*DATA_WIDTH-1:0] pipe_wr_data;
     logic [NUM_PORTS*DATA_WIDTH-1:0] spec_reg_out;
+    
+    logic [NUM_PORTS*DATA_WIDTH-1:0] pipe_rd_data_final;
+    logic [NUM_PORTS-1:0] rd_en_pre;
+    always_ff @(posedge clk or negedge rst_n) begin
+        if (!rst_n) begin
+            rd_en_pre <= '0;
+        end else if (clr) begin
+            rd_en_pre <= '0;
+        end else begin
+            rd_en_pre <= rd_en; 
+        end
+    end
 
+    always_comb begin
+        for (int i = 0; i < NUM_PORTS; i++) begin
+            pipe_rd_data_final[i*DATA_WIDTH +: DATA_WIDTH] = rd_en_pre[i]? pipe_rd_data[i*DATA_WIDTH +: DATA_WIDTH] : '0;
+        end
+    end
     //generate individual instance for each port to ease debug from waveform
     genvar i;
     generate
@@ -97,7 +114,7 @@ module dice_gprf_ctrl #(
                 .clr         (clr),
                 .latency_in  (input_latency[i*LATW+:LATW]),
                 .latency_out (output_latency[i*LATW+:LATW]),
-                .rf_rdata    (pipe_rd_data[i*DATA_WIDTH +: DATA_WIDTH]),
+                .rf_rdata    (pipe_rd_data_final[i*DATA_WIDTH +: DATA_WIDTH]),
                 .rf_wdata    (pipe_wr_data[i*DATA_WIDTH +: DATA_WIDTH]),
                 .cgra_in     (rd_data[i*DATA_WIDTH +: DATA_WIDTH]),
                 .cgra_out    (wr_data[i*DATA_WIDTH +: DATA_WIDTH])

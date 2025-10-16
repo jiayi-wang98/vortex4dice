@@ -85,6 +85,10 @@ module dice_cgra_subsystem #(
     logic [DATA_WIDTH-1:0] CGRA_out_t[0:NUM_CGRA_IO-1];
     logic [NUM_CGRA_IO-1:0] CGRA_in_p;
     logic [NUM_CGRA_IO-1:0] CGRA_out_p;
+    logic [NUM_CGRA_IO-1:0] rf_rd_en_final;
+    logic [NUM_CGRA_IO-1:0] prf_rd_en_final;
+    assign rf_rd_en_final = rf_rd_en & {NUM_CGRA_IO{disp_valid}};
+    assign prf_rd_en_final = prf_rd_en & {NUM_CGRA_IO{disp_valid}};
 
     // Reorganize CGRA I/O
     // CGRA port order:
@@ -194,7 +198,7 @@ module dice_cgra_subsystem #(
       .rst_n(rst_n),
       .clr(clr),
       // read interface
-      .rd_en(rf_rd_en),
+      .rd_en(rf_rd_en_final),
       .rd_tid(disp_tid),
       .rd_data(rf_rd_data),
       //write interface
@@ -239,7 +243,7 @@ module dice_cgra_subsystem #(
       .rst_n(rst_n),
       .clr(clr),
       // read interface
-      .rd_en(prf_rd_en),
+      .rd_en(prf_rd_en_final),
       .rd_tid(disp_tid),
       .rd_data(prf_rd_data),
       //write interface

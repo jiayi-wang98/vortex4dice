@@ -7,7 +7,7 @@ def my_custom_pattern(prefix, port, addr, width):
         return (addr % 32 == 0)
     if (port == 9):
         # Switch PE internal accumulater on and off.
-        return (addr % 32 == 0)
+        return (addr % 64 < 32)
     
     if (port == 1 or port == 3 or port == 5 or port == 7):
         # enable D register writeback

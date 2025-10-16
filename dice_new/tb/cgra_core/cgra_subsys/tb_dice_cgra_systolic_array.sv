@@ -8,7 +8,7 @@ module tb_dice_cgra;
   localparam NUM_TID = 512;
   localparam DATA_WIDTH = 32;
   localparam MAX_CTA_ID = 65535;
-  localparam MAX_CGRA_PIPE_STAGE = 32;
+  localparam MAX_CGRA_PIPE_STAGE = 128;
   localparam MAX_IO_PIPE_STAGE = 8;
   localparam CFG_WIDTH = TILE_BITS * NUM_TILES;
   localparam ADDR_WIDTH = $clog2(NUM_TID);
@@ -245,7 +245,7 @@ end
     //spec_rd_en = '0;
     //spec_rd_select = '0;
 
-
+    io_port_index = 0;
     fd = $fopen("bitstreams/gprf_bitstream.txt", "r");
     if (!fd) $fatal("Cannot open gprf_bitstream.txt");
 
@@ -283,7 +283,7 @@ end
     end
     $fclose(fd);
     $display("[%0t] Loaded bitstream into %0d general-purpose IO ports.", $time, io_port_index);
-    cgra_compute_latency = 5'd28; // Example compute latency
+    cgra_compute_latency = 72; // Example compute latency
 
     
     cgra_cfg = '0;
@@ -388,16 +388,22 @@ end
     clr = 1;
     disp_clr = 1;
     disp_enable = 0;
-    repeat (10) @(posedge clk);
+    repeat (10) @(negedge clk);
     rst_n = 1;
-    repeat (10) @(posedge clk);
+    repeat (10) @(negedge clk);
     clr = 0;
     disp_clr = 0;
     disp_enable = 1;
-    repeat (10) @(posedge clk);
+    repeat (10) @(negedge clk);
     wait(cgra_done & disp_done);
     #100;
     $display("[%0t] Simulation completed", $time);
     $finish;
+  end
+
+  initial begin
+    //dump fsdb
+    $fsdbDumpfile("tb_dice_cgra.fsdb");
+    $fsdbDumpvars(0, tb_dice_cgra);
   end
 endmodule

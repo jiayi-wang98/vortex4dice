@@ -15,30 +15,72 @@ module naive_dispatcher #(
     output logic [$clog2(TOTAL_TID)-1:0] tid_y,
     output logic [$clog2(TOTAL_TID)-1:0] tid_z,
     output logic tid_valid
-);
+);  
 
+    enum {IDLE, DISPATCH, DONE} state, state_next;
+
+    //state register
     always_ff @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
-            done <= 0;
-            dispatch_tid <= 0;
-            tid_valid <= 0;
-        end else if (enable) begin
-            if (done) begin
-                tid_valid <= 0;
-            end else if (dispatch_tid == max_tid) begin
-                done <= 1;
-                tid_valid <= 1;
-            end else begin
-                done <= 0;
-                dispatch_tid <= dispatch_tid + 1;
-                tid_valid <= 1;
-            end
-        end else if (clr) begin
-            done <= 0;
-            dispatch_tid <= 0;
-            tid_valid <= 0;
+            state <= IDLE;
+        end else begin
+            state <= state_next;
         end
     end
+
+    always_comb begin
+        if (!rst_n || clr) begin
+            state_next = IDLE;
+        end else begin
+            case (state)
+                IDLE: begin
+                    if (enable) begin
+                        state_next = DISPATCH;
+                    end else begin
+                        state_next = IDLE;
+                    end
+                end
+                DISPATCH: begin
+                    if (dispatch_tid == max_tid) begin
+                        state_next = DONE;
+                    end else begin
+                        state_next = DISPATCH;
+                    end
+                end
+                DONE: begin
+                    if(clr) begin
+                        state_next = IDLE;
+                    end else begin
+                        state_next = DONE;
+                    end
+                end
+                default: state_next = IDLE;
+            endcase
+        end
+    end
+
+    assign done = (state == DONE);
+    assign tid_valid = (state == DISPATCH);
+    //dispatch tid counter
+    always_ff @(posedge clk or negedge rst_n) begin
+        if (!rst_n) begin
+            dispatch_tid <= '0;
+        end else if (clr) begin
+            dispatch_tid <= '0;
+        end else if (state == IDLE) begin
+            dispatch_tid <= '0;
+        end else if (state == DISPATCH) begin
+            if(enable) begin
+                dispatch_tid <= dispatch_tid + 1;
+            end else begin
+                dispatch_tid <= dispatch_tid;
+            end
+        end else if (state == DONE) begin
+            dispatch_tid <= '0;
+        end
+    end
+
+
 
     assign tid_x = dispatch_tid % (ntid_x+1);
     assign tid_y = (dispatch_tid / (ntid_x+1)) % (ntid_y+1);

@@ -15,8 +15,8 @@ module dice_pe (
   input logic [0:0] out_sel,
 
   //dynamic CFG
-  input logic dff_input_mode,
-  input logic dff_output_mode
+  input logic dff_input_mode, // 0: dff_in->DFF1->out_t0, alu_out->DFF0->out_t1; 1: dff_in->DFF0->out_t0, alu_out->DFF1->out_t1
+  input logic dff_latch_enable
 );
 
   logic [31:0] out0;
@@ -36,19 +36,6 @@ module dice_pe (
 
     logic [31:0] dff0;
     logic [31:0] dff1;
-    logic dff_in_enable,dff_in_enable_pre;
-
-    always_ff @(posedge clk or negedge rst_n) begin
-        if (!rst_n) begin
-            dff_in_enable_pre <= 1'b0;
-        end else begin
-            dff_in_enable_pre <= dff_input_mode;
-        end
-    end
-
-
-    //when this signal changes, enable input dff
-    assign dff_in_enable = dff_input_mode ^ dff_in_enable_pre;
     
 
     always_ff @(posedge clk or negedge rst_n) begin
@@ -57,12 +44,12 @@ module dice_pe (
             dff1 <= 32'b0;
         end else begin
             if (dff_input_mode) begin
-                if(dff_in_enable) begin
+                if(dff_latch_enable) begin
                     dff0 <= dff_in;
                 end //else keep the value
                 dff1 <= out0;
             end else begin
-                if(dff_in_enable) begin
+                if(dff_latch_enable) begin
                     dff1 <= dff_in;
                 end //else keep the value
                 dff0 <= out0;
@@ -71,10 +58,10 @@ module dice_pe (
     end
 
     logic [31:0] dff_out;
-    assign dff_out = dff_output_mode ? dff1 : dff0;
+    assign dff_out = dff_input_mode ? dff1 : dff0;
 
-    assign pe_out_t0 = out_sel ? dff_out : out0;
-    assign pe_out_t1 = dff_output_mode ? dff0 : dff1;
+    assign pe_out_t1 = out_sel ? dff_out : out0;
+    assign pe_out_t0 = dff_input_mode ? dff0 : dff1;
     assign pe_out_p0 = out1;
 
 endmodule
