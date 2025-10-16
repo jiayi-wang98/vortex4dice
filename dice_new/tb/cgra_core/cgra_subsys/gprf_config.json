@@ -90,27 +90,35 @@
         "rf_wr_en": 1,
         "rf_latency_out": 3,
         "rd_override_enable": "0b000000000",
-        "rd_override_address": "0b000000000"
+        "rd_override_address": "0b000000000",
+        "wr_override_enable": "0b000000000",
+        "wr_override_address": "0b000000000"
     },
     "reg_config_13":{
         "reg_index":[3],
         "rf_wr_en": 1,
         "rf_latency_out": 2,
         "rd_override_enable": "0b000000000",
-        "rd_override_address": "0b000000000"
+        "rd_override_address": "0b000000000",
+        "wr_override_enable": "0b000000000",
+        "wr_override_address": "0b000000000"
     },
     "reg_config_14":{
         "reg_index":[5],
         "rf_wr_en": 1,
         "rf_latency_out": 1,
         "rd_override_enable": "0b000000000",
-        "rd_override_address": "0b000000000"
+        "rd_override_address": "0b000000000",
+        "wr_override_enable": "0b000000000",
+        "wr_override_address": "0b000000000"
     },
     "reg_config_15":{
         "reg_index":[7],
         "rf_wr_en": 1,
         "rf_latency_out": 0,
         "rd_override_enable": "0b000000000",
-        "rd_override_address": "0b000000000"
+        "rd_override_address": "0b000000000",
+        "wr_override_enable": "0b000000000",
+        "wr_override_address": "0b000000000"
     }
 }
