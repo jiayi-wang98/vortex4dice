@@ -1,6 +1,8 @@
 `include "bsg_fifo_1r1w_small.sv"
 `include "DE_pkg.sv"
 
+import DE_pkg::*;
+
 module dice_wr_ctrl #
 (
       parameter WIDTH =  32
@@ -32,7 +34,7 @@ module dice_wr_ctrl #
 );
 
 
-// two 
+// two buffers with forwarding flags for each entry. starting with 8 entries
 
 
 
