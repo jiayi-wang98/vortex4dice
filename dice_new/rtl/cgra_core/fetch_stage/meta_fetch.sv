@@ -59,9 +59,9 @@ module meta_fetch #(
 
     // FSM states
     typedef enum logic [1:0] {
-        S_IDLE,         = 2'b00, // fetcher is waiting for pc to change
-        S_SEND_REQ,     = 2'b01, // send req for metadata to cache
-        S_WAIT_RESP,    = 2'b10 // waiting for response from cache
+        S_IDLE         = 2'b00, // fetcher is waiting for pc to change
+        S_SEND_REQ     = 2'b01, // send req for metadata to cache
+        S_WAIT_RESP    = 2'b10 // waiting for response from cache
     } meta_fetch_states;
 
     meta_fetch_states state, state_n;
