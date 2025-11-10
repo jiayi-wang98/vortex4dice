@@ -28,10 +28,11 @@ PARAMETER_LOAD     | 1-bit bool     | 1 if the p-graph only loads constants into
 */
 
 
+//Pretty sure this isn't valid ready
 
 module meta_fetch #(
     parameter PC_WIDTH = 32,
-    parameter ADDR_WIDTH = 32,
+    parameter ADDR_WIDTH = 32
 )(
     input logic clk,
     input logic rst_n,
@@ -70,8 +71,8 @@ module meta_fetch #(
     meta_fetch_states state, state_n;
 
     // q is current, d is next
-    logic [PC_WIDTH-1:0] pc_q, pc_d;            
-    logic pgraph_meta_t metadata_q, metadata_d;
+    logic [PC_WIDTH-1:0] pc_q, pc_d;  
+    pgraph_meta_t metadata_q, metadata_d;
     logic metadata_valid_q, metadata_valid_d;
 
 
@@ -87,7 +88,7 @@ module meta_fetch #(
         metadata_d = metadata_q;
 
         req_valid = 1'b0;
-        req_addr = ; // need to figure out if this just goes with the pc or other parts of the p-graph
+        req_addr = pc_q; // need to figure out if this just goes with the pc or other parts of the p-graph
         resp_ready = 1'b0;
 
         unique case (state)
