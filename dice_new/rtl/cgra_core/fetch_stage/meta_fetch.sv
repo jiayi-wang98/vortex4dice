@@ -27,10 +27,11 @@ PARAMETER_LOAD     | 1-bit bool     | 1 if the p-graph only loads constants into
 
 */
 
+
+
 module meta_fetch #(
     parameter PC_WIDTH = 32,
     parameter ADDR_WIDTH = 32,
-    parameter META_WIDTH = 64 //FIX
 )(
     input logic clk,
     input logic rst_n,
@@ -47,15 +48,17 @@ module meta_fetch #(
     //response channel from cache
     input logic resp_valid,
     output logic resp_ready,
-    input logic [META_WIDTH-1:0] incoming_meta,
+    input pgraph_meta_t incoming_meta,
 
 
 
     //to decoder
-    output logic [META_WIDTH-1:0] outgoing_meta, //done
+    output pgraph_meta_t outgoing_meta, //done
     output logic meta_valid //done
 
 );
+
+    import frontend_pkg::*; //frontend package for metadata structure
 
     // FSM states
     typedef enum logic [1:0] {
@@ -68,7 +71,7 @@ module meta_fetch #(
 
     // q is current, d is next
     logic [PC_WIDTH-1:0] pc_q, pc_d;            
-    logic [META_WIDTH-1:0] metadata_q, metadata_d;
+    logic pgraph_meta_t metadata_q, metadata_d;
     logic metadata_valid_q, metadata_valid_d;
 
 
