@@ -27,7 +27,7 @@ module bitstream_fetch_load #(
     output logic bitstream_load_active,
 
     //cache interface
-    stream_if.initiator cache_stream,
+    stream_if.target cache_stream,
 
     //to FDR EX buffer
     output logic cm_num
@@ -114,6 +114,7 @@ module bitstream_fetch_load #(
     assign load_enable = (state == S_STREAMING) && cache_stream.valid;
 
     //determines what buffer / chunk number should be enabled and ready for inputs
+    //PRETTY SURE THIS IS BROKEN
     assign cm0_chunk_en = (load_enable && (cm_select == 1'b0)) ? (1'b1 << chunk_count_q) : '0;
     assign cm1_chunk_en = (load_enable && (cm_select == 1'b1)) ? (1'b1 << chunk_count_q) : '0;
 
@@ -138,6 +139,7 @@ module bitstream_fetch_load #(
             cm0_addr <= '0;
             cm1_addr <= '0;
             done_streaming_q <= 1'b0;
+            cm_select <= 1'b0;
         end else begin
             state <= state_n;
             chunk_count_q <= chunk_count_d;
@@ -145,6 +147,7 @@ module bitstream_fetch_load #(
             cm1_addr <= cm1_addr_n;
             data_chunk <= data_chunk_n;
             done_streaming_q <= done_streaming_d;
+            cm_select <= cm_select_n;
         end
     end
 endmodule
