@@ -1,107 +1,150 @@
-/*
-Bitstream fetch module, streams it from cache, stores in buffer, then sends it to CGRA buffer when ready
-    -wondering if this needs to be changed-> no buffer in module?
-
-
-
-I'm going to assume the bits per cycle in is the same as bits per cycle out, if that is not the
-    case the code will need to be modified
-*/
-
-
-
+//need to decide if we should keep the interface use or get rid of it
+//NEED TO ADD CACHE CONTROLLER MODULE
 module bitstream_fetch_load #(
-    parameter BITSTREAM_ADDR_WIDTH = 32,
-    parameter MAX_BITSTREAM_SIZE = 256,
-    parameter BITS_PER_CYCLE = 64,
-    parameter BUFFER_DEPTH = 2 // must be power of 2
-) (
+    parameter int BITSTREAM_ADDR_WIDTH = 32,
+    parameter int BITSTREAM_SIZE = 2056,
+    parameter int CHUNK_SIZE = 512,
+    parameter int NUM_CHUNKS = BITSTREAM_SIZE/CHUNK_SIZE
+)(
     input logic clk,
     input logic rst_n,
 
     //from decoder
-    input logic start_fetch_decoder,
-    input logic [BITSTREAM_ADDR_WIDTH-1:0] bitstream_addr,
-    input logic [7:0] bitstream_length,
+    input logic enable_fetch,
+    input logic [BITSTREAM_ADDR_WIDTH-1:0] bitstream_addr_dec,
 
-    //from p-graph cache (stream bitstream)
-    input logic cache_stream_ready
-    output logic cache_stream_valid
-    input logic [BITS_PER_CYCLE-1:0] in_bitstream,
+    //p-graph buffers (stream bitstream)
+    output logic [CHUNK_SIZE-1:0] cm0_data,
+    output logic [NUM_CHUNKS-1:0] cm0_chunk_en,
 
-    //to cgra buffer config (stream bitstream)
-    input logic cgra_buffer_ready,
-    output logic cgra_buffer_valid,
-    output logic [BITS_PER_CYCLE-1:0] out_bitstream,
-    // may need input to know what cm_num is chosen (will be assuming that is the case)
-    //logic to determine which to put the stream into will be easy to implement
+    output logic [CHUNK_SIZE-1:0] cm1_data,
+    output logic [NUM_CHUNKS-1:0] cm1_chunk_en,
 
     //to valid checker
-    output logic bitstream_load_valid,
+    output logic done_streaming,
+
+    //status field may not need
+    output logic bitstream_load_active,
+
+    //cache interface
+    stream_if.initiator cache_stream,
 
     //to FDR EX buffer
-    output logic cm_num,
+    output logic cm_num
 );  
 
-    typedef enum logic [1:0] {
-        S_IDLE         = 2'b00, //
-        S_SEND_REQ     = 2'b01, //
-        S_WAIT_RESP    = 2'b10, //
-        S_STREAMING    = 2'b11  //
-    } meta_fetch_states;
+    localparam int COUNTER_BITS = $clog2(NUM_CHUNKS+1);
 
-    meta_fetch_states state, state_n;
+    typedef enum logic [1:0] {
+        S_IDLE,
+        S_STREAMING,
+        S_DONE
+    } bitstream_fetch_state;
+
+    bitstream_fetch_state state, state_n;
+
+
+    // registered states
+    // logic cm0_in_use, cm1_in_use, cm0_in_use_n, cm1_in_use_n;
+    logic [BITSTREAM_ADDR_WIDTH-1:0] cm0_addr, cm1_addr, cm0_addr_n, cm1_addr_n;
+    logic cm_select, cm_select_n;  // 0 = cm0, 1 = cm1
+
+    logic [COUNTER_BITS-1:0] chunk_count_q, chunk_count_d; //how many chunks have been streamed
+
+    // Data and done flag
+    logic [CHUNK_SIZE-1:0] data_chunk, data_chunk_n;
+    logic done_streaming_q, done_streaming_d;
 
 
     always_comb begin
+        state_n = state;
+        chunk_count_d = chunk_count_q; //what buffer to load it into
+        cm_select_n = cm_select; 
+        cm0_addr_n = cm0_addr; //next address defaults
+        cm1_addr_n = cm1_addr;
+        data_chunk_n = data_chunk; //next chunk
+        done_streaming_d = 1'b0;
+        cache_stream.ready = 1'b0; //handshake
+
         unique case (state)
             S_IDLE: begin
+                if(enable_fetch) begin 
+                    cm_select_n = ~cm_select;
+                    if(bitstream_addr_dec == cm0_addr) begin
+                        state_n = S_DONE;
+                        cm_select_n = 1'b0;
+                    end else if(bitstream_addr_dec == cm1_addr) begin
+                        state_n = S_DONE;
+                        cm_select_n = 1'b1;
+                    end else begin
+                        state_n = S_STREAMING;
+                        cache_stream.ready = 1'b0;
+                        chunk_count_d = '0;
 
+                        if (cm_select_n == 1'b0) begin
+                            cm0_addr_n = bitstream_addr_dec;
+                        end else begin
+                            cm1_addr_n = bitstream_addr_dec;
+                        end
+                    end
+
+                    
+                end
             end
-            S_SEND_REQ: begin
-
+            S_STREAMING: begin // need to determine how to increment the cache address
+                cache_stream.ready = 1'b1;
+                if(cache_stream.valid) begin 
+                    data_chunk_n = cache_stream.data;
+                    chunk_count_d = chunk_count_q + 1'b1;
+                    if(chunk_count_d == NUM_CHUNKS) begin
+                        state_n = S_DONE;
+                    end    
+                end
             end
-            S_WAIT_RESP: begin
-
-            end
-            S_WAIT_RESP: begin
-
-            end
-            default: begin
-
+            S_DONE: begin
+                state_n = S_IDLE;
+                done_streaming_d = 1'b1;
             end
         endcase
     end
 
-    logic buffer_full, buffer_empty;
-    //BUFFER (need to figure out how to empty it)
-    sync_fifo #(
-        .DATA_WIDTH (BITS_PER_CYCLE),
-        .DEPTH (BUFFER_DEPTH)
-    ) bitstream_fetch_buffer (
-        .clk               (clk),   
-        .rst_n             (rst_n),    
-        .push              (),
-        .push_data         (),        
-        .pop               (),        
-        .pop_data          (),        
-        .pop_data_valid,   (),            
-        .empty             (),             
-        .full              (),              
-        .count             ()   
-    )
 
+    //asserts whether data should be streamed from the cache to the buffer
+    logic load_enable;
+    assign load_enable = (state == S_STREAMING) && cache_stream.valid;
 
+    //determines what buffer / chunk number should be enabled and ready for inputs
+    assign cm0_chunk_en = (load_enable && (cm_select == 1'b0)) ? (1'b1 << chunk_count_q) : '0;
+    assign cm1_chunk_en = (load_enable && (cm_select == 1'b1)) ? (1'b1 << chunk_count_q) : '0;
+
+    //tells the next stage what buffer is full
+    assign cm_num = cm_select;
+
+    //sets the input data to the current latched data from the cache
+    assign cm0_data = data_chunk;
+    assign cm1_data = data_chunk;
+
+    //sets flags
+    assign done_streaming = done_streaming_q;
+    assign bitstream_load_active = (state != S_IDLE);
 
 
     always_ff @(posedge clk or negedge rst_n) begin
         if(!rst_n) begin
             state <= S_IDLE;
-
+            chunk_count_q <= '0;
+            cm_select <= 1'b0;
+            data_chunk <= '0;
+            cm0_addr <= '0;
+            cm1_addr <= '0;
+            done_streaming_q <= 1'b0;
         end else begin
             state <= state_n;
-;
+            chunk_count_q <= chunk_count_d;
+            cm0_addr <= cm0_addr_n;
+            cm1_addr <= cm1_addr_n;
+            data_chunk <= data_chunk_n;
+            done_streaming_q <= done_streaming_d;
         end
     end
-
 endmodule
