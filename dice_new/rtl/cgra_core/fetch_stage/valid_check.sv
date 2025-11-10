@@ -1,5 +1,6 @@
 /*
-Need to learn more about barrier condition and what that means for the validity
+Need to learn more about barrier condition and what that means for the validity,
+need to figure out how decoder and branch handler should tell module if they are done
 */
 
 
@@ -9,8 +10,8 @@ module valid_check #(
     input logic clk,
     input logic rst_n,
 
-    //from decoder
-    input logic barrier_cond_met,
+    //from decoder (if it is 1 then all prev blocks must finish before ex this p graph)
+    input logic barrier_indicator,
 
     //from CS, FDR buffer
     input logic [PC_WIDTH-1:0] eblock_pc,
@@ -34,10 +35,15 @@ module valid_check #(
 
     logic valid_d, valid_q;
     logic pc_match;
+    logic barrier_cond_met;
+
+
 
     assign fdr_valid = valid_q;
 
     assign pc_match = (eblock_pc == simt_stack_pc);
+
+    //
     assign valid_d = (pc_match && bitstream_loaded && !unresolved_div && barrier_cond_met);
 
     //may need to add more logic for barrier condition
