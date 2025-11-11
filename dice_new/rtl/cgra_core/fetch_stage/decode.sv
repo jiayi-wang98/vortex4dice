@@ -40,21 +40,23 @@ module decode #(
 
     decode_states state, state_n;
 
-    logic [MASK_WIDTH-1:0] active_thread_mask_q;
+    logic [MASK_WIDTH-1:0] active_thread_mask_q, active_thread_mask_d;
     logic decode_done_q ,decode_done_d;
     pgraph_meta_t meta_q, meta_d;
     logic enable_fetch_q, enable_fetch_d;
+
 
     always_comb begin
         enable_fetch_d = 1'b0;
         state_n = state;
         meta_d = meta_q;
         decode_done_d = decode_done_q;
+        active_thread_mask_d = active_thread_mask_q;
 
         unique case (state)
             S_IDLE: begin
                 if(new_meta) begin
-                    state_n = S_FETCH;
+                    state_n = S_MASK_WAIT;
                     meta_d = metadata_in;
                     enable_fetch_d = 1'b1; //this may also go to the branch handler to signal there is something new
                     decode_done_d = 1'b0;
@@ -64,6 +66,7 @@ module decode #(
                 if(mask_valid) begin
                     state_n = S_IDLE;
                     decode_done_d = 1'b1;
+                    active_thread_mask_d = real_active_thread_mask;
                 end
             end
         endcase
@@ -86,17 +89,19 @@ module decode #(
             decode_done_q <= decode_done_d;
             meta_q <= meta_d;
             state <= state_n;
-            active_thread_mask_q <= real_active_thread_mask;
+            active_thread_mask_q <= active_thread_mask_d;
             enable_fetch_q <= enable_fetch_d;
         end
     end
 
 
     assign decode_done = decode_done_q; //synchronously tells the valid checker if the docode (correct mask fetched) is done
-    assign is_barrier = metadata.barrier; //tells the valid checker if the registered metadata contains a barrier
+    assign is_barrier = meta_q.barrier; //tells the valid checker if the registered metadata contains a barrier
     assign meta_d = metadata_in; //next metadata is always the data that the meta fetcher has
     assign metadata_out = meta_q; //metadata out is always the registered metadata
     assign active_thread_mask = active_thread_mask_q; //the output active thread mask is the registered thread mask
     assign enable_fetch = enable_fetch_q; //signle cycle fetch signal to the bitstream fetch unit when the metadata changes
+    assign bitstream_addr_dec = metadata_q.bitstream_addr; //bitstream address to bitstream fetch
+
     
 endmodule
