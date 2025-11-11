@@ -1,0 +1,16 @@
+verdiSetActWin -dock widgetDock_<Message>
+verdiSetActWin -dock widgetDock_MTB_SOURCE_TAB_1
+verdiWindowResize -win $_Verdi_1 "0" "42" "1800" "967"
+verdiWindowResize -win $_Verdi_1 "0" "42" "1800" "967"
+simSetSimulator "-vcssv" -exec \
+           "/data/amanoj3/vortex4dice/dice_new/tb/cgra_core/dispatcher/regfile/simv" \
+           -args
+debImport "-dbdir" \
+          "/data/amanoj3/vortex4dice/dice_new/tb/cgra_core/dispatcher/regfile/simv.daidir"
+debLoadSimResult \
+           /data/amanoj3/vortex4dice/dice_new/tb/cgra_core/dispatcher/regfile/addr_swizzle_tb.fsdb
+wvCreateWindow
+verdiSetActWin -win $_nWave2
+srcDeselectAll -win $_nTrace1
+verdiSetActWin -dock widgetDock_MTB_SOURCE_TAB_1
+debExit

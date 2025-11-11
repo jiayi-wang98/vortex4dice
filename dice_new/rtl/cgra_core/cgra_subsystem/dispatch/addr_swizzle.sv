@@ -2,14 +2,14 @@
 `include "dice_pkg.sv"
 
 import DE_pkg::*;
-import dice_pkg::*
+import dice_pkg::*;
 
 module addr_swizzle #
 (
       parameter WIDTH =  DICE_ADDR_WIDTH
     , parameter NUM_BANK = 32
     , parameter DEPTH = 512
-    , parameter ADDR_WIDTH = $clog2(width)
+    , parameter ADDR_WIDTH = $clog2(WIDTH)
 ) 
 (
       input reg_rd_cmd rd_cmd
@@ -17,7 +17,7 @@ module addr_swizzle #
     , output logic [DICE_TID_WIDTH-1:0] rs
 );
     
-    assign bank_sel = (rd_cmd.tid[4:0] + rd_cmd.reg[4:0]) & 5'h1F; // (t+r)%32
+    assign bank_sel = (rd_cmd.tid[4:0] + rd_cmd.rs[4:0]) & 5'h1F; // (t+r)%32
     // pick which register to read from in the bank
     assign rs = rd_cmd.tid;
 
