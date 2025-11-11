@@ -7,16 +7,19 @@ interface stream_if #(
 
     logic valid;
     logic ready;
+    logic addr;
     logic [BITSTREAM_DATA_WIDTH-1:0] data;
 
     modport initiator (
         input ready,
+        input addr,
         output valid,
         output data
     );
 
     modport target (
         output ready,
+        output addr,
         input valid,
         input data
     );
