@@ -12,7 +12,6 @@ module decode #(
     input pgraph_meta_t metadata_in,
     input logic new_meta,
 
-
     //to bitstream fetch unit
     output logic [31:0] bitstream_addr_dec,
     output logic enable_fetch, //one cycle signal
@@ -99,6 +98,5 @@ module decode #(
     assign metadata_out = meta_q; //metadata out is always the registered metadata
     assign active_thread_mask = active_thread_mask_q; //the output active thread mask is the registered thread mask
     assign enable_fetch = enable_fetch_q; //signle cycle fetch signal to the bitstream fetch unit when the metadata changes
-
-
+    
 endmodule

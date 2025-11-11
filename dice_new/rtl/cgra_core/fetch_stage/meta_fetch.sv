@@ -54,8 +54,8 @@ module meta_fetch #(
 
 
     //to decoder
-    output pgraph_meta_t outgoing_meta, //done
-    output logic meta_valid //done
+    output pgraph_meta_t outgoing_meta,
+    output logic meta_valid
 
 );
 
