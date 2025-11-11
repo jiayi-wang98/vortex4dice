@@ -1,9 +1,16 @@
-//need to decide if we should keep the interface use or get rid of it
-//NEED TO ADD CACHE CONTROLLER MODULE
+/*
+need to add address stuff
+
+
+
+*/
+
+
+
 module bitstream_fetch_load #(
     parameter int BITSTREAM_ADDR_WIDTH = 32,
     parameter int BITSTREAM_SIZE = 2056,
-    parameter int CHUNK_SIZE = 512,
+    parameter int CHUNK_SIZE = 512, //bits (may need to change)
     parameter int NUM_CHUNKS = BITSTREAM_SIZE/CHUNK_SIZE
 )(
     input logic clk,
@@ -34,6 +41,9 @@ module bitstream_fetch_load #(
 );  
 
     localparam int COUNTER_BITS = $clog2(NUM_CHUNKS+1);
+    logalparam int OFFSET = CHUNK_SIZE / 8; //this may need to be changed
+    //it is the difference in address between the chunks assuming it is byte addressable
+    //and chunk size is in bits.
 
     typedef enum logic [1:0] {
         S_IDLE,
@@ -55,6 +65,9 @@ module bitstream_fetch_load #(
     logic [CHUNK_SIZE-1:0] data_chunk, data_chunk_n;
     logic done_streaming_q, done_streaming_d;
 
+    logic [BITSTREAM_ADDR_WIDTH-1:0] addr_q, addr_d;
+    logic cm0_valid_d, cm1_valid_d, cm0_valid_q, cm1_valid_q 
+
 
     always_comb begin
         state_n = state;
@@ -65,30 +78,32 @@ module bitstream_fetch_load #(
         data_chunk_n = data_chunk; //next chunk
         done_streaming_d = 1'b0;
         cache_stream.ready = 1'b0; //handshake
+        addr_d = addr_q;
+        cm0_valid_d = cm0_valid_q;
+        cm1_valid_d = cm1_valid_q;
+
 
         unique case (state)
             S_IDLE: begin
                 if(enable_fetch) begin 
                     cm_select_n = ~cm_select;
-                    if(bitstream_addr_dec == cm0_addr) begin
+                    if((bitstream_addr_dec == cm0_addr) && cm0_valid_q) begin
                         state_n = S_DONE;
                         cm_select_n = 1'b0;
-                    end else if(bitstream_addr_dec == cm1_addr) begin
+                    end else if((bitstream_addr_dec == cm1_addr) && cm1_valid_q) begin
                         state_n = S_DONE;
                         cm_select_n = 1'b1;
                     end else begin
+                        addr_d = bitstream_addr_dec;
                         state_n = S_STREAMING;
                         cache_stream.ready = 1'b0;
                         chunk_count_d = '0;
-
                         if (cm_select_n == 1'b0) begin
                             cm0_addr_n = bitstream_addr_dec;
                         end else begin
                             cm1_addr_n = bitstream_addr_dec;
                         end
                     end
-
-                    
                 end
             end
             S_STREAMING: begin // need to determine how to increment the cache address
@@ -96,6 +111,7 @@ module bitstream_fetch_load #(
                 if(cache_stream.valid) begin 
                     data_chunk_n = cache_stream.data;
                     chunk_count_d = chunk_count_q + 1'b1;
+                    addr_d = addr_q + OFFSET;
                     if(chunk_count_d == NUM_CHUNKS) begin
                         state_n = S_DONE;
                     end    
@@ -104,6 +120,11 @@ module bitstream_fetch_load #(
             S_DONE: begin
                 state_n = S_IDLE;
                 done_streaming_d = 1'b1;
+                if(cm_select == 1) begin
+                    cm1_valid_d = 1'b1;
+                end else begin
+                    cm0_valid_d = 1'b1;
+                end
             end
         endcase
     end
@@ -118,6 +139,11 @@ module bitstream_fetch_load #(
     assign cm0_chunk_en = (load_enable && (cm_select == 1'b0)) ? (1'b1 << chunk_count_q) : '0;
     assign cm1_chunk_en = (load_enable && (cm_select == 1'b1)) ? (1'b1 << chunk_count_q) : '0;
 
+
+
+
+
+
     //tells the next stage what buffer is full
     assign cm_num = cm_select;
 
@@ -129,6 +155,9 @@ module bitstream_fetch_load #(
     assign done_streaming = done_streaming_q;
     assign bitstream_load_active = (state != S_IDLE);
 
+    assign cache_stream.addr = addr_q;
+    
+
 
     always_ff @(posedge clk or negedge rst_n) begin
         if(!rst_n) begin
@@ -139,7 +168,9 @@ module bitstream_fetch_load #(
             cm0_addr <= '0;
             cm1_addr <= '0;
             done_streaming_q <= 1'b0;
-            cm_select <= 1'b0;
+            addr_q <= '0;
+            cm0_valid_q <= 1'b0;
+            cm1_valid_q <= 1'b0;
         end else begin
             state <= state_n;
             chunk_count_q <= chunk_count_d;
@@ -148,6 +179,9 @@ module bitstream_fetch_load #(
             data_chunk <= data_chunk_n;
             done_streaming_q <= done_streaming_d;
             cm_select <= cm_select_n;
+            addr_q <= addr_d;
+            cm0_valid_q <= cm0_valid_d;
+            cm1_valid_q <= cm1_valid_d;
         end
     end
 endmodule
