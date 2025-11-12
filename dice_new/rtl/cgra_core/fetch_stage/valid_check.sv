@@ -38,12 +38,18 @@ module valid_check #(
     logic barrier_cond_met;
 
 
+    
+    always_comb begin
+
+
+    end
+
+
 
     assign fdr_valid = valid_q;
+    assign pc_match = (eblock_pc == simt_stack_pc); //This 
 
-    assign pc_match = (eblock_pc == simt_stack_pc);
 
-    //
     assign valid_d = (pc_match && bitstream_loaded && !unresolved_div && barrier_cond_met);
 
     //may need to add more logic for barrier condition
