@@ -26,9 +26,10 @@ BARRIER            | 1-bit bool     | Barrier indicator, all previous blocks mus
 PARAMETER_LOAD     | 1-bit bool     | 1 if the p-graph only loads constants into the shared constant buffer (see Section 4)
 
 */
-
-
+//make a valid ready between the border with schedule and this module
 //Pretty sure this isn't valid ready
+
+import frontend_pkg::*; //frontend package for metadata structure
 
 module meta_fetch #(
     parameter PC_WIDTH = 32,
@@ -38,9 +39,9 @@ module meta_fetch #(
     input logic rst_n,
 
     //from CS/FDR barrier
+    input logic schedule_valid,
     input logic [PC_WIDTH-1:0] pc,
-
-    
+    output logic fetch_ready,
     //request channel to cache
     input logic req_ready,
     output logic req_valid,
@@ -51,75 +52,68 @@ module meta_fetch #(
     output logic resp_ready,
     input pgraph_meta_t incoming_meta,
 
-
-
     //to decoder
     output pgraph_meta_t outgoing_meta,
-    output logic meta_valid
-
+    output logic meta_valid,
+    input logic decode_ready
 );
-
-    import frontend_pkg::*; //frontend package for metadata structure
 
     // FSM states
     typedef enum logic [1:0] {
-        S_IDLE         = 2'b00, // fetcher is waiting for pc to change
+        S_IDLE         = 2'b00, // fetcher is ready for a new pc (other parts of Fetch stage may not be tho)
         S_SEND_REQ     = 2'b01, // send req for metadata to cache
-        S_WAIT_RESP    = 2'b10 // waiting for response from cache
+        S_WAIT_RESP    = 2'b10, // waiting for response from cache
+        S_META_OUT     = 2'b11 //added state for outputting metadata so that reasserting ready signal is easier and we don't get stuck in our decoder handshake
     } meta_fetch_states;
 
-    meta_fetch_states state, state_n;
+    meta_fetch_states state_q, state_d;
 
     // q is current, d is next
     logic [PC_WIDTH-1:0] pc_q, pc_d;  
     pgraph_meta_t metadata_q, metadata_d;
     logic metadata_valid_q, metadata_valid_d;
 
-
     assign meta_valid = metadata_valid_q;
     assign outgoing_meta = metadata_q;
-
+    assign fetch_ready = (state_q == S_IDLE); //if the module is idle it is able to accept 
+    // new pc
+    assign req_valid = (state_q == S_SEND_REQ);
+    assign req_addr = pc_q;
+    assign resp_ready = (state_q == S_WAIT_RESP);
 
     always_comb begin
-        //defaults
-        state_n = state;
+        state_d = state_q;
         pc_d = pc_q;
         metadata_valid_d = metadata_valid_q;
         metadata_d = metadata_q;
 
-        req_valid = 1'b0;
-        req_addr = pc_q; // need to figure out if this just goes with the pc or other parts of the p-graph
-        resp_ready = 1'b0;
-
-        unique case (state)
+        unique case (state_q)
             S_IDLE: begin
-                if(pc != pc_q) begin // should i add something about if the current metadata isn't valid or will the produce bugs when reset?
-                    state_n = S_SEND_REQ;
+                if(schedule_valid && fetch_ready) begin // should i add something about if the current metadata isn't valid or will the produce bugs when reset?
+                    state_d = S_SEND_REQ;
                     pc_d = pc;
-                    metadata_valid_d = '0;
-                    metadata_d = '0;
+                    metadata_valid_d = 1'b0;
+                    metadata_d = '0; //doesn't matter
                 end
             end
             S_SEND_REQ: begin
-                req_valid = 1'b1;
-                req_addr = ; //need to figure out how this is determined
                 if(req_valid && req_ready) begin // if fetcher and cache are both ready to send address / start communicating
-                    state_n = S_WAIT_RESP;
+                    state_d = S_WAIT_RESP;
                 end
             end
             S_WAIT_RESP: begin
-                resp_ready = 1'b1;
                 if(resp_valid && resp_ready) begin // if fetcher and cache are both ready to send address / start communicating
-                    state_n = S_IDLE;
-                    metadata_d = incoming_meta; // figure out if this can/should be turned into a structure or something
+                    state_d = S_META_OUT;
+                    metadata_d = incoming_meta;
                     metadata_valid_d = 1'b1;
                 end
             end
-            default: begin
-                state_n = S_IDLE;
-                pc_d = '0;
-                metadata_valid_d = '0;
-                metadata_d = '0;
+            S_META_OUT: begin
+                if(metadata_valid_q && decode_ready) begin
+                    state_d = S_IDLE;
+                    metadata_valid_d = 1'b0;
+                    metadata_d = '0;
+                end
             end
         endcase
 
@@ -128,12 +122,12 @@ module meta_fetch #(
 
     always_ff @(posedge clk or negedge rst_n) begin
         if(!rst_n) begin
-            state <= S_IDLE;
+            state_q <= S_IDLE;
             pc_q <= '0;
             metadata_valid_q <= 1'b0;
             metadata_q <= '0;
         end else begin
-            state <= state_n;
+            state_q <= state_d;
             pc_q <= pc_d;
             metadata_valid_q <= metadata_valid_d;
             metadata_q <= metadata_d;
