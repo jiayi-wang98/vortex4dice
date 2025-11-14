@@ -1,5 +1,11 @@
+//make this module fully elastic. Add handshakes between all connections.
+//need to figure out what handshake there should be with the branch handler
+//this may need to be updated when the branch handler module is written
 
-//need to determine what should be synchronous
+
+//SWITCH FROM FSM TO FLAGS
+import frontend_pkg::*;
+
 
 module decode #(
     parameter MASK_WIDTH = 512
@@ -10,33 +16,40 @@ module decode #(
 
     //from meta fetch unit
     input pgraph_meta_t metadata_in,
-    input logic new_meta,
+    input logic meta_valid,
+    output logic decode_ready_meta,
 
     //to bitstream fetch unit
+    input logic bitstream_fetcher_ready,
     output logic [31:0] bitstream_addr_dec,
-    output logic enable_fetch, //one cycle signal
+    output logic addr_valid, //one cycle signal
 
     //branch handler
     output logic [31:0] branch_metadata,
+    output logic branch_meta_valid,
+    input logic branch_handler_ready,
+
+
     input logic [MASK_WIDTH-1:0] real_active_thread_mask,
     input logic mask_valid,
+    output logic decode_ready_for_mask,
 
-    //to valid checker
+    //to valid checker (decide if this should have a handshake)
     output logic decode_done, //real active thread mask has been determined
-    output logic is_barrier,
+    output logic is_barrier, //need to look into this
 
-    //to fdr stage barrier
+    //to fdr stage barrier (make sure it is synchronized)
     output pgraph_meta_t metadata_out,
     output logic [MASK_WIDTH-1:0] active_thread_mask
 );
 
-    import frontend_pkg::*;
-
-
-    typedef enum logic {
-        S_IDLE,
-        S_MASK_WAIT
+    typedef enum logic [1:0] {
+        S_IDLE          = 2'b00,
+        S_SEND_REQ      = 2'b01, //decoupled req to branch handler and bitstream fetch
+        S_WAIT_RESP     = 2'b10, //wait for response from the active thread mask -> bitstream fetch sends to valid check on its own
+        S_DONE          = 2'b11 //have to determine valid check's behavior
     } decode_states;
+
 
     decode_states state, state_n;
 
@@ -74,10 +87,6 @@ module decode #(
 
     end
 
-    /*what is synchronous:
-        -meta_q
-        -decode_done_q
-    */
     always_ff @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
             decode_done_q <= 1'b0;

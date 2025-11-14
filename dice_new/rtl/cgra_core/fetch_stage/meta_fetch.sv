@@ -1,4 +1,7 @@
 /*
+MODULE NEEDS TO BE INTEGRATED WITH VORTEX ICACHE
+
+
 Inputs Modules:
 -PC from the border with schedule stage
 -Metadata from P-graph Cache

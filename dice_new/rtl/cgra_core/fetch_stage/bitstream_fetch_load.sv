@@ -1,8 +1,5 @@
 /*
 need to add address stuff
-
-
-
 */
 
 
@@ -17,10 +14,11 @@ module bitstream_fetch_load #(
     input logic rst_n,
 
     //from decoder
-    input logic enable_fetch,
-    input logic [BITSTREAM_ADDR_WIDTH-1:0] bitstream_addr_dec,
+    input logic addr_valid,
+    output logic bitstream_fetch_ready,
+    input logic [BITSTREAM_ADDR_WIDTH-1:0] bitstream_addr,
 
-    //p-graph buffers (stream bitstream)
+    //p-graph buffers (stream bitstream) -> bitstream fetcher acts as control module for cgra buffers
     output logic [CHUNK_SIZE-1:0] cm0_data,
     output logic [NUM_CHUNKS-1:0] cm0_chunk_en,
 
@@ -31,7 +29,7 @@ module bitstream_fetch_load #(
     output logic done_streaming,
 
     //status field may not need
-    output logic bitstream_load_active,
+    // output logic bitstream_load_active,
 
     //cache interface
     stream_if.target cache_stream,
@@ -41,14 +39,14 @@ module bitstream_fetch_load #(
 );  
 
     localparam int COUNTER_BITS = $clog2(NUM_CHUNKS+1);
-    logalparam int OFFSET = CHUNK_SIZE / 8; //this may need to be changed
+    localparam int OFFSET = CHUNK_SIZE / 8; //this may need to be changed
     //it is the difference in address between the chunks assuming it is byte addressable
     //and chunk size is in bits.
 
     typedef enum logic [1:0] {
         S_IDLE,
         S_STREAMING,
-        S_DONE
+        S_DONE //may not need
     } bitstream_fetch_state;
 
     bitstream_fetch_state state, state_n;
