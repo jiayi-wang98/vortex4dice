@@ -1,6 +1,3 @@
-/*
-need to add address stuff
-*/
 
 
 
@@ -136,11 +133,6 @@ module bitstream_fetch_load #(
     //PRETTY SURE THIS IS BROKEN
     assign cm0_chunk_en = (load_enable && (cm_select == 1'b0)) ? (1'b1 << chunk_count_q) : '0;
     assign cm1_chunk_en = (load_enable && (cm_select == 1'b1)) ? (1'b1 << chunk_count_q) : '0;
-
-
-
-
-
 
     //tells the next stage what buffer is full
     assign cm_num = cm_select;

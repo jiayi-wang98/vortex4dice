@@ -1,36 +1,3 @@
-/*
-MODULE NEEDS TO BE INTEGRATED WITH VORTEX ICACHE
-
-
-Inputs Modules:
--PC from the border with schedule stage
--Metadata from P-graph Cache
-
-Output Modules:
--P-graph cache
--Decoder
-
-*/
-
-
-//TRY TO DEFINE A STRUCTURE FOR METADATA ----> NEED TO DETERMINE HOW IT IS STORED IN THE CACHE
-
-/*
-BITSTREAM_ADDR     | 32-bit         | Address of the corresponding CGRA configuration bitstream
-BITSTREAM_LENGTH   | 8-bit          | Bitstream size in bytes
-UNROLLING_FACTOR   | 2-bit          | Max thread unrolling factor (see Section 4.2.1)
-LAT                | 8-bit          | CGRA fabric latency for the p-graph
-IN_REGS            | 34-bit bitmap  | Input registers bitmap of the p-graph
-OUT_REGS           | 34-bit bitmap  | Direct output registers bitmap from CGRA fabric of the p-graph
-LD_DEST_REGS       | 8 × 6-bit      | Destination register indexes for memory loads (max request ports × index width)
-NUM_STORES         | 3-bit          | Number of stores per thread of this p-graph
-BRANCH_*           | 32-bit         | Branch/Jump metadata associated with this p-graph
-BARRIER            | 1-bit bool     | Barrier indicator, all previous blocks must finish before executing this p-graph
-PARAMETER_LOAD     | 1-bit bool     | 1 if the p-graph only loads constants into the shared constant buffer (see Section 4)
-
-*/
-//make a valid ready between the border with schedule and this module
-//Pretty sure this isn't valid ready
 
 import frontend_pkg::*; //frontend package for metadata structure
 
