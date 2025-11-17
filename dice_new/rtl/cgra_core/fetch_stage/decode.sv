@@ -1,5 +1,6 @@
 
-//need to determine what should be synchronous
+import frontend_pkg::*;
+
 
 module decode #(
     parameter MASK_WIDTH = 512
@@ -9,99 +10,78 @@ module decode #(
     input logic rst_n,
 
     //from meta fetch unit
-    input pgraph_meta_t metadata_in,
-    input logic new_meta,
+    input pgraph_meta_t meta_in_data,
+    input logic meta_in_valid,
+    output logic meta_in_ready,
 
     //to bitstream fetch unit
-    output logic [31:0] bitstream_addr_dec,
+    output logic [31:0] bitstream_addr,
     output logic enable_fetch, //one cycle signal
 
     //branch handler
     output logic [31:0] branch_metadata,
+    output logic branch_req_valid, //one cycle
+
+
     input logic [MASK_WIDTH-1:0] real_active_thread_mask,
     input logic mask_valid,
 
-    //to valid checker
-    output logic decode_done, //real active thread mask has been determined
-    output logic is_barrier,
+    //to valid checker (decide if this should have a handshake)
+    output logic decode_valid,
+    input logic decode_ready, //when everything in the valid checker is ready to go it 
+    //sends this signal and decode knows it can accept something new
+    output logic is_barrier, //need to look into this
 
-    //to fdr stage barrier
+    //to fdr stage barrier (make sure it is synchronized)
     output pgraph_meta_t metadata_out,
-    output logic [MASK_WIDTH-1:0] active_thread_mask
+    output logic [MASK_WIDTH-1:0] mask
 );
 
-    import frontend_pkg::*;
+    logic [MASK_WIDTH-1:0] active_thread_mask_q;
+    pgraph_meta_t meta_q;
+    logic enable_fetch_q;
+    logic branch_req_valid_q;
+    logic meta_valid;
+    logic waiting_for_mask;
 
-
-    typedef enum logic {
-        S_IDLE,
-        S_MASK_WAIT
-    } decode_states;
-
-    decode_states state, state_n;
-
-    logic [MASK_WIDTH-1:0] active_thread_mask_q, active_thread_mask_d;
-    logic decode_done_q ,decode_done_d;
-    pgraph_meta_t meta_q, meta_d;
-    logic enable_fetch_q, enable_fetch_d;
-
-
-    always_comb begin
-        enable_fetch_d = 1'b0;
-        state_n = state;
-        meta_d = meta_q;
-        decode_done_d = decode_done_q;
-        active_thread_mask_d = active_thread_mask_q;
-
-        unique case (state)
-            S_IDLE: begin
-                if(new_meta) begin
-                    state_n = S_MASK_WAIT;
-                    meta_d = metadata_in;
-                    enable_fetch_d = 1'b1; //this may also go to the branch handler to signal there is something new
-                    decode_done_d = 1'b0;
-                end
-            end
-            S_MASK_WAIT: begin
-                if(mask_valid) begin
-                    state_n = S_IDLE;
-                    decode_done_d = 1'b1;
-                    active_thread_mask_d = real_active_thread_mask;
-                end
-            end
-        endcase
-
-
-    end
-
-    /*what is synchronous:
-        -meta_q
-        -decode_done_q
-    */
+    assign mask = active_thread_mask_q;
+    assign is_barrier = meta_q.barrier;
+    assign metadata_out = meta_q;
+    assign enable_fetch = enable_fetch_q;
+    assign branch_metadata = meta_q.branch_meta;
+    assign branch_req_valid = branch_req_valid_q;
+    assign meta_in_ready = !meta_valid;
+    assign decode_valid = meta_valid && !waiting_for_mask;
+    assign bitstream_addr = meta_valid ? meta_q.bitstream_addr : '0; //if the metadata is valid
+    //this is the address if not it is automatically 0
+    
     always_ff @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
-            decode_done_q <= 1'b0;
             meta_q <= '0;
-            state <= IDLE;
-            enable_fetch_q <= 1'b0;
             active_thread_mask_q <= '0;
+            meta_valid <= 1'b0;
+            waiting_for_mask <= 1'b0;
+            enable_fetch_q <= 1'b0;
+            branch_req_valid_q <= 1'b0;
         end else begin
-            decode_done_q <= decode_done_d;
-            meta_q <= meta_d;
-            state <= state_n;
-            active_thread_mask_q <= active_thread_mask_d;
-            enable_fetch_q <= enable_fetch_d;
+            enable_fetch_q <= 1'b0;
+            branch_req_valid_q <= 1'b0;
+            if(meta_in_valid && meta_in_ready) begin
+                meta_q <= meta_in_data;
+                meta_valid <= 1'b1;
+                waiting_for_mask <= 1'b1;
+                active_thread_mask_q <= '0;
+                enable_fetch_q <= 1'b1;
+                branch_req_valid_q <= 1'b1;
+            end
+            if (mask_valid && waiting_for_mask) begin
+                active_thread_mask_q <= real_active_thread_mask;
+                waiting_for_mask <= 1'b0;
+            end
+            if(decode_valid && decode_ready) begin
+                meta_valid <= 1'b0;
+                waiting_for_mask <= 1'b0;
+            end
         end
     end
-
-
-    assign decode_done = decode_done_q; //synchronously tells the valid checker if the docode (correct mask fetched) is done
-    assign is_barrier = meta_q.barrier; //tells the valid checker if the registered metadata contains a barrier
-    assign meta_d = metadata_in; //next metadata is always the data that the meta fetcher has
-    assign metadata_out = meta_q; //metadata out is always the registered metadata
-    assign active_thread_mask = active_thread_mask_q; //the output active thread mask is the registered thread mask
-    assign enable_fetch = enable_fetch_q; //signle cycle fetch signal to the bitstream fetch unit when the metadata changes
-    assign bitstream_addr_dec = metadata_q.bitstream_addr; //bitstream address to bitstream fetch
-
-    
 endmodule
