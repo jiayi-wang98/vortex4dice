@@ -50,7 +50,7 @@ module tb_meta_fetch;
    initial begin
       //dump fsdb
       $fsdbDumpfile("tb_meta_fetch.fsdb");
-      $fsdbDumpvars(“+all”);
+      $fsdbDumpvars("+all");
     end
 
 
