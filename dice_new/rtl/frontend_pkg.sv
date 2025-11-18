@@ -1,3 +1,4 @@
+`timescale 1ns/1ps
 
 /* Intital frontend package:
 This will likely need to be changed when i learn more about verilog header files,

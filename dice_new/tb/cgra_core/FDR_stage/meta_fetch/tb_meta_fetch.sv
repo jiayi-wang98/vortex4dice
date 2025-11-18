@@ -72,7 +72,7 @@ module tb_meta_fetch;
     rst_n = 1'b1;
 
     @(posedge clk);
-
+    decode_ready = 1'b1;
     pc = 32'h0000_1000;
     schedule_valid = 1'b1;
     @(posedge clk);
@@ -89,7 +89,8 @@ module tb_meta_fetch;
     resp_valid    = 1'b0;
 
     decode_ready = 1'b1;
-
+    @(posedge clk);
+    @(posedge clk);
     wait (meta_valid == 1'b1);
     @(posedge clk);
     decode_ready = 1'b0;

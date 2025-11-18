@@ -1,3 +1,4 @@
+`timescale 1ns/1ps
 
 import frontend_pkg::*; //frontend package for metadata structure
 
