@@ -86,6 +86,11 @@ module meta_fetch #(
                     metadata_d = '0;
                 end
             end
+            default: begin
+                state_d = S_IDLE;
+                metadata_valid_d = 1'b0;
+                metadata_d = '0;
+            end
         endcase
 
     end

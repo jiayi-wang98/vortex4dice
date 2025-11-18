@@ -58,45 +58,55 @@ module tb_meta_fetch;
   always #5 clk = ~clk;
 
   initial begin
-    rst_n          = 1'b0;
-    schedule_valid = 1'b0;
-    pc             = '0;
-    req_ready      = 1'b0;
-    resp_valid     = 1'b0;
-    incoming_meta  = '0;
-    decode_ready   = 1'b0;
+  // initialize
+  rst_n          = 1'b0;
+  schedule_valid = 1'b0;
+  pc             = '0;
+  req_ready      = 1'b0;
+  resp_valid     = 1'b0;
+  incoming_meta  = '0;
+  decode_ready   = 1'b0;
 
-    @(posedge clk);
-    @(posedge clk);
-    @(posedge clk);
-    rst_n = 1'b1;
+  // reset sequence
+  repeat (3) @(posedge clk);
+  rst_n = 1'b1;
+  $display("[%0t] Reset deasserted", $time);
 
-    @(posedge clk);
-    decode_ready = 1'b1;
-    pc = 32'h0000_1000;
-    schedule_valid = 1'b1;
-    @(posedge clk);
-    schedule_valid = 1'b0;
+  @(posedge clk);
+  decode_ready   = 1'b1;
+  pc             = 32'h0000_1000;
+  schedule_valid = 1'b1;
+  $display("[%0t] Sent schedule_valid with pc = %h", $time, pc);
 
-    req_ready = 1'b1;
+  @(posedge clk);
+  schedule_valid = 1'b0;
 
-    wait (req_valid == 1'b1);
-    @(posedge clk);
+  req_ready = 1'b1;
+  $display("[%0t] req_ready asserted", $time);
 
-    incoming_meta = '1;
-    resp_valid    = 1'b1;
-    @(posedge clk);
-    resp_valid    = 1'b0;
+  wait (req_valid);
+  $display("[%0t] req_valid observed, req_addr = %h", $time, req_addr);
+  @(posedge clk);
 
-    decode_ready = 1'b1;
-    @(posedge clk);
-    @(posedge clk);
-    wait (meta_valid == 1'b1);
-    @(posedge clk);
-    decode_ready = 1'b0;
+  incoming_meta = '1;
+  resp_valid    = 1'b1;
+  $display("[%0t] resp_valid asserted, incoming_meta = %h",
+            $time, incoming_meta);
 
-    repeat (5) @(posedge clk);
-    $finish;
-  end
+  @(posedge clk);
+  resp_valid = 1'b0;
+
+  wait (meta_valid);
+  $display("[%0t] meta_valid observed, outgoing_meta = %h",
+            $time, outgoing_meta);
+
+  @(posedge clk);
+  decode_ready = 1'b0;
+
+  repeat (5) @(posedge clk);
+  $display("[%0t] Test finished", $time);
+  $finish;
+end
+
 
 endmodule
