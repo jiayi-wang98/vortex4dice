@@ -3,3 +3,12 @@
 
 rm -r ./xcelium.d
 xmverilog -f filelist.f -sv -64bit +access+rcw  -top tb_cta_scheduler -stop_on_build_error -timescale 1ns/1ps 
+
+
+
+#vcs -full64 -sverilog -f filelist.f \
+#     -debug_access+all -kdb -lca +vpi \
+#     +define+FSDB \
+#     -o simv
+
+# ./simv

@@ -46,6 +46,14 @@ module tb_meta_fetch;
     .decode_ready  (decode_ready)
   );
 
+  //TO SHOW WAVEFORMS
+   initial begin
+      //dump fsdb
+      $fsdbDumpfile("tb_meta_fetch.fsdb");
+      $fsdbDumpvars(“+all”);
+    end
+
+
   initial clk = 1'b0;
   always #5 clk = ~clk;
 
@@ -65,7 +73,7 @@ module tb_meta_fetch;
 
     @(posedge clk);
 
-    pc             = 32'h0000_1000;
+    pc = 32'h0000_1000;
     schedule_valid = 1'b1;
     @(posedge clk);
     schedule_valid = 1'b0;
