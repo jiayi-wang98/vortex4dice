@@ -7,35 +7,42 @@ module temporal_coalescing_unit_testbench;
     parameter int cache_line_size = 32;
     parameter int base_address_offset = $clog2(cache_line_size);
     parameter int base_tid_address_offset = $clog2(number_of_max_coalesced_commands);
-    
+    parameter int eblock_id_width = 4;
+    parameter int tid_width = 10;
+    parameter int data_width = 64;
+    parameter int addr_width = 64;
+    parameter int max_reg_width = 7;
+    parameter int bitmap_width = 8;
+    parameter int write_mask_width = 8;
+
     // Clock and reset
     logic clk;
     logic rst_n;
     
     // DUT input signals
     logic incmd_valid;
-    logic [3:0] incmd_block_id;
-    logic [9:0] incmd_tid;
+    logic [eblock_id_width-1:0] incmd_block_id;
+    logic [tid_width-1:0] incmd_tid;
     logic incmd_write_enable;
-    logic [63:0] incmd_write_data;
-    logic [7:0] incmd_write_mask;
-    logic [63:0] incmd_address;
+    logic [data_width-1:0] incmd_write_data;
+    logic [write_mask_width-1:0] incmd_write_mask;
+    logic [addr_width-1:0] incmd_address;
     logic [1:0] incmd_size;
-    logic [6:0] incmd_ld_dest_reg;
+    logic [max_reg_width-1:0] incmd_ld_dest_reg;
     logic outcmd_ready;
     
     // DUT output signals
     logic incmd_ready;
     logic outcmd_valid;
-    logic [3:0] outcmd_block_id;
-    logic [9:0] outcmd_base_tid;
-    logic [7:0] outcmd_tid_bitmap;
+    logic [eblock_id_width-1:0] outcmd_block_id;
+    logic [tid_width-1:0] outcmd_base_tid;
+    logic [bitmap_width:0] outcmd_tid_bitmap;
     logic outcmd_write_enable;
     logic [cache_line_size*8-1:0] outcmd_write_data;
     logic [cache_line_size-1:0] outcmd_write_mask;
-    logic [63:0] outcmd_address;
+    logic [addr_width-1:0] outcmd_address;
     logic [1:0] outcmd_size;
-    logic [6:0] outcmd_ld_dest_reg;
+    logic [max_reg_width-1:0] outcmd_ld_dest_reg;
     logic [number_of_max_coalesced_commands-1:0][base_address_offset-1:0] outcmd_address_map;
     
     // Test tracking variables
@@ -48,28 +55,28 @@ module temporal_coalescing_unit_testbench;
     
     // Input command structure
     typedef struct {
-        logic [3:0] block_id;
-        logic [9:0] tid;
+        logic [eblock_id_width-1:0] block_id;
+        logic [tid_width-1:0] tid;
         logic write_enable;
-        logic [63:0] write_data;
-        logic [7:0] write_mask;
-        logic [63:0] address;
+        logic [data_width-1:0] write_data;
+        logic [write_mask_width-1:0] write_mask;
+        logic [addr_width-1:0] address;
         logic [1:0] size;
-        logic [6:0] ld_dest_reg;
+        logic [max_reg_width-1:0] ld_dest_reg;
         string description;
     } input_cmd_t;
     
     // Expected output command structure
     typedef struct {
-        logic [3:0] block_id;
-        logic [9:0] base_tid;
-        logic [7:0] tid_bitmap;
+        logic [eblock_id_width-1:0] block_id;
+        logic [tid_width-1:0] base_tid;
+        logic [bitmap_width-1:0] tid_bitmap;
         logic write_enable;
         logic [cache_line_size*8-1:0] write_data;
         logic [cache_line_size-1:0] write_mask;
-        logic [63:0] address;
+        logic [addr_width-1:0] address;
         logic [1:0] size;
-        logic [6:0] ld_dest_reg;
+        logic [max_reg_width-1:0] ld_dest_reg;
         string description;
         logic check_tid_bitmap;
         logic check_write_data;
@@ -124,14 +131,14 @@ module temporal_coalescing_unit_testbench;
     
     // Task to add input command to queue
     task automatic add_input_command(
-        input [3:0] block_id,
-        input [9:0] tid,
+        input [eblock_id_width-1:0] block_id,
+        input [tid_width-1:0] tid,
         input logic write_enable,
-        input [63:0] write_data,
-        input [7:0] write_mask,
-        input [63:0] address,
+        input [data_width-1:0] write_data,
+        input [write_mask_width-1:0] write_mask,
+        input [addr_width-1:0] address,
         input [1:0] size,
-        input [6:0] ld_dest_reg,
+        input [max_reg_width-1:0] ld_dest_reg,
         input string description
     );
         input_cmd_t cmd;
@@ -154,15 +161,15 @@ module temporal_coalescing_unit_testbench;
     
     // Task to add expected output command to queue
     task automatic add_expected_output(
-        input [3:0] block_id,
-        input [9:0] base_tid,
-        input [7:0] tid_bitmap,
+        input [eblock_id_width-1:0] block_id,
+        input [tid_width-1:0] base_tid,
+        input [bitmap_width-1:0] tid_bitmap,
         input logic write_enable,
         input [cache_line_size*8-1:0] write_data,
         input [cache_line_size-1:0] write_mask,
-        input [63:0] address,
+        input [addr_width-1:0] address,
         input [1:0] size,
-        input [6:0] ld_dest_reg,
+        input [max_reg_width-1:0] ld_dest_reg,
         input string description,
         input logic check_tid_bitmap = 1'b0,
         input logic check_write_data = 1'b0,
@@ -190,14 +197,15 @@ module temporal_coalescing_unit_testbench;
     always @(negedge clk) begin
         if (!rst_n) begin
             incmd_valid <= 1'b0;
-            incmd_block_id <= 4'b0;
-            incmd_tid <= 10'b0;
+            incmd_block_id <= {eblock_id_width{1'b0}};;
+            incmd_tid <= {tid_width{1'b0}};
             incmd_write_enable <= 1'b0;
             incmd_write_data <= 64'b0;
-            incmd_write_mask <= 8'b0;
-            incmd_address <= 64'b0;
+            incmd_write_mask <= {write_mask_width{1'b0}};
+            incmd_address <= {addr_width{1'b0}};
             incmd_size <= 2'b0;
-            incmd_ld_dest_reg <= 7'b0;
+            incmd_ld_dest_reg <= {max_reg_width{1'b0}};
+ 
         end else if (driver_active) begin
             if (incmd_ready) begin
                 if(input_queue.size() == 0) begin
@@ -225,14 +233,15 @@ module temporal_coalescing_unit_testbench;
             end
         end else begin
             incmd_valid <= 1'b0;
-            incmd_block_id <= 4'b0;
-            incmd_tid <= 10'b0;
+            incmd_block_id <= {eblock_id_width{1'b0}};;
+            incmd_tid <= {tid_width{1'b0}};
             incmd_write_enable <= 1'b0;
-            incmd_write_data <= 64'b0;
-            incmd_write_mask <= 8'b0;
-            incmd_address <= 64'b0;
+            incmd_write_data <= '{data_width{1'b0}};
+            incmd_write_mask <= {write_mask_width{1'b0}};
+            incmd_address <= {addr_width{1'b0}};
             incmd_size <= 2'b0;
-            incmd_ld_dest_reg <= 7'b0;
+            incmd_ld_dest_reg <= {max_reg_width{1'b0}};
+ 
         end
     end
     
