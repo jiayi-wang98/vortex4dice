@@ -1,28 +1,30 @@
 `timescale 1ns/1ps
+`include "VX_define.vh"
 
 import frontend_pkg::*; //frontend package for metadata structure
 
+//recent modification modifies the FMS so it is 3 states,
+//replaces to generic cache handshake with the vortex bus so that 
+//it can be more easily integrated into the framework
+
 module meta_fetch #(
+    parameter MAX_NUM_CTA = 4,
     parameter PC_WIDTH = 32,
-    parameter ADDR_WIDTH = 32
+    parameter CTA_ID_WIDTH = $clog2(MAX_NUM_CTA),
+    parameter EBLOCK_ID_WIDTH = $clog2(MAX_NUM_CTA + 4),
+    parameter MAX_EBLOCK = MAX_NUM_CTA + 4,
+    parameter ADDR_WIDTH = 64
 )(
     input logic clk,
     input logic rst_n,
 
     //from CS/FDR barrier
     input logic schedule_valid,
-    input logic [PC_WIDTH-1:0] pc,
+    input logic [PC_WIDTH-1:0] fdr_next_pc,
     output logic schedule_ready,
-    //request channel to cache
 
-    input logic req_ready,
-    output logic req_valid,
-    output logic [ADDR_WIDTH-1:0] req_addr,
-    
-    //response channel from cache
-    input logic resp_valid,
-    output logic resp_ready,
-    input pgraph_meta_t incoming_meta,
+    //request channel to cache
+    VX_mem_bus_if.master meta_fetch_bus_if,
 
     //to decoder
     output pgraph_meta_t outgoing_meta,
@@ -32,83 +34,90 @@ module meta_fetch #(
 
     // FSM states
     typedef enum logic [1:0] {
-        S_IDLE         = 2'b00, // fetcher is ready for a new pc (other parts of Fetch stage may not be tho)
-        S_SEND_REQ     = 2'b01, // send req for metadata to cache
-        S_WAIT_RESP    = 2'b10, // waiting for response from cache
-        S_META_OUT     = 2'b11 //added state for outputting metadata so that reasserting ready signal is easier and we don't get stuck in our decoder handshake
+        S_READY         = 2'b00, // fetcher is ready for a new pc
+        S_REQ_VAL       = 2'b01,
+        S_WAIT_RESP     = 2'b10, // waiting for response from cache
+        S_HOLD_DATA     = 2'b11 //waits for decoder to consume meta
     } meta_fetch_states;
 
     meta_fetch_states state_q, state_d;
+    logic meta_valid_q;
+    
+    //'Event Signals' 2x for cache handshake - 1x for decode====================
+    logic rsp_fire, consume_fire, req_fire;
+    assign rsp_fire = meta_fetch_bus_if.rsp_valid && meta_fetch_bus_if.rsp_ready;
+    assign req_fire = meta_fetch_bus_if.req_valid && meta_fetch_bus_if.req_ready;
+    assign consume_fire = meta_valid_q && decode_ready;
+    //'Event Signals' 2x for cache handshake - 1x for decode====================
 
-    // q is current, d is next
-    logic [PC_WIDTH-1:0] pc_q, pc_d;  
-    pgraph_meta_t metadata_q, metadata_d;
-    logic metadata_valid_q, metadata_valid_d;
+    //DIRECTLY FROM VORTEX======================================================
+    logic [ICACHE_ADDR_WIDTH-1:0] meta_cache_req_addr_q, meta_cache_req_addr_d;
+    assign meta_cache_req_addr_d = fdr_next_pc[2-(`XLEN-PC_BITS) +: ICACHE_ADDR_WIDTH]; 
+    // 4-byte aligned addresses
+    //DIRECTLY FROM VORTEX======================================================
 
-    assign meta_valid = metadata_valid_q;
-    assign outgoing_meta = metadata_q;
-    assign schedule_ready = (state_q == S_IDLE); //if the module is idle it is able to accept 
-    // new pc
-    assign req_valid = (state_q == S_SEND_REQ);
-    assign req_addr = pc_q;
-    assign resp_ready = (state_q == S_WAIT_RESP);
 
     always_comb begin
+        schedule_ready = 1'b0;
         state_d = state_q;
-        pc_d = pc_q;
-        metadata_valid_d = metadata_valid_q;
-        metadata_d = metadata_q;
-
+    
         unique case (state_q)
-            S_IDLE: begin
-                if(schedule_valid && schedule_ready) begin // should i add something about if the current metadata isn't valid or will the produce bugs when reset?
-                    state_d = S_SEND_REQ;
-                    pc_d = pc;
-                    metadata_valid_d = 1'b0;
-                    metadata_d = '0; //doesn't matter
+            S_READY: begin
+                schedule_ready = 1'b1;
+                if(schedule_valid) begin
+                    state_d = S_REQ_VAL;  
                 end
             end
-            S_SEND_REQ: begin
-                if(req_valid && req_ready) begin // if fetcher and cache are both ready to send address / start communicating
-                    state_d = S_WAIT_RESP;
-                end
+            S_REQ_VAL: begin
+                if(req_fire) state_d = S_WAIT_RESP;
             end
             S_WAIT_RESP: begin
-                if(resp_valid && resp_ready) begin // if fetcher and cache are both ready to send address / start communicating
-                    state_d = S_META_OUT;
-                    metadata_d = incoming_meta;
-                    metadata_valid_d = 1'b1;
+                if(rsp_fire) begin
+                    state_d = S_HOLD_DATA;
                 end
             end
-            S_META_OUT: begin
-                if(metadata_valid_q && decode_ready) begin
-                    state_d = S_IDLE;
-                    metadata_valid_d = 1'b0;
-                    metadata_d = '0;
-                end
-            end
-            default: begin
-                state_d = S_IDLE;
-                metadata_valid_d = 1'b0;
-                metadata_d = '0;
-            end
+            S_HOLD_DATA: begin
+                if(consume_fire) state_d = S_READY;
+            end 
+            default: state_d = S_READY;
         endcase
-
     end
 
 
     always_ff @(posedge clk or negedge rst_n) begin
         if(!rst_n) begin
-            state_q <= S_IDLE;
-            pc_q <= '0;
-            metadata_valid_q <= 1'b0;
-            metadata_q <= '0;
+            state_q <= S_READY;
+            meta_valid_q <= 1'b0;
+            meta_cache_req_addr_q <= '0;
+            outgoing_meta <= '0;
         end else begin
             state_q <= state_d;
-            pc_q <= pc_d;
-            metadata_valid_q <= metadata_valid_d;
-            metadata_q <= metadata_d;
+            if(state_q == S_READY && schedule_valid && schedule_ready) begin
+                meta_cache_req_addr_q <= meta_cache_req_addr_d;
+            end
+            if(rsp_fire) begin
+                outgoing_meta <= meta_fetch_bus_if.rsp_data.data;
+                meta_valid_q <= 1'b1;
+            end
+            if(consume_fire) begin
+                meta_valid_q <= 1'b0;
+            end
         end
     end
+
+
+    //============= UNUSED VORTEX CACHE FEATURES =================//
+    assign meta_fetch_bus_if.req_data.flags  = '0; //misc / not used
+    assign meta_fetch_bus_if.req_data.rw     = 0; //read/write bit
+    assign meta_fetch_bus_if.req_data.byteen = '1; //byte mask (for stores)
+    assign meta_fetch_bus_if.req_data.data   = '0; //write payload
+    assign meta_fetch_bus_if.req_data.tag    = '0; //unneeded because there only one concurrent access
+    
+    //============ MISC ASSIGNS ======================//
+    assign meta_fetch_bus_if.req_data.addr = meta_cache_req_addr_q;
+    assign meta_fetch_bus_if.req_valid = (state_q == S_REQ_VAL);
+    assign meta_fetch_bus_if.rsp_ready = (state_q == S_WAIT_RESP);
+    assign meta_valid = meta_valid_q;
+
 
 endmodule
