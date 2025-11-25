@@ -200,7 +200,7 @@ module temporal_coalescing_unit_testbench;
             incmd_block_id <= {eblock_id_width{1'b0}};;
             incmd_tid <= {tid_width{1'b0}};
             incmd_write_enable <= 1'b0;
-            incmd_write_data <= 64'b0;
+            incmd_write_data <= {data_width{1'b0}};
             incmd_write_mask <= {write_mask_width{1'b0}};
             incmd_address <= {addr_width{1'b0}};
             incmd_size <= 2'b0;
