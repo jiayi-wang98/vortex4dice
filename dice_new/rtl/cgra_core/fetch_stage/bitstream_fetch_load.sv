@@ -11,8 +11,7 @@ module bitstream_fetch_load #(
     input logic rst_n,
 
     //from decoder
-    input logic addr_valid,
-    output logic bitstream_fetch_ready,
+    input logic enable_fetch,
     input logic [BITSTREAM_ADDR_WIDTH-1:0] bitstream_addr,
 
     //p-graph buffers (stream bitstream) -> bitstream fetcher acts as control module for cgra buffers
@@ -24,9 +23,7 @@ module bitstream_fetch_load #(
 
     //to valid checker
     output logic done_streaming,
-
-    //status field may not need
-    // output logic bitstream_load_active,
+    input logic fire_eblock,
 
     //cache interface
     stream_if.target cache_stream,
@@ -61,7 +58,7 @@ module bitstream_fetch_load #(
     logic done_streaming_q, done_streaming_d;
 
     logic [BITSTREAM_ADDR_WIDTH-1:0] addr_q, addr_d;
-    logic cm0_valid_d, cm1_valid_d, cm0_valid_q, cm1_valid_q 
+    logic cm0_valid_d, cm1_valid_d, cm0_valid_q, cm1_valid_q;
 
 
     always_comb begin

@@ -3,7 +3,9 @@ CONDITIONS FOR VALID TO BE ASSERTED:
 1) Bitstream Loaded
 2) E-block prefetch cleared or not prefetch block
 3) Valid mask 
-4) Barrier condition met
+4) Barrier condition met - NEED TO FIGURE OUT WHO UPDATES THIS IN THE STATUS TABLE (says decoder does / decoder keeps track of it
+and gets the info from the retire table. I assume it will be easier to have the decoder just read from the status table
+and have a separate controller for the status table -> will make decoder assuming that)
 */
  //TO DO: Ensure that the prefetch and unresolved divergence is correct
 module valid_check #(

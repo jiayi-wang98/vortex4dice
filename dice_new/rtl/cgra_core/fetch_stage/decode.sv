@@ -16,20 +16,21 @@ module decode #(
 
     //to bitstream fetch unit
     output logic [31:0] bitstream_addr,
-    output logic enable_fetch, //one cycle signal
+    output logic enable_fetch, //one cycle signal - will never 
+    // be an issue because FDR has to wait until bitstream is loaded to fetch
+    //another e-block
 
     //branch handler
     output logic [31:0] branch_metadata,
     output logic branch_req_valid, //one cycle
-
 
     input logic [MASK_WIDTH-1:0] real_active_thread_mask,
     input logic mask_valid,
 
     //to valid checker (decide if this should have a handshake)
     output logic decode_valid,
-    input logic decode_ready, //when everything in the valid checker is ready to go it 
-    //sends this signal and decode knows it can accept something new
+    input logic fire_eblock, //one cycle signal that eblock is 
+    //validated and sent to ex
     output logic is_barrier, //need to look into this
 
     //to fdr stage barrier (make sure it is synchronized)
@@ -78,7 +79,7 @@ module decode #(
                 active_thread_mask_q <= real_active_thread_mask;
                 waiting_for_mask <= 1'b0;
             end
-            if(decode_valid && decode_ready) begin
+            if(decode_valid && fire_eblock) begin
                 meta_valid <= 1'b0;
                 waiting_for_mask <= 1'b0;
             end

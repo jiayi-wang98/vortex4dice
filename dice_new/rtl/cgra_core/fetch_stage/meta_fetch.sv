@@ -12,8 +12,9 @@ module meta_fetch #(
     //from CS/FDR barrier
     input logic schedule_valid,
     input logic [PC_WIDTH-1:0] pc,
-    output logic fetch_ready,
+    output logic schedule_ready,
     //request channel to cache
+
     input logic req_ready,
     output logic req_valid,
     output logic [ADDR_WIDTH-1:0] req_addr,
@@ -46,7 +47,7 @@ module meta_fetch #(
 
     assign meta_valid = metadata_valid_q;
     assign outgoing_meta = metadata_q;
-    assign fetch_ready = (state_q == S_IDLE); //if the module is idle it is able to accept 
+    assign schedule_ready = (state_q == S_IDLE); //if the module is idle it is able to accept 
     // new pc
     assign req_valid = (state_q == S_SEND_REQ);
     assign req_addr = pc_q;
@@ -60,7 +61,7 @@ module meta_fetch #(
 
         unique case (state_q)
             S_IDLE: begin
-                if(schedule_valid && fetch_ready) begin // should i add something about if the current metadata isn't valid or will the produce bugs when reset?
+                if(schedule_valid && schedule_ready) begin // should i add something about if the current metadata isn't valid or will the produce bugs when reset?
                     state_d = S_SEND_REQ;
                     pc_d = pc;
                     metadata_valid_d = 1'b0;
