@@ -402,6 +402,21 @@ module temporal_coalescing_unit_testbench;
     logic [cache_line_size*8-1:0]  expected_write_data;
     int real_tid_base;
 
+    // Parameterized variables for testbenches
+    logic [eblock_id_width-1:0] e_block_temp = 'd1;
+    logic [eblock_id_width-1:0] e_block_temp_2 = 'd3;
+    logic [data_width-1:0] write_data_temp = 'd0;
+    logic [data_width-1:0] write_data_temp2 = 'hDEADBEEF_00000000;
+    logic [data_width-1:0] write_data_temp3 = 'h00000000_DEADBEEF;
+    logic [write_mask_width-1:0] write_mask_temp = 'h00;
+    logic [addr_width-1:0] addr_data_temp = 'd0;
+    logic [addr_width-1:0] addr_data_temp2 = 'hDEADBEEF_00000000;
+    logic [addr_width-1:0] addr_data_temp3 = 'hDEEDBEEB_00000000;
+    logic [max_reg_width-1:0] ld_dest_reg_temp = 'd10;
+    logic [bitmap_width-1:0] bitmap_temp = 'hFF;
+    
+
+
     initial begin
         $display("=== Starting Temporal Coalescing Unit Testbench ===\n");
         
@@ -413,9 +428,9 @@ module temporal_coalescing_unit_testbench;
         // Setup input commands
         for(int i=0;i<128;i++) begin
             add_input_command(
-                .block_id(4'd1), .tid(i), .write_enable(1'b1),
-                .write_data(64'd0 + i), .write_mask(8'h00),
-                .address(64'd0 + (i*4)), .size(2'b10), .ld_dest_reg(7'd10),
+                .block_id(e_block_temp), .tid(i), .write_enable(1'b1),
+                .write_data(write_data_temp + i), .write_mask(write_data_temp),
+                .address(addr_data_temp + (i*4)), .size(2'b10), .ld_dest_reg(ld_dest_reg_temp),
                 .description($sformatf("Store TID %0d to 0x%h", i, 64'd0 + (i * 4)))
             );
         end
@@ -429,9 +444,9 @@ module temporal_coalescing_unit_testbench;
             real_tid_base = i * 8;
 
             add_expected_output(
-                .block_id(4'd1), .base_tid({real_tid_base[9:base_tid_address_offset],{base_tid_address_offset{1'b0}}}), .tid_bitmap(8'hFF),
-                .write_enable(1'b1), .write_data(expected_write_data), .write_mask(32'h0),
-                .address(i<<5), .size(2'b10), .ld_dest_reg(7'd10),
+                .block_id(4'd1), .base_tid({real_tid_base[9:base_tid_address_offset],{base_tid_address_offset{1'b0}}}), .tid_bitmap(bitmap_temp),
+                .write_enable(1'b1), .write_data(expected_write_data), .write_mask(write_mask_temp),
+                .address(i<<5), .size(2'b10), .ld_dest_reg(ld_dest_reg_temp),
                 .description("Expected perfect coalesced store output"),
                 .check_tid_bitmap(1'b1), .check_write_data(1'b1), .check_write_mask(1'b1)
             );
@@ -443,15 +458,16 @@ module temporal_coalescing_unit_testbench;
         wait_for_test_complete();
 
 
+
         // ============================================================
         // Test 2: Perfect Read coalescing
         // ============================================================
         // Setup input commands
         for(int i=0;i<128;i++) begin
             add_input_command(
-                .block_id(4'd1), .tid(i+512), .write_enable(1'b0),
-                .write_data(64'd0), .write_mask(8'h00),
-                .address(64'hDEADBEEF_00000000 + (i*4)), .size(2'b10), .ld_dest_reg(7'd10),
+                .block_id(e_block_temp), .tid(i+512), .write_enable(1'b0),
+                .write_data(write_data_temp), .write_mask(write_mask_temp),
+                .address(addr_data_temp2 + (i*4)), .size(2'b10), .ld_dest_reg(ld_dest_reg_temp),
                 .description($sformatf("Load TID %0d from 0x%h", i, 64'hDEADBEEF_00000000 + (i * 4)))
             );
         end
@@ -461,9 +477,9 @@ module temporal_coalescing_unit_testbench;
             real_tid_base = i * 8+512;
 
             add_expected_output(
-                .block_id(4'd1), .base_tid({real_tid_base[9:base_tid_address_offset],{base_tid_address_offset{1'b0}}}), .tid_bitmap(8'hFF),
-                .write_enable(1'b0), .write_data(64'h0), .write_mask(32'h0),
-                .address(64'hDEADBEEF_00000000 + (i<<5)), .size(2'b10), .ld_dest_reg(7'd10),
+                .block_id(e_block_temp), .base_tid({real_tid_base[9:base_tid_address_offset],{base_tid_address_offset{1'b0}}}), .tid_bitmap(bitmap_temp),
+                .write_enable(1'b0), .write_data(write_data_temp), .write_mask(write_mask_temp),
+                .address(addr_data_temp2 + (i<<5)), .size(2'b10), .ld_dest_reg(ld_dest_reg_temp),
                 .description("Expected perfect coalesced load output"),
                 .check_tid_bitmap(1'b1), .check_write_data(1'b0), .check_write_mask(1'b0)
             );
@@ -478,9 +494,9 @@ module temporal_coalescing_unit_testbench;
         // Setup input commands
         for(int i=0;i<128;i++) begin
             add_input_command(
-                .block_id(4'd3), .tid(i), .write_enable(1'b1),
-                .write_data(64'h00000000_DEADBEEF*i), .write_mask(8'h00),
-                .address(64'hDEEDBEEB_00000000 + (i*32)), .size(2'b10), .ld_dest_reg(7'd10),
+                .block_id(e_block_temp_2), .tid(i), .write_enable(1'b1),
+                .write_data(write_data_temp2*i), .write_mask(write_mask_temp),
+                .address(addr_data_temp3 + (i*32)), .size(2'b10), .ld_dest_reg(ld_dest_reg_temp),
                 .description($sformatf("Store TID %0d to 0x%h", i, 64'hDEEDBEEB_00000000 + (i*4) + (i*32)))
             );
         end
@@ -488,9 +504,9 @@ module temporal_coalescing_unit_testbench;
         for(int i=0;i<128;i++) begin
 
             add_expected_output(
-                .block_id(4'd3), .base_tid({i[9:base_tid_address_offset],{base_tid_address_offset{1'b0}}}), .tid_bitmap(1<<i[4:0]),
-                .write_enable(1'b1), .write_data(64'h00000000_DEADBEEF*i), .write_mask(32'h0),
-                .address(64'hDEEDBEEB_00000000 + (i<<5)), .size(2'b10), .ld_dest_reg(7'd10),
+                .block_id(e_block_temp_2), .base_tid({i[9:base_tid_address_offset],{base_tid_address_offset{1'b0}}}), .tid_bitmap(1<<i[4:0]),
+                .write_enable(1'b1), .write_data(write_data_temp3*i), .write_mask(write_mask_temp),
+                .address(addr_data_temp3+ (i<<5)), .size(2'b10), .ld_dest_reg(ld_dest_reg_temp),
                 .description("Expected Bad write store output"),
                 .check_tid_bitmap(1'b1), .check_write_data(1'b1), .check_write_mask(1'b1)
             );
@@ -505,9 +521,9 @@ module temporal_coalescing_unit_testbench;
         // Setup input commands
         for(int i=0;i<128;i++) begin
             add_input_command(
-                .block_id(4'd3), .tid(i), .write_enable(1'b0),
-                .write_data(64'h00000000_DEADBEEF*i), .write_mask(8'h00),
-                .address(64'hDEEDBEEB_00000000 + (i*32)), .size(2'b10), .ld_dest_reg(7'd10),
+                .block_id(e_block_temp_2), .tid(i), .write_enable(1'b0),
+                .write_data(write_data_temp3*i), .write_mask(write_mask_temp),
+                .address(addr_data_temp3 + (i*32)), .size(2'b10), .ld_dest_reg(ld_dest_reg_temp),
                 .description($sformatf("load TID %0d to 0x%h", i, 64'hDEEDBEEB_00000000 + (i*4) + (i*32)))
             );
         end
@@ -515,9 +531,9 @@ module temporal_coalescing_unit_testbench;
         for(int i=0;i<128;i++) begin
 
             add_expected_output(
-                .block_id(4'd3), .base_tid({i[9:base_tid_address_offset],{base_tid_address_offset{1'b0}}}), .tid_bitmap(1<<i[4:0]),
-                .write_enable(1'b0), .write_data(64'h00000000_DEADBEEF*i), .write_mask(32'h0),
-                .address(64'hDEEDBEEB_00000000 + (i<<5)), .size(2'b10), .ld_dest_reg(7'd10),
+                .block_id(e_block_temp_2), .base_tid({i[9:base_tid_address_offset],{base_tid_address_offset{1'b0}}}), .tid_bitmap(1<<i[4:0]),
+                .write_enable(1'b0), .write_data(write_data_temp3*i), .write_mask(write_mask_temp),
+                .address(addr_data_temp3 + (i<<5)), .size(2'b10), .ld_dest_reg(ld_dest_reg_temp),
                 .description("Expected Bad read output"),
                 .check_tid_bitmap(1'b1), .check_write_data(1'b0), .check_write_mask(1'b0)
             );
