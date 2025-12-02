@@ -1,54 +1,54 @@
 module temporal_coalescing_unit#(
-    parameter int number_of_max_coalesced_interval = 8, // Maximum number of clk cycles to hold internal commands
-    parameter int cache_line_size = 32, // Size of a cache line in bytes
-    parameter int number_of_max_coalesced_commands = cache_line_size/4, // Maximum number of commands that can be coalesced
-    parameter int base_address_offset = $clog2(cache_line_size), // Width of base address offset in bits
-    parameter int base_tid_address_offset = $clog2(number_of_max_coalesced_commands), // Width of base TID address offset in bits
-    parameter int eblock_id_width = 4,
-    parameter int tid_width = 10,
-    parameter int data_width = 64,
-    parameter int addr_width = 64,
-    parameter int max_reg_width = 7,
-    parameter int bitmap_width = 8
+    parameter int NUMBER_OF_MAX_COALESCED_INTERVAL = 8, // Maximum number of clk cycles to hold internal commands
+    parameter int CACHE_LINE_SIZE = 32, // Size of a cache line in bytes
+    parameter int NUMBER_OF_MAX_COALESCED_COMMANDS = CACHE_LINE_SIZE/4, // Maximum number of commands that can be coalesced
+    parameter int BASE_ADDRESS_OFFSET = $clog2(CACHE_LINE_SIZE), // Width of base address offset in bits
+    parameter int BASE_TID_ADDRESS_OFFSET = $clog2(NUMBER_OF_MAX_COALESCED_COMMANDS), // Width of base TID address offset in bits
+    parameter int EBLOCK_ID_WIDTH = 4,
+    parameter int TID_WIDTH = 10,
+    parameter int DATA_WIDTH = 64,
+    parameter int ADDR_WIDTH = 64,
+    parameter int MAX_REG_WIDTH = 7,
+    parameter int BITMAP_WIDTH = 8
 )
 (   
     input logic clk,                     // Clock signal
-    input logic rst_n,                    // Active low reset signal
+    input logic rst,                    // Active high reset signal
     
     //input memory commands
     input logic incmd_valid,                // Input command valid signal
-    input logic [eblock_id_width-1:0] incmd_block_id,       // Input command block ID
-    input logic [tid_width-1:0] incmd_tid,            // Input command thread ID
+    input logic [EBLOCK_ID_WIDTH-1:0] incmd_block_id,       // Input command block ID
+    input logic [TID_WIDTH-1:0] incmd_tid,            // Input command thread ID
     input logic incmd_write_enable,         // Write enable signal
-    input logic [data_width-1:0] incmd_write_data,    // Data to write
-    input logic [data_width/8-1:0] incmd_write_mask,     // 1 means no write, 0 means write
-    input logic [addr_width-1:0] incmd_address,       // Address for the command
+    input logic [DATA_WIDTH-1:0] incmd_write_data,    // Data to write
+    input logic [DATA_WIDTH/8-1:0] incmd_write_mask,     // 1 means no write, 0 means write
+    input logic [ADDR_WIDTH-1:0] incmd_address,       // Address for the command
     input logic [1:0] incmd_size,          // Size of the command (e.g., 00=1B, 01=2B, 10=4B, 11=8B)
-    input logic [max_reg_width-1:0] incmd_ld_dest_reg,    // Load destination register
+    input logic [MAX_REG_WIDTH-1:0] incmd_ld_dest_reg,    // Load destination register
     //ready signal
     output logic incmd_ready,            // Ready signal for input command
 
     //output memory commands
     output logic outcmd_valid,              // Output command valid signal
-    output logic [eblock_id_width-1:0] outcmd_block_id,     // Output command block ID
-    output logic [tid_width-1:0] outcmd_base_tid,     // Output command thread ID
-    output logic [bitmap_width-1:0] outcmd_tid_bitmap,  // Bitmap of TIDs for the command
+    output logic [EBLOCK_ID_WIDTH-1:0] outcmd_block_id,     // Output command block ID
+    output logic [TID_WIDTH-1:0] outcmd_base_tid,     // Output command thread ID
+    output logic [BITMAP_WIDTH-1:0] outcmd_tid_bitmap,  // Bitmap of TIDs for the command
     output logic outcmd_write_enable,       // Write enable signal
-    output logic [cache_line_size*8-1:0] outcmd_write_data,  // Data to write
-    output logic [cache_line_size-1:0] outcmd_write_mask, // 1 means no write, 0 means write
-    output logic [addr_width-1:0] outcmd_address,     // Address for the command
+    output logic [CACHE_LINE_SIZE*8-1:0] outcmd_write_data,  // Data to write
+    output logic [CACHE_LINE_SIZE-1:0] outcmd_write_mask, // 1 means no write, 0 means write
+    output logic [ADDR_WIDTH-1:0] outcmd_address,     // Address for the command
     output logic [1:0] outcmd_size,        // Size of the command (e.g., 00=1B, 01=2B, 10=4B, 11=8B)
-    output logic [max_reg_width-1:0] outcmd_ld_dest_reg,  // Load destination register
-    output logic [number_of_max_coalesced_commands-1:0][base_address_offset-1:0] outcmd_address_map, //map from tid bitmap to address_offset
+    output logic [MAX_REG_WIDTH-1:0] outcmd_ld_dest_reg,  // Load destination register
+    output logic [NUMBER_OF_MAX_COALESCED_COMMANDS-1:0][BASE_ADDRESS_OFFSET-1:0] outcmd_address_map, //map from tid bitmap to address_offset
    
     input logic outcmd_ready                   // Ready signal to control flow
 );
 
-    parameter int total_output_cmd_width = 4 + 10 + 8 + 1 + cache_line_size*8 + cache_line_size + 64 + 2 + 7 + number_of_max_coalesced_commands * base_address_offset;
+    parameter int total_output_cmd_width = 4 + 10 + 8 + 1 + CACHE_LINE_SIZE*8 + CACHE_LINE_SIZE + 64 + 2 + 7 + NUMBER_OF_MAX_COALESCED_COMMANDS * BASE_ADDRESS_OFFSET;
     // Coalescing interval counter
-    logic [$clog2(number_of_max_coalesced_interval)-1:0] interval_counter;
+    logic [$clog2(NUMBER_OF_MAX_COALESCED_INTERVAL)-1:0] interval_counter;
     logic interval_timeout;
-    assign interval_timeout = (interval_counter == (number_of_max_coalesced_interval - 1));
+    assign interval_timeout = (interval_counter == (NUMBER_OF_MAX_COALESCED_INTERVAL - 1));
 
     // Buffer control signals
     logic buffer_incmd_valid;
@@ -58,16 +58,16 @@ module temporal_coalescing_unit#(
 
     // Buffer output signals
     logic buffer_outcmd_valid;
-    logic [eblock_id_width-1:0] buffer_outcmd_block_id;
-    logic [tid_width-1:0] buffer_outcmd_base_tid;
-    logic [bitmap_width-1:0] buffer_outcmd_tid_bitmap;
+    logic [EBLOCK_ID_WIDTH-1:0] buffer_outcmd_block_id;
+    logic [TID_WIDTH-1:0] buffer_outcmd_base_tid;
+    logic [BITMAP_WIDTH-1:0] buffer_outcmd_tid_bitmap;
     logic buffer_outcmd_write_enable;
-    logic [cache_line_size*8-1:0] buffer_outcmd_write_data;
-    logic [cache_line_size-1:0] buffer_outcmd_write_mask;
-    logic [addr_width-1:0] buffer_outcmd_address;
+    logic [CACHE_LINE_SIZE*8-1:0] buffer_outcmd_write_data;
+    logic [CACHE_LINE_SIZE-1:0] buffer_outcmd_write_mask;
+    logic [ADDR_WIDTH-1:0] buffer_outcmd_address;
     logic [1:0] buffer_outcmd_size;
-    logic [max_reg_width-1:0] buffer_outcmd_ld_dest_reg;
-    logic [number_of_max_coalesced_commands-1:0] [base_address_offset-1:0] buffer_outcmd_address_map;
+    logic [MAX_REG_WIDTH-1:0] buffer_outcmd_ld_dest_reg;
+    logic [NUMBER_OF_MAX_COALESCED_COMMANDS-1:0] [BASE_ADDRESS_OFFSET-1:0] buffer_outcmd_address_map;
 
     logic output_valid;
 
@@ -79,12 +79,12 @@ module temporal_coalescing_unit#(
     assign fifo_not_full = !fifo_full;
 
     // Input command base address for comparison
-    logic [addr_width:0] incmd_base_address;
-    assign incmd_base_address = {incmd_address[63:base_address_offset], {base_address_offset{1'b0}}};
+    logic [ADDR_WIDTH:0] incmd_base_address;
+    assign incmd_base_address = {incmd_address[63:BASE_ADDRESS_OFFSET], {BASE_ADDRESS_OFFSET{1'b0}}};
 
     // Interval counter logic - only counts when there are active buffers
-    always_ff @(posedge clk or negedge rst_n) begin
-        if (!rst_n) begin
+    always_ff @(posedge clk) begin
+        if (rst) begin
             interval_counter <= '0;
         end else begin
             if (buffer_clear) begin
@@ -115,13 +115,13 @@ module temporal_coalescing_unit#(
 
     // Generate coalesce buffer instances
     memory_cmd_coalesce_buffer #(
-        .cache_line_size(cache_line_size),
-        .number_of_max_coalesced_commands(number_of_max_coalesced_commands),
-        .base_address_offset(base_address_offset),
-        .base_tid_address_offset(base_tid_address_offset)
+        .CACHE_LINE_SIZE(CACHE_LINE_SIZE),
+        .NUMBER_OF_MAX_COALESCED_COMMANDS(NUMBER_OF_MAX_COALESCED_COMMANDS),
+        .BASE_ADDRESS_OFFSET(BASE_ADDRESS_OFFSET),
+        .BASE_TID_ADDRESS_OFFSET(BASE_TID_ADDRESS_OFFSET)
     ) coalesce_buffer_inst (
         .clk(clk),
-        .rst_n(rst_n),
+        .rst(rst),
         .clear(buffer_clear),
         .update_new(buffer_update_new),
         .incmd_valid(buffer_incmd_valid),
@@ -153,7 +153,7 @@ module temporal_coalescing_unit#(
         .DEPTH(2)
     ) output_fifo (
         .clk(clk),
-        .rst_n(rst_n),
+        .rst(rst),
         .push(buffer_clear),
         .push_data({buffer_outcmd_block_id, 
                     buffer_outcmd_base_tid, 
