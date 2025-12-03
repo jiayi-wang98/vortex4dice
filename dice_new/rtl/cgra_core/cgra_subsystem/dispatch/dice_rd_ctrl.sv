@@ -6,3 +6,9 @@ import dice_pkg::*;
 
 
 module dice_rd_ctrl_bank
+(
+    
+);
+
+
+endmodule 

@@ -2,11 +2,11 @@ Magic 271485
 Revision Verdi_X-2025.06
 
 ; Window Layout <x> <y> <width> <height> <signalwidth> <valuewidth>
-viewPort 0 11 1800 309 100 65
+viewPort 0 174 1800 658 293 114
 
 ; File list:
 ; openDirFile [-d delimiter] [-s time_offset] [-rf auto_bus_rule_file] path_name file_name
-openDirFile -d / "" "/data/amanoj3/vortex4dice/dice_new/tb/cgra_core/dispatcher/regfile/addr_swizzle_tb.fsdb"
+openDirFile -d / "" "/data/amanoj3/vortex4dice/dice_new/tb/cgra_core/dispatcher/regfile/reg_wr_buffer_tb.fsdb"
 
 ; file time scale:
 ; fileTimeScale ### s|ms|us|ns|ps
@@ -16,8 +16,8 @@ signalSpacing 5
 
 ; windowTimeUnit is used for zoom, cursor & marker
 ; waveform viewport range
-zoom 0.000000 10.100000
-cursor 0.000000
+zoom 10.100000 65.650000
+cursor 25.000000
 marker 0.000000
 
 ; user define markers
@@ -25,7 +25,7 @@ marker 0.000000
 ; visible top row signal index
 top 0
 ; marker line index
-markerPos 0
+markerPos 7
 
 ; event list
 ; addEvent event_name event_expression
@@ -46,12 +46,87 @@ curSTATUS ByChange
 
 
 addGroup "G1"
-activeDirFile "" "/data/amanoj3/vortex4dice/dice_new/tb/cgra_core/dispatcher/regfile/addr_swizzle_tb.fsdb"
-addSignal -h 16 -UNSIGNED -HEX /addr_swizzle_tb/bank_sel[4:0]
+activeDirFile "" "/data/amanoj3/vortex4dice/dice_new/tb/cgra_core/dispatcher/regfile/reg_wr_buffer_tb.fsdb"
+addSignal -h 16 /reg_wr_buffer_tb/clk
+addSignal -h 16 -holdScope reset
+addSignal -h 16 -holdScope valid_i
+addSignal -h 16 -holdScope empty_o
+addSignal -h 16 -holdScope full_o
+addSignal -h 16 -holdScope pop_i
+addSignal -h 16 /reg_wr_buffer_tb/dut/enq_li
+addSubGroup "/reg_wr_buffer_tb/dut/enq_li@25(1s)#ValueChange"
+addSignal -h 16 /reg_wr_buffer_tb/dut/enq_li
+addSignal -h 16 -holdScope full
+addSignal -h 16 -holdScope wr_i.we
+endSubGroup "/reg_wr_buffer_tb/dut/enq_li@25(1s)#ValueChange"
+addSignal -h 16 -UNSIGNED -HEX -UNPACKED /reg_wr_buffer_tb/wr_i
 addGroup "G2"
-addSignal -h 16 -UNSIGNED -HEX /addr_swizzle_tb/expected_bank_sel[4:0]
+addSignal -h 16 -UNSIGNED -HEX /reg_wr_buffer_tb/wb_addr_o[8:0]
+addSignal -h 16 -UNSIGNED -HEX -holdScope wb_data_o[31:0]
+addSignal -h 16 -holdScope wb_valid_o
+addSignal -h 16 /reg_wr_buffer_tb/dut/fifo_track/clk_i
+addSignal -h 16 -holdScope deq_i
+addSignal -h 16 -holdScope deq_r
+addSignal -h 16 -holdScope empty
+addSubGroup "/reg_wr_buffer_tb/dut/fifo_track/empty@5(1s)#ActiveDriver"
+addSignal -h 16 /reg_wr_buffer_tb/dut/fifo_track/empty
+addSignal -h 16 -holdScope deq_r
+addSignal -h 16 -holdScope equal_ptrs
+endSubGroup "/reg_wr_buffer_tb/dut/fifo_track/empty@5(1s)#ActiveDriver"
+addSignal -h 16 /reg_wr_buffer_tb/dut/fifo_track/empty_o
+addSignal -h 16 -holdScope enq_i
+addSignal -h 16 -holdScope enq_r
+addSignal -h 16 -holdScope equal_ptrs
+addSignal -h 16 -holdScope full
+addSubGroup "/reg_wr_buffer_tb/dut/fifo_track/full@25(1s)#ValueChange" -e FALSE
+addSignal -h 16 /reg_wr_buffer_tb/dut/fifo_track/full
+addSignal -h 16 -holdScope reset_i
+addSignal -h 16 -holdScope deq_i
+addSignal -h 16 -holdScope enq_i
+endSubGroup "/reg_wr_buffer_tb/dut/fifo_track/full@25(1s)#ValueChange"
+addSignal -h 16 /reg_wr_buffer_tb/dut/fifo_track/full_o
+addSubGroup "/reg_wr_buffer_tb/dut/fifo_track/full_o@25(1s)#ActiveDriver"
+addSignal -h 16 /reg_wr_buffer_tb/dut/fifo_track/full_o
+addSignal -h 16 -holdScope full
+endSubGroup "/reg_wr_buffer_tb/dut/fifo_track/full_o@25(1s)#ActiveDriver"
+addSignal -h 16 /reg_wr_buffer_tb/dut/fifo_track/reset_i
+addSignal -h 16 -UNSIGNED -HEX -holdScope rptr_n[2:0]
+addSignal -h 16 -UNSIGNED -HEX -holdScope rptr_n_o[2:0]
+addSignal -h 16 -UNSIGNED -HEX -holdScope rptr_r[2:0]
+addSignal -h 16 -UNSIGNED -HEX -holdScope rptr_r_o[2:0]
+addSignal -h 16 -UNSIGNED -HEX -holdScope wptr_r[2:0]
+addSignal -h 16 -UNSIGNED -HEX -holdScope wptr_r_o[2:0]
 addGroup "G3"
 
 ; getSignalForm Scope Hierarchy Status
 ; active file of getSignalForm
+activeDirFile "" "/data/amanoj3/vortex4dice/dice_new/tb/cgra_core/dispatcher/regfile/reg_wr_buffer_tb.fsdb"
+
+GETSIGNALFORM_SCOPE_HIERARCHY_BEGIN
+getSignalForm close
+
+"/DE_pkg"
+"/reg_wr_buffer_tb"
+"/reg_wr_buffer_tb/dut"
+"/reg_wr_buffer_tb/dut/fifo_track"
+"/reg_wr_buffer_tb/dut/fifo_track/rptr"
+"/reg_wr_buffer_tb/dut/fifo_track/rptr/genblk1"
+"/reg_wr_buffer_tb/dut/fifo_track/wptr"
+
+SCOPE_LIST_BEGIN
+"/DE_pkg"
+"/reg_wr_buffer_tb"
+"/reg_wr_buffer_tb/dut"
+"/reg_wr_buffer_tb/dut/fifo_track/rptr"
+"/reg_wr_buffer_tb/dut/fifo_track/wptr"
+"/reg_wr_buffer_tb/dut/fifo_track/rptr/genblk1"
+"/reg_wr_buffer_tb/dut/fifo_track/rptr/genblk1/genblk1"
+"/reg_wr_buffer_tb/dut/fifo_track"
+"/reg_wr_buffer_tb/dut/unnamed$$_0"
+"/dice_pkg"
+"/_vcs_unit__3329755842"
+SCOPE_LIST_END
+
+GETSIGNALFORM_SCOPE_HIERARCHY_END
+
 

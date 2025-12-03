@@ -1,16 +1,927 @@
+verdiWindowResize -win $_Verdi_1 "0" "27" "900" "972"
 verdiSetActWin -dock widgetDock_<Message>
 verdiSetActWin -dock widgetDock_MTB_SOURCE_TAB_1
-verdiWindowResize -win $_Verdi_1 "0" "42" "1800" "967"
-verdiWindowResize -win $_Verdi_1 "0" "42" "1800" "967"
+verdiWindowResize -win $_Verdi_1 "0" "27" "900" "972"
 simSetSimulator "-vcssv" -exec \
            "/data/amanoj3/vortex4dice/dice_new/tb/cgra_core/dispatcher/regfile/simv" \
            -args
 debImport "-dbdir" \
           "/data/amanoj3/vortex4dice/dice_new/tb/cgra_core/dispatcher/regfile/simv.daidir"
 debLoadSimResult \
-           /data/amanoj3/vortex4dice/dice_new/tb/cgra_core/dispatcher/regfile/addr_swizzle_tb.fsdb
+           /data/amanoj3/vortex4dice/dice_new/tb/cgra_core/dispatcher/regfile/reg_wr_buffer_tb.fsdb
 wvCreateWindow
+verdiFindBar -show -win nWave_2
 verdiSetActWin -win $_nWave2
+wvSelectGroup -win $_nWave2 {G1}
+wvGetSignalOpen -win $_nWave2
+wvGetSignalSetScope -win $_nWave2 "/DE_pkg"
+wvGetSignalSetScope -win $_nWave2 "/reg_wr_buffer_tb"
+wvSetPosition -win $_nWave2 {("G1" 2)}
+wvSetPosition -win $_nWave2 {("G1" 2)}
+wvAddSignal -win $_nWave2 -clear
+wvAddSignal -win $_nWave2 -group {"G1" \
+{/reg_wr_buffer_tb/clk} -height 16 \
+{/reg_wr_buffer_tb/reset} -height 16 \
+}
+wvAddSignal -win $_nWave2 -group {"G2" \
+}
+wvSelectSignal -win $_nWave2 {( "G1" 1 2 )} 
+wvSetPosition -win $_nWave2 {("G1" 2)}
+wvSetPosition -win $_nWave2 {("G1" 6)}
+wvSetPosition -win $_nWave2 {("G1" 6)}
+wvAddSignal -win $_nWave2 -clear
+wvAddSignal -win $_nWave2 -group {"G1" \
+{/reg_wr_buffer_tb/clk} -height 16 \
+{/reg_wr_buffer_tb/reset} -height 16 \
+{/reg_wr_buffer_tb/empty_o} -height 16 \
+{/reg_wr_buffer_tb/full_o} -height 16 \
+{/reg_wr_buffer_tb/pop_i} -height 16 \
+{/reg_wr_buffer_tb/wr_i} -height 16 \
+}
+wvAddSignal -win $_nWave2 -group {"G2" \
+}
+wvSelectSignal -win $_nWave2 {( "G1" 3 4 5 6 )} 
+wvSetPosition -win $_nWave2 {("G1" 6)}
+wvGetSignalClose -win $_nWave2
+wvZoomOut -win $_nWave2
+wvZoomOut -win $_nWave2
+wvCloseGetStreamsDialog -win $_nWave2
+wvAttrOrderConfigDlg -win $_nWave2 -close
+wvCloseDetailsViewDlg -win $_nWave2
+wvCloseDetailsViewDlg -win $_nWave2 -streamLevel
+wvCloseFilterColorizeDlg -win $_nWave2
+wvGetSignalClose -win $_nWave2
+wvCloseWindow -win $_nWave2
+verdiSetActWin -dock widgetDock_MTB_SOURCE_TAB_1
+wvCreateWindow
+verdiFindBar -show -win nWave_3
+verdiSetActWin -win $_nWave3
+wvGetSignalOpen -win $_nWave3
+wvGetSignalSetScope -win $_nWave3 "/DE_pkg"
+wvGetSignalSetScope -win $_nWave3 "/reg_wr_buffer_tb"
+wvSetPosition -win $_nWave3 {("G1" 2)}
+wvSetPosition -win $_nWave3 {("G1" 2)}
+wvAddSignal -win $_nWave3 -clear
+wvAddSignal -win $_nWave3 -group {"G1" \
+{/reg_wr_buffer_tb/clk} -height 16 \
+{/reg_wr_buffer_tb/reset} -height 16 \
+}
+wvAddSignal -win $_nWave3 -group {"G2" \
+}
+wvSelectSignal -win $_nWave3 {( "G1" 1 2 )} 
+wvSetPosition -win $_nWave3 {("G1" 2)}
+wvSetPosition -win $_nWave3 {("G1" 9)}
+wvSetPosition -win $_nWave3 {("G1" 9)}
+wvAddSignal -win $_nWave3 -clear
+wvAddSignal -win $_nWave3 -group {"G1" \
+{/reg_wr_buffer_tb/clk} -height 16 \
+{/reg_wr_buffer_tb/reset} -height 16 \
+{/reg_wr_buffer_tb/empty_o} -height 16 \
+{/reg_wr_buffer_tb/full_o} -height 16 \
+{/reg_wr_buffer_tb/pop_i} -height 16 \
+{/reg_wr_buffer_tb/wb_addr_o\[8:0\]} -height 16 \
+{/reg_wr_buffer_tb/wb_data_o\[31:0\]} -height 16 \
+{/reg_wr_buffer_tb/wb_valid_o} -height 16 \
+{/reg_wr_buffer_tb/wr_i} -height 16 \
+}
+wvAddSignal -win $_nWave3 -group {"G2" \
+}
+wvSelectSignal -win $_nWave3 {( "G1" 3 4 5 6 7 8 9 )} 
+wvSetPosition -win $_nWave3 {("G1" 9)}
+wvSetCursor -win $_nWave3 3.444135 -snap {("G2" 0)}
+wvSetPosition -win $_nWave3 {("G1" 9)}
+wvSetPosition -win $_nWave3 {("G1" 9)}
+wvAddSignal -win $_nWave3 -clear
+wvAddSignal -win $_nWave3 -group {"G1" \
+{/reg_wr_buffer_tb/clk} -height 16 \
+{/reg_wr_buffer_tb/reset} -height 16 \
+{/reg_wr_buffer_tb/empty_o} -height 16 \
+{/reg_wr_buffer_tb/full_o} -height 16 \
+{/reg_wr_buffer_tb/pop_i} -height 16 \
+{/reg_wr_buffer_tb/wb_addr_o\[8:0\]} -height 16 \
+{/reg_wr_buffer_tb/wb_data_o\[31:0\]} -height 16 \
+{/reg_wr_buffer_tb/wb_valid_o} -height 16 \
+{/reg_wr_buffer_tb/wr_i} -height 16 \
+}
+wvAddSignal -win $_nWave3 -group {"G2" \
+}
+wvSelectSignal -win $_nWave3 {( "G1" 3 4 5 6 7 8 9 )} 
+wvSetPosition -win $_nWave3 {("G1" 9)}
+wvGetSignalClose -win $_nWave3
+wvResizeWindow -win $_nWave3 0 291 1800 658
+verdiWindowBeWindow -win $_nWave3
+wvResizeWindow -win $_nWave3 0 27 1800 972
+wvZoomOut -win $_nWave3
+wvZoomOut -win $_nWave3
+wvZoomOut -win $_nWave3
+wvZoomOut -win $_nWave3
+wvZoomOut -win $_nWave3
+wvZoomOut -win $_nWave3
+wvSelectSignal -win $_nWave3 {( "G1" 9 )} 
+wvSelectSignal -win $_nWave3 {( "G1" 9 )} 
+wvSetPackedMode -win $_nWave3 -unpacked on
+wvSelectSignal -win $_nWave3 {( "G1" 7 )} 
+wvSelectSignal -win $_nWave3 {( "G1" 9 )} 
+wvSelectSignal -win $_nWave3 {( "G1" 9 )} 
+wvSetPackedMode -win $_nWave3 -unpacked off
+wvSelectSignal -win $_nWave3 {( "G1" 9 )} 
+wvSetPackedMode -win $_nWave3 -unpacked on
+wvSelectSignal -win $_nWave3 {( "G1" 3 )} 
+wvSetCursor -win $_nWave3 7.339100 -snap {("G1" 3)}
+wvSearchNext -win $_nWave3
+wvSearchNext -win $_nWave3
+wvSetCursor -win $_nWave3 24.952941 -snap {("G1" 9)}
+wvSetCursor -win $_nWave3 34.913149 -snap {("G1" 9)}
+wvGetSignalOpen -win $_nWave3
+wvGetSignalSetScope -win $_nWave3 "/DE_pkg"
+wvGetSignalSetScope -win $_nWave3 "/reg_wr_buffer_tb"
+wvGetSignalSetScope -win $_nWave3 "/reg_wr_buffer_tb/dut"
+wvGetSignalSetScope -win $_nWave3 "/reg_wr_buffer_tb/dut/fifo_track/rptr"
+wvGetSignalSetScope -win $_nWave3 "/reg_wr_buffer_tb/dut/fifo_track/wptr"
+wvGetSignalSetScope -win $_nWave3 "/reg_wr_buffer_tb/dut/fifo_track/rptr"
+wvGetSignalSetScope -win $_nWave3 "/reg_wr_buffer_tb/dut/fifo_track/rptr/genblk1"
+wvGetSignalSetScope -win $_nWave3 \
+           "/reg_wr_buffer_tb/dut/fifo_track/rptr/genblk1/genblk1"
+wvGetSignalSetScope -win $_nWave3 "/reg_wr_buffer_tb/dut/fifo_track/wptr"
+wvGetSignalSetScope -win $_nWave3 "/reg_wr_buffer_tb/dut/fifo_track"
+wvGetSignalSetScope -win $_nWave3 "/reg_wr_buffer_tb/dut"
+wvGetSignalSetScope -win $_nWave3 "/reg_wr_buffer_tb/dut/unnamed\$\$_0"
+wvGetSignalSetScope -win $_nWave3 "/reg_wr_buffer_tb"
+wvGetSignalSetScope -win $_nWave3 "/dice_pkg"
+wvGetSignalSetScope -win $_nWave3 "/_vcs_unit__3329755842"
+wvGetSignalSetScope -win $_nWave3 "/DE_pkg"
+wvGetSignalSetScope -win $_nWave3 "/_vcs_unit__3329755842"
+wvGetSignalSetScope -win $_nWave3 "/reg_wr_buffer_tb"
+wvGetSignalSetScope -win $_nWave3 "/reg_wr_buffer_tb/dut/fifo_track/rptr"
+wvGetSignalSetScope -win $_nWave3 "/reg_wr_buffer_tb/dut/fifo_track/wptr"
+wvGetSignalSetScope -win $_nWave3 "/reg_wr_buffer_tb/dut/unnamed\$\$_0"
+wvGetSignalClose -win $_nWave3
+wvSearchNext -win $_nWave3
+wvSearchNext -win $_nWave3
+wvSearchNext -win $_nWave3
+wvSearchNext -win $_nWave3
+wvSelectSignal -win $_nWave3 {( "G1" 1 )} 
+wvScrollDown -win $_nWave3 0
+wvScrollDown -win $_nWave3 0
+wvScrollDown -win $_nWave3 0
+wvScrollDown -win $_nWave3 0
+wvScrollDown -win $_nWave3 0
+wvScrollDown -win $_nWave3 0
+wvScrollDown -win $_nWave3 0
+wvScrollDown -win $_nWave3 0
+wvScrollDown -win $_nWave3 0
+wvSelectSignal -win $_nWave3 {( "G1" 1 )} 
+wvSelectSignal -win $_nWave3 {( "G1" 2 )} 
+wvSelectSignal -win $_nWave3 {( "G1" 3 )} 
+wvSelectSignal -win $_nWave3 {( "G1" 4 )} 
+wvSelectSignal -win $_nWave3 {( "G1" 5 )} 
+wvSelectSignal -win $_nWave3 {( "G1" 6 )} 
+wvSelectSignal -win $_nWave3 {( "G1" 7 )} 
+wvSelectSignal -win $_nWave3 {( "G1" 7 )} 
+wvSelectSignal -win $_nWave3 {( "G1" 8 )} 
+wvSelectSignal -win $_nWave3 {( "G1" 8 )} 
+wvSelectSignal -win $_nWave3 {( "G1" 8 )} 
+wvSelectSignal -win $_nWave3 {( "G1" 9 )} 
+wvDisplayGridCount -win $_nWave3 -off
+wvCloseGetStreamsDialog -win $_nWave3
+wvAttrOrderConfigDlg -win $_nWave3 -close
+wvCloseDetailsViewDlg -win $_nWave3
+wvCloseDetailsViewDlg -win $_nWave3 -streamLevel
+wvCloseFilterColorizeDlg -win $_nWave3
+wvGetSignalClose -win $_nWave3
+wvReloadFile -win $_nWave3
+wvDisplayGridCount -win $_nWave3 -off
+wvCloseGetStreamsDialog -win $_nWave3
+wvAttrOrderConfigDlg -win $_nWave3 -close
+wvCloseDetailsViewDlg -win $_nWave3
+wvCloseDetailsViewDlg -win $_nWave3 -streamLevel
+wvCloseFilterColorizeDlg -win $_nWave3
+wvGetSignalClose -win $_nWave3
+wvReloadFile -win $_nWave3
+wvGetSignalOpen -win $_nWave3
+wvDisplayGridCount -win $_nWave3 -off
+wvCloseGetStreamsDialog -win $_nWave3
+wvAttrOrderConfigDlg -win $_nWave3 -close
+wvCloseDetailsViewDlg -win $_nWave3
+wvCloseDetailsViewDlg -win $_nWave3 -streamLevel
+wvCloseFilterColorizeDlg -win $_nWave3
+wvGetSignalClose -win $_nWave3
+wvReloadFile -win $_nWave3
+wvSelectSignal -win $_nWave3 {( "G1" 9 )} 
+wvSearchPrev -win $_nWave3
+wvSearchNext -win $_nWave3
+wvSearchNext -win $_nWave3
+wvSearchNext -win $_nWave3
+wvSearchNext -win $_nWave3
+wvSearchPrev -win $_nWave3
+wvSearchPrev -win $_nWave3
+wvSearchPrev -win $_nWave3
+wvZoomOut -win $_nWave3
+wvZoomOut -win $_nWave3
+wvZoomIn -win $_nWave3
+wvSelectSignal -win $_nWave3 {( "G1" 6 )} 
+wvScrollDown -win $_nWave3 0
+wvSelectSignal -win $_nWave3 {( "G1" 6 7 8 )} 
+wvSetPosition -win $_nWave3 {("G1" 7)}
+wvSetPosition -win $_nWave3 {("G1" 8)}
+wvSetPosition -win $_nWave3 {("G1" 9)}
+wvSetPosition -win $_nWave3 {("G2" 0)}
+wvMoveSelected -win $_nWave3
+wvSetPosition -win $_nWave3 {("G2" 3)}
+wvSetPosition -win $_nWave3 {("G2" 3)}
+wvSetCursor -win $_nWave3 1.074394 -snap {("G3" 0)}
+wvSelectSignal -win $_nWave3 {( "G1" 5 )} 
+wvScrollDown -win $_nWave3 0
+wvScrollDown -win $_nWave3 0
+wvScrollDown -win $_nWave3 0
+wvScrollDown -win $_nWave3 0
+wvScrollDown -win $_nWave3 0
+wvScrollDown -win $_nWave3 0
+wvScrollDown -win $_nWave3 0
+wvScrollDown -win $_nWave3 0
+wvScrollDown -win $_nWave3 0
+wvScrollDown -win $_nWave3 0
+wvScrollDown -win $_nWave3 0
+wvScrollDown -win $_nWave3 0
+wvScrollDown -win $_nWave3 0
+wvScrollDown -win $_nWave3 0
+wvScrollDown -win $_nWave3 0
+wvScrollDown -win $_nWave3 0
+wvGetSignalOpen -win $_nWave3
+wvGetSignalSetScope -win $_nWave3 "/reg_wr_buffer_tb/dut"
+wvGetSignalSetScope -win $_nWave3 "/reg_wr_buffer_tb/dut/fifo_track"
+wvGetSignalSetScope -win $_nWave3 "/reg_wr_buffer_tb/dut/fifo_track/rptr"
+wvGetSignalSetScope -win $_nWave3 "/reg_wr_buffer_tb/dut/fifo_track"
+wvSetPosition -win $_nWave3 {("G2" 20)}
+wvSetPosition -win $_nWave3 {("G2" 20)}
+wvAddSignal -win $_nWave3 -clear
+wvAddSignal -win $_nWave3 -group {"G1" \
+{/reg_wr_buffer_tb/clk} -height 16 \
+{/reg_wr_buffer_tb/reset} -height 16 \
+{/reg_wr_buffer_tb/empty_o} -height 16 \
+{/reg_wr_buffer_tb/full_o} -height 16 \
+{/reg_wr_buffer_tb/pop_i} -height 16 \
+{/reg_wr_buffer_tb/wr_i} -height 16 \
+}
+wvAddSignal -win $_nWave3 -group {"G2" \
+{/reg_wr_buffer_tb/wb_addr_o\[8:0\]} -height 16 \
+{/reg_wr_buffer_tb/wb_data_o\[31:0\]} -height 16 \
+{/reg_wr_buffer_tb/wb_valid_o} -height 16 \
+{/reg_wr_buffer_tb/dut/fifo_track/clk_i} -height 16 \
+{/reg_wr_buffer_tb/dut/fifo_track/deq_i} -height 16 \
+{/reg_wr_buffer_tb/dut/fifo_track/deq_r} -height 16 \
+{/reg_wr_buffer_tb/dut/fifo_track/empty} -height 16 \
+{/reg_wr_buffer_tb/dut/fifo_track/empty_o} -height 16 \
+{/reg_wr_buffer_tb/dut/fifo_track/enq_i} -height 16 \
+{/reg_wr_buffer_tb/dut/fifo_track/enq_r} -height 16 \
+{/reg_wr_buffer_tb/dut/fifo_track/equal_ptrs} -height 16 \
+{/reg_wr_buffer_tb/dut/fifo_track/full} -height 16 \
+{/reg_wr_buffer_tb/dut/fifo_track/full_o} -height 16 \
+{/reg_wr_buffer_tb/dut/fifo_track/reset_i} -height 16 \
+{/reg_wr_buffer_tb/dut/fifo_track/rptr_n\[2:0\]} -height 16 \
+{/reg_wr_buffer_tb/dut/fifo_track/rptr_n_o\[2:0\]} -height 16 \
+{/reg_wr_buffer_tb/dut/fifo_track/rptr_r\[2:0\]} -height 16 \
+{/reg_wr_buffer_tb/dut/fifo_track/rptr_r_o\[2:0\]} -height 16 \
+{/reg_wr_buffer_tb/dut/fifo_track/wptr_r\[2:0\]} -height 16 \
+{/reg_wr_buffer_tb/dut/fifo_track/wptr_r_o\[2:0\]} -height 16 \
+}
+wvAddSignal -win $_nWave3 -group {"G3" \
+}
+wvSelectSignal -win $_nWave3 {( "G2" 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 \
+           20 )} 
+wvSetPosition -win $_nWave3 {("G2" 20)}
+wvSetCursor -win $_nWave3 22.005190 -snap {("G3" 0)}
+wvSetPosition -win $_nWave3 {("G2" 20)}
+wvSetPosition -win $_nWave3 {("G2" 20)}
+wvAddSignal -win $_nWave3 -clear
+wvAddSignal -win $_nWave3 -group {"G1" \
+{/reg_wr_buffer_tb/clk} -height 16 \
+{/reg_wr_buffer_tb/reset} -height 16 \
+{/reg_wr_buffer_tb/empty_o} -height 16 \
+{/reg_wr_buffer_tb/full_o} -height 16 \
+{/reg_wr_buffer_tb/pop_i} -height 16 \
+{/reg_wr_buffer_tb/wr_i} -height 16 \
+}
+wvAddSignal -win $_nWave3 -group {"G2" \
+{/reg_wr_buffer_tb/wb_addr_o\[8:0\]} -height 16 \
+{/reg_wr_buffer_tb/wb_data_o\[31:0\]} -height 16 \
+{/reg_wr_buffer_tb/wb_valid_o} -height 16 \
+{/reg_wr_buffer_tb/dut/fifo_track/clk_i} -height 16 \
+{/reg_wr_buffer_tb/dut/fifo_track/deq_i} -height 16 \
+{/reg_wr_buffer_tb/dut/fifo_track/deq_r} -height 16 \
+{/reg_wr_buffer_tb/dut/fifo_track/empty} -height 16 \
+{/reg_wr_buffer_tb/dut/fifo_track/empty_o} -height 16 \
+{/reg_wr_buffer_tb/dut/fifo_track/enq_i} -height 16 \
+{/reg_wr_buffer_tb/dut/fifo_track/enq_r} -height 16 \
+{/reg_wr_buffer_tb/dut/fifo_track/equal_ptrs} -height 16 \
+{/reg_wr_buffer_tb/dut/fifo_track/full} -height 16 \
+{/reg_wr_buffer_tb/dut/fifo_track/full_o} -height 16 \
+{/reg_wr_buffer_tb/dut/fifo_track/reset_i} -height 16 \
+{/reg_wr_buffer_tb/dut/fifo_track/rptr_n\[2:0\]} -height 16 \
+{/reg_wr_buffer_tb/dut/fifo_track/rptr_n_o\[2:0\]} -height 16 \
+{/reg_wr_buffer_tb/dut/fifo_track/rptr_r\[2:0\]} -height 16 \
+{/reg_wr_buffer_tb/dut/fifo_track/rptr_r_o\[2:0\]} -height 16 \
+{/reg_wr_buffer_tb/dut/fifo_track/wptr_r\[2:0\]} -height 16 \
+{/reg_wr_buffer_tb/dut/fifo_track/wptr_r_o\[2:0\]} -height 16 \
+}
+wvAddSignal -win $_nWave3 -group {"G3" \
+}
+wvSelectSignal -win $_nWave3 {( "G2" 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 \
+           20 )} 
+wvSetPosition -win $_nWave3 {("G2" 20)}
+wvGetSignalClose -win $_nWave3
+wvSetCursor -win $_nWave3 26.302768 -snap {("G3" 0)}
+wvSetCursor -win $_nWave3 20.532872 -snap {("G2" 19)}
+wvSetCursor -win $_nWave3 18.782007 -snap {("G2" 16)}
+wvSelectSignal -win $_nWave3 {( "G2" 19 )} 
+wvSelectSignal -win $_nWave3 {( "G2" 6 )} 
+wvSelectGroup -win $_nWave3 {G2}
+wvSetCursor -win $_nWave3 34.738754 -snap {("G2" 7)}
+wvSetCursor -win $_nWave3 15.200692 -snap {("G2" 4)}
+wvSetCursor -win $_nWave3 24.989619 -snap {("G2" 4)}
+wvSetCursor -win $_nWave3 34.977509 -snap {("G2" 4)}
+wvSetCursor -win $_nWave3 45.204152 -snap {("G2" 4)}
+wvSetCursor -win $_nWave3 39.911765 -snap {("G2" 4)}
+wvSetCursor -win $_nWave3 34.977509 -snap {("G2" 4)}
+wvSetCursor -win $_nWave3 24.830450 -snap {("G2" 4)}
+wvSelectSignal -win $_nWave3 {( "G2" 13 )} 
+wvShowOneTraceSignals -win $_nWave3 -signal \
+           "/reg_wr_buffer_tb/dut/fifo_track/full_o" -driver
+wvSelectSignal -win $_nWave3 {( "G2" 12 )} 
+wvShowOneTraceSignals -win $_nWave3 -signal \
+           "/reg_wr_buffer_tb/dut/fifo_track/full" -valuechange
+wvDisplayGridCount -win $_nWave3 -off
+wvCloseGetStreamsDialog -win $_nWave3
+wvAttrOrderConfigDlg -win $_nWave3 -close
+wvCloseDetailsViewDlg -win $_nWave3
+wvCloseDetailsViewDlg -win $_nWave3 -streamLevel
+wvCloseFilterColorizeDlg -win $_nWave3
+wvGetSignalClose -win $_nWave3
+wvReloadFile -win $_nWave3
+wvZoomIn -win $_nWave3
+wvZoomIn -win $_nWave3
+wvZoomIn -win $_nWave3
+wvZoomOut -win $_nWave3
+wvZoomOut -win $_nWave3
+wvZoomOut -win $_nWave3
+wvZoomOut -win $_nWave3
+wvZoomOut -win $_nWave3
+wvZoomOut -win $_nWave3
+wvZoomOut -win $_nWave3
+wvZoomOut -win $_nWave3
+wvSetCursor -win $_nWave3 5.015052 -snap {("G1" 1)}
+wvSetCursor -win $_nWave3 14.996228 -snap {("G1" 2)}
+wvSetCursor -win $_nWave3 25.099723 -snap {("G1" 1)}
+wvSelectSignal -win $_nWave3 {( "G1" 4 )} 
+wvSelectSignal -win $_nWave3 {( "G1" 3 )} 
+wvSelectSignal -win $_nWave3 {( "G1" 3 )} 
+wvSelectSignal -win $_nWave3 {( "G1" 4 )} 
+wvSelectGroup -win $_nWave3 \
+           {G2//reg_wr_buffer_tb/dut/fifo_track/full@25(1s)#ValueChange}
+wvSelectGroup -win $_nWave3 \
+           {G2//reg_wr_buffer_tb/dut/fifo_track/full@25(1s)#ValueChange}
+wvResizeWindow -win $_nWave3 0 27 1800 972
+wvSelectSignal -win $_nWave3 {( "G1" 3 )} 
+wvGetSignalOpen -win $_nWave3
+wvGetSignalSetScope -win $_nWave3 "/reg_wr_buffer_tb/dut"
+wvGetSignalSetScope -win $_nWave3 "/reg_wr_buffer_tb"
+wvSetPosition -win $_nWave3 {("G1" 2)}
+wvSetPosition -win $_nWave3 {("G1" 2)}
+wvAddSignal -win $_nWave3 -clear
+wvAddSignal -win $_nWave3 -group {"G1" \
+{/reg_wr_buffer_tb/clk} -height 16 \
+{/reg_wr_buffer_tb/valid_i} -height 16 \
+{/reg_wr_buffer_tb/reset} -height 16 \
+{/reg_wr_buffer_tb/empty_o} -height 16 \
+{/reg_wr_buffer_tb/full_o} -height 16 \
+{/reg_wr_buffer_tb/pop_i} -height 16 \
+{/reg_wr_buffer_tb/wr_i} -height 16 \
+}
+wvAddSignal -win $_nWave3 -group {"G2" \
+{/reg_wr_buffer_tb/wb_addr_o\[8:0\]} -height 16 \
+{/reg_wr_buffer_tb/wb_data_o\[31:0\]} -height 16 \
+{/reg_wr_buffer_tb/wb_valid_o} -height 16 \
+{/reg_wr_buffer_tb/dut/fifo_track/clk_i} -height 16 \
+{/reg_wr_buffer_tb/dut/fifo_track/deq_i} -height 16 \
+{/reg_wr_buffer_tb/dut/fifo_track/deq_r} -height 16 \
+{/reg_wr_buffer_tb/dut/fifo_track/empty} -height 16 \
+{/reg_wr_buffer_tb/dut/fifo_track/empty_o} -height 16 \
+{/reg_wr_buffer_tb/dut/fifo_track/enq_i} -height 16 \
+{/reg_wr_buffer_tb/dut/fifo_track/enq_r} -height 16 \
+{/reg_wr_buffer_tb/dut/fifo_track/equal_ptrs} -height 16 \
+{/reg_wr_buffer_tb/dut/fifo_track/full} -height 16 \
+}
+wvAddSignal -win $_nWave3 -group {"G2//reg_wr_buffer_tb/dut/fifo_track/full@25(1s)#ValueChange" \
+{/reg_wr_buffer_tb/dut/fifo_track/full} -height 16 \
+{/reg_wr_buffer_tb/dut/fifo_track/reset_i} -height 16 \
+{/reg_wr_buffer_tb/dut/fifo_track/deq_i} -height 16 \
+{/reg_wr_buffer_tb/dut/fifo_track/enq_i} -height 16 \
+}
+wvCollapseGroup -win $_nWave3 \
+           "G2//reg_wr_buffer_tb/dut/fifo_track/full@25\(1s\)#ValueChange"
+wvAddSignal -win $_nWave3 -group {"G2" {/reg_wr_buffer_tb/dut/fifo_track/full_o} -height 16 \
+}
+wvAddSignal -win $_nWave3 -group {"G2//reg_wr_buffer_tb/dut/fifo_track/full_o@25(1s)#ActiveDriver" \
+{/reg_wr_buffer_tb/dut/fifo_track/full_o} -height 16 \
+{/reg_wr_buffer_tb/dut/fifo_track/full} -height 16 \
+}
+wvAddSignal -win $_nWave3 -group {"G2" {/reg_wr_buffer_tb/dut/fifo_track/reset_i} -height 16 \
+{/reg_wr_buffer_tb/dut/fifo_track/rptr_n\[2:0\]} -height 16 \
+{/reg_wr_buffer_tb/dut/fifo_track/rptr_n_o\[2:0\]} -height 16 \
+{/reg_wr_buffer_tb/dut/fifo_track/rptr_r\[2:0\]} -height 16 \
+{/reg_wr_buffer_tb/dut/fifo_track/rptr_r_o\[2:0\]} -height 16 \
+{/reg_wr_buffer_tb/dut/fifo_track/wptr_r\[2:0\]} -height 16 \
+{/reg_wr_buffer_tb/dut/fifo_track/wptr_r_o\[2:0\]} -height 16 \
+}
+wvAddSignal -win $_nWave3 -group {"G3" \
+}
+wvSelectSignal -win $_nWave3 {( "G1" 2 )} 
+wvSetPosition -win $_nWave3 {("G1" 2)}
+wvGetSignalClose -win $_nWave3
+wvSetPosition -win $_nWave3 {("G1" 3)}
+wvSetPosition -win $_nWave3 {("G1" 4)}
+wvSetPosition -win $_nWave3 {("G1" 3)}
+wvMoveSelected -win $_nWave3
+wvSetPosition -win $_nWave3 {("G1" 3)}
+wvSelectSignal -win $_nWave3 {( "G2" 9 )} 
+wvSelectSignal -win $_nWave3 {( "G2" 10 )} 
+wvSelectSignal -win $_nWave3 {( "G2" 9 )} 
+wvSelectSignal -win $_nWave3 {( "G2" 8 )} 
+wvSelectSignal -win $_nWave3 {( "G2" 7 )} 
+wvShowOneTraceSignals -win $_nWave3 -signal \
+           "/reg_wr_buffer_tb/dut/fifo_track/empty" -driver
+verdiSetActWin -dock widgetDock_MTB_SOURCE_TAB_1
+verdiSetActWin -win $_nWave3
+wvSelectSignal -win $_nWave3 \
+           {( "G2//reg_wr_buffer_tb/dut/fifo_track/empty@5(1s)#ActiveDriver" \
+           2 )} 
+wvSelectSignal -win $_nWave3 \
+           {( "G2//reg_wr_buffer_tb/dut/fifo_track/empty@5(1s)#ActiveDriver" \
+           3 )} 
+wvSelectSignal -win $_nWave3 \
+           {( "G2//reg_wr_buffer_tb/dut/fifo_track/empty@5(1s)#ActiveDriver" \
+           2 )} 
+wvSelectSignal -win $_nWave3 \
+           {( "G2//reg_wr_buffer_tb/dut/fifo_track/empty@5(1s)#ActiveDriver" \
+           1 )} 
+wvSelectSignal -win $_nWave3 \
+           {( "G2//reg_wr_buffer_tb/dut/fifo_track/empty@5(1s)#ActiveDriver" \
+           2 )} 
+wvDisplayGridCount -win $_nWave3 -off
+wvCloseGetStreamsDialog -win $_nWave3
+wvAttrOrderConfigDlg -win $_nWave3 -close
+wvCloseDetailsViewDlg -win $_nWave3
+wvCloseDetailsViewDlg -win $_nWave3 -streamLevel
+wvCloseFilterColorizeDlg -win $_nWave3
+wvGetSignalClose -win $_nWave3
+wvReloadFile -win $_nWave3
+wvDisplayGridCount -win $_nWave3 -off
+wvCloseGetStreamsDialog -win $_nWave3
+wvAttrOrderConfigDlg -win $_nWave3 -close
+wvCloseDetailsViewDlg -win $_nWave3
+wvCloseDetailsViewDlg -win $_nWave3 -streamLevel
+wvCloseFilterColorizeDlg -win $_nWave3
+wvGetSignalClose -win $_nWave3
+wvReloadFile -win $_nWave3
+wvSelectSignal -win $_nWave3 {( "G1" 5 )} 
+wvDisplayGridCount -win $_nWave3 -off
+wvCloseGetStreamsDialog -win $_nWave3
+wvAttrOrderConfigDlg -win $_nWave3 -close
+wvCloseDetailsViewDlg -win $_nWave3
+wvCloseDetailsViewDlg -win $_nWave3 -streamLevel
+wvCloseFilterColorizeDlg -win $_nWave3
+wvGetSignalClose -win $_nWave3
+wvReloadFile -win $_nWave3
+wvSelectSignal -win $_nWave3 {( "G2" 1 )} 
+wvSelectSignal -win $_nWave3 {( "G2" 2 )} 
+wvSelectSignal -win $_nWave3 {( "G2" 1 )} 
+wvSelectSignal -win $_nWave3 {( "G2" 2 )} 
+wvSelectSignal -win $_nWave3 {( "G2" 1 )} 
+wvSelectSignal -win $_nWave3 {( "G2" 2 )} 
+wvSelectSignal -win $_nWave3 {( "G2" 1 )} 
+wvSelectSignal -win $_nWave3 {( "G2" 2 )} 
+wvSelectSignal -win $_nWave3 {( "G2" 1 )} 
+wvSelectSignal -win $_nWave3 {( "G2" 2 )} 
+wvDisplayGridCount -win $_nWave3 -off
+wvCloseGetStreamsDialog -win $_nWave3
+wvAttrOrderConfigDlg -win $_nWave3 -close
+wvCloseDetailsViewDlg -win $_nWave3
+wvCloseDetailsViewDlg -win $_nWave3 -streamLevel
+wvCloseFilterColorizeDlg -win $_nWave3
+wvGetSignalClose -win $_nWave3
+wvReloadFile -win $_nWave3
+wvDisplayGridCount -win $_nWave3 -off
+wvCloseGetStreamsDialog -win $_nWave3
+wvAttrOrderConfigDlg -win $_nWave3 -close
+wvCloseDetailsViewDlg -win $_nWave3
+wvCloseDetailsViewDlg -win $_nWave3 -streamLevel
+wvCloseFilterColorizeDlg -win $_nWave3
+wvGetSignalClose -win $_nWave3
+wvReloadFile -win $_nWave3
+wvDisplayGridCount -win $_nWave3 -off
+wvCloseGetStreamsDialog -win $_nWave3
+wvAttrOrderConfigDlg -win $_nWave3 -close
+wvCloseDetailsViewDlg -win $_nWave3
+wvCloseDetailsViewDlg -win $_nWave3 -streamLevel
+wvCloseFilterColorizeDlg -win $_nWave3
+wvGetSignalClose -win $_nWave3
+wvReloadFile -win $_nWave3
+wvGetSignalOpen -win $_nWave3
+wvGetSignalSetScope -win $_nWave3 "/reg_wr_buffer_tb/dut"
+wvSetPosition -win $_nWave3 {("G2" 7)}
+wvSetPosition -win $_nWave3 {("G2" 7)}
+wvAddSignal -win $_nWave3 -clear
+wvAddSignal -win $_nWave3 -group {"G1" \
+{/reg_wr_buffer_tb/clk} -height 16 \
+{/reg_wr_buffer_tb/reset} -height 16 \
+{/reg_wr_buffer_tb/valid_i} -height 16 \
+{/reg_wr_buffer_tb/empty_o} -height 16 \
+{/reg_wr_buffer_tb/full_o} -height 16 \
+{/reg_wr_buffer_tb/pop_i} -height 16 \
+{/reg_wr_buffer_tb/wr_i} -height 16 \
+}
+wvAddSignal -win $_nWave3 -group {"G2" \
+{/reg_wr_buffer_tb/wb_addr_o\[8:0\]} -height 16 \
+{/reg_wr_buffer_tb/wb_data_o\[31:0\]} -height 16 \
+{/reg_wr_buffer_tb/wb_valid_o} -height 16 \
+{/reg_wr_buffer_tb/dut/fifo_track/clk_i} -height 16 \
+{/reg_wr_buffer_tb/dut/fifo_track/deq_i} -height 16 \
+{/reg_wr_buffer_tb/dut/fifo_track/deq_r} -height 16 \
+{/reg_wr_buffer_tb/dut/fifo_track/empty} -height 16 \
+}
+wvAddSignal -win $_nWave3 -group {"G2//reg_wr_buffer_tb/dut/fifo_track/empty@5(1s)#ActiveDriver" \
+{/reg_wr_buffer_tb/dut/fifo_track/empty} -height 16 \
+{/reg_wr_buffer_tb/dut/fifo_track/deq_r} -height 16 \
+{/reg_wr_buffer_tb/dut/fifo_track/equal_ptrs} -height 16 \
+}
+wvAddSignal -win $_nWave3 -group {"G2" {/reg_wr_buffer_tb/dut/fifo_track/empty_o} -height 16 \
+{/reg_wr_buffer_tb/dut/fifo_track/enq_i} -height 16 \
+{/reg_wr_buffer_tb/dut/fifo_track/enq_r} -height 16 \
+{/reg_wr_buffer_tb/dut/fifo_track/equal_ptrs} -height 16 \
+{/reg_wr_buffer_tb/dut/fifo_track/full} -height 16 \
+}
+wvAddSignal -win $_nWave3 -group {"G2//reg_wr_buffer_tb/dut/fifo_track/full@25(1s)#ValueChange" \
+{/reg_wr_buffer_tb/dut/fifo_track/full} -height 16 \
+{/reg_wr_buffer_tb/dut/fifo_track/reset_i} -height 16 \
+{/reg_wr_buffer_tb/dut/fifo_track/deq_i} -height 16 \
+{/reg_wr_buffer_tb/dut/fifo_track/enq_i} -height 16 \
+}
+wvCollapseGroup -win $_nWave3 \
+           "G2//reg_wr_buffer_tb/dut/fifo_track/full@25\(1s\)#ValueChange"
+wvAddSignal -win $_nWave3 -group {"G2" {/reg_wr_buffer_tb/dut/fifo_track/full_o} -height 16 \
+}
+wvAddSignal -win $_nWave3 -group {"G2//reg_wr_buffer_tb/dut/fifo_track/full_o@25(1s)#ActiveDriver" \
+{/reg_wr_buffer_tb/dut/fifo_track/full_o} -height 16 \
+{/reg_wr_buffer_tb/dut/fifo_track/full} -height 16 \
+}
+wvAddSignal -win $_nWave3 -group {"G2" {/reg_wr_buffer_tb/dut/fifo_track/reset_i} -height 16 \
+{/reg_wr_buffer_tb/dut/fifo_track/rptr_n\[2:0\]} -height 16 \
+{/reg_wr_buffer_tb/dut/fifo_track/rptr_n_o\[2:0\]} -height 16 \
+{/reg_wr_buffer_tb/dut/fifo_track/rptr_r\[2:0\]} -height 16 \
+{/reg_wr_buffer_tb/dut/fifo_track/rptr_r_o\[2:0\]} -height 16 \
+{/reg_wr_buffer_tb/dut/fifo_track/wptr_r\[2:0\]} -height 16 \
+{/reg_wr_buffer_tb/dut/fifo_track/wptr_r_o\[2:0\]} -height 16 \
+}
+wvAddSignal -win $_nWave3 -group {"G3" \
+}
+wvSetPosition -win $_nWave3 {("G2" 7)}
+wvGetSignalClose -win $_nWave3
+wvZoomAll -win $_nWave3
+wvDisplayGridCount -win $_nWave3 -off
+wvCloseGetStreamsDialog -win $_nWave3
+wvAttrOrderConfigDlg -win $_nWave3 -close
+wvCloseDetailsViewDlg -win $_nWave3
+wvCloseDetailsViewDlg -win $_nWave3 -streamLevel
+wvCloseFilterColorizeDlg -win $_nWave3
+wvGetSignalClose -win $_nWave3
+wvReloadFile -win $_nWave3
+wvScrollDown -win $_nWave3 0
+wvScrollDown -win $_nWave3 0
+wvScrollDown -win $_nWave3 0
+wvScrollDown -win $_nWave3 0
+wvScrollDown -win $_nWave3 0
+wvScrollDown -win $_nWave3 0
+wvScrollDown -win $_nWave3 0
+wvScrollDown -win $_nWave3 0
+wvScrollDown -win $_nWave3 0
+wvScrollDown -win $_nWave3 0
+wvScrollDown -win $_nWave3 0
+wvScrollDown -win $_nWave3 0
+wvScrollDown -win $_nWave3 0
+wvScrollDown -win $_nWave3 0
+wvScrollDown -win $_nWave3 0
+wvScrollDown -win $_nWave3 0
+wvScrollDown -win $_nWave3 0
+wvScrollDown -win $_nWave3 0
+wvScrollDown -win $_nWave3 0
+wvScrollDown -win $_nWave3 0
+wvScrollDown -win $_nWave3 0
+wvDisplayGridCount -win $_nWave3 -off
+wvCloseGetStreamsDialog -win $_nWave3
+wvAttrOrderConfigDlg -win $_nWave3 -close
+wvCloseDetailsViewDlg -win $_nWave3
+wvCloseDetailsViewDlg -win $_nWave3 -streamLevel
+wvCloseFilterColorizeDlg -win $_nWave3
+wvGetSignalClose -win $_nWave3
+wvReloadFile -win $_nWave3
+wvSetCursor -win $_nWave3 0.096539 -snap {("G1" 5)}
+wvSetCursor -win $_nWave3 0.136763 -snap {("G1" 6)}
+wvSetCursor -win $_nWave3 0.458559 -snap {("G2" 2)}
+wvSetCursor -win $_nWave3 0.880916 -snap {("G1" 3)}
+wvSetCursor -win $_nWave3 1.206734 -snap {("G1" 1)}
+wvSetCursor -win $_nWave3 2.135920 -snap {("G1" 1)}
+wvSetCursor -win $_nWave3 0.000000
+wvSetCursor -win $_nWave3 5.060239 -snap {("G1" 0)}
+wvZoomOut -win $_nWave3
+wvZoomOut -win $_nWave3
+wvZoomOut -win $_nWave3
+wvZoomOut -win $_nWave3
+wvZoomOut -win $_nWave3
+wvZoomOut -win $_nWave3
+wvZoomOut -win $_nWave3
+wvZoomOut -win $_nWave3
+wvSetCursor -win $_nWave3 10.056119 -snap {("G2" 3)}
+wvDisplayGridCount -win $_nWave3 -off
+wvCloseGetStreamsDialog -win $_nWave3
+wvAttrOrderConfigDlg -win $_nWave3 -close
+wvCloseDetailsViewDlg -win $_nWave3
+wvCloseDetailsViewDlg -win $_nWave3 -streamLevel
+wvCloseFilterColorizeDlg -win $_nWave3
+wvGetSignalClose -win $_nWave3
+wvReloadFile -win $_nWave3
+wvDisplayGridCount -win $_nWave3 -off
+wvCloseGetStreamsDialog -win $_nWave3
+wvAttrOrderConfigDlg -win $_nWave3 -close
+wvCloseDetailsViewDlg -win $_nWave3
+wvCloseDetailsViewDlg -win $_nWave3 -streamLevel
+wvCloseFilterColorizeDlg -win $_nWave3
+wvGetSignalClose -win $_nWave3
+wvReloadFile -win $_nWave3
+wvSetCursor -win $_nWave3 13.625127 -snap {("G2" 14)}
+wvDisplayGridCount -win $_nWave3 -off
+wvCloseGetStreamsDialog -win $_nWave3
+wvAttrOrderConfigDlg -win $_nWave3 -close
+wvCloseDetailsViewDlg -win $_nWave3
+wvCloseDetailsViewDlg -win $_nWave3 -streamLevel
+wvCloseFilterColorizeDlg -win $_nWave3
+wvGetSignalClose -win $_nWave3
+wvReloadFile -win $_nWave3
+wvZoom -win $_nWave3 13.755238 16.970220
+wvZoomOut -win $_nWave3
+wvZoomOut -win $_nWave3
+wvZoomOut -win $_nWave3
+wvZoomOut -win $_nWave3
+wvZoomOut -win $_nWave3
+wvZoomOut -win $_nWave3
+wvZoomOut -win $_nWave3
+wvZoomOut -win $_nWave3
+wvZoomOut -win $_nWave3
+wvDisplayGridCount -win $_nWave3 -off
+wvCloseGetStreamsDialog -win $_nWave3
+wvAttrOrderConfigDlg -win $_nWave3 -close
+wvCloseDetailsViewDlg -win $_nWave3
+wvCloseDetailsViewDlg -win $_nWave3 -streamLevel
+wvCloseFilterColorizeDlg -win $_nWave3
+wvGetSignalClose -win $_nWave3
+wvReloadFile -win $_nWave3
+wvScrollDown -win $_nWave3 0
+wvScrollDown -win $_nWave3 0
+wvScrollDown -win $_nWave3 0
+wvScrollDown -win $_nWave3 0
+wvDisplayGridCount -win $_nWave3 -off
+wvCloseGetStreamsDialog -win $_nWave3
+wvAttrOrderConfigDlg -win $_nWave3 -close
+wvCloseDetailsViewDlg -win $_nWave3
+wvCloseDetailsViewDlg -win $_nWave3 -streamLevel
+wvCloseFilterColorizeDlg -win $_nWave3
+wvGetSignalClose -win $_nWave3
+wvReloadFile -win $_nWave3
+wvSelectSignal -win $_nWave3 {( "G1" 1 2 3 4 5 )} 
+wvSelectSignal -win $_nWave3 {( "G1" 6 )} 
+wvGetSignalOpen -win $_nWave3
+wvDisplayGridCount -win $_nWave3 -off
+wvCloseGetStreamsDialog -win $_nWave3
+wvAttrOrderConfigDlg -win $_nWave3 -close
+wvCloseDetailsViewDlg -win $_nWave3
+wvCloseDetailsViewDlg -win $_nWave3 -streamLevel
+wvCloseFilterColorizeDlg -win $_nWave3
+wvGetSignalClose -win $_nWave3
+wvReloadFile -win $_nWave3
+wvGetSignalSetScope -win $_nWave3 "/reg_wr_buffer_tb/dut"
+wvSetPosition -win $_nWave3 {("G1" 7)}
+wvSetPosition -win $_nWave3 {("G1" 7)}
+wvAddSignal -win $_nWave3 -clear
+wvAddSignal -win $_nWave3 -group {"G1" \
+{/reg_wr_buffer_tb/clk} -height 16 \
+{/reg_wr_buffer_tb/reset} -height 16 \
+{/reg_wr_buffer_tb/valid_i} -height 16 \
+{/reg_wr_buffer_tb/empty_o} -height 16 \
+{/reg_wr_buffer_tb/full_o} -height 16 \
+{/reg_wr_buffer_tb/pop_i} -height 16 \
+{/reg_wr_buffer_tb/dut/enq_li} -height 16 \
+{/reg_wr_buffer_tb/wr_i} -height 16 \
+}
+wvAddSignal -win $_nWave3 -group {"G2" \
+{/reg_wr_buffer_tb/wb_addr_o\[8:0\]} -height 16 \
+{/reg_wr_buffer_tb/wb_data_o\[31:0\]} -height 16 \
+{/reg_wr_buffer_tb/wb_valid_o} -height 16 \
+{/reg_wr_buffer_tb/dut/fifo_track/clk_i} -height 16 \
+{/reg_wr_buffer_tb/dut/fifo_track/deq_i} -height 16 \
+{/reg_wr_buffer_tb/dut/fifo_track/deq_r} -height 16 \
+{/reg_wr_buffer_tb/dut/fifo_track/empty} -height 16 \
+}
+wvAddSignal -win $_nWave3 -group {"G2//reg_wr_buffer_tb/dut/fifo_track/empty@5(1s)#ActiveDriver" \
+{/reg_wr_buffer_tb/dut/fifo_track/empty} -height 16 \
+{/reg_wr_buffer_tb/dut/fifo_track/deq_r} -height 16 \
+{/reg_wr_buffer_tb/dut/fifo_track/equal_ptrs} -height 16 \
+}
+wvAddSignal -win $_nWave3 -group {"G2" {/reg_wr_buffer_tb/dut/fifo_track/empty_o} -height 16 \
+{/reg_wr_buffer_tb/dut/fifo_track/enq_i} -height 16 \
+{/reg_wr_buffer_tb/dut/fifo_track/enq_r} -height 16 \
+{/reg_wr_buffer_tb/dut/fifo_track/equal_ptrs} -height 16 \
+{/reg_wr_buffer_tb/dut/fifo_track/full} -height 16 \
+}
+wvAddSignal -win $_nWave3 -group {"G2//reg_wr_buffer_tb/dut/fifo_track/full@25(1s)#ValueChange" \
+{/reg_wr_buffer_tb/dut/fifo_track/full} -height 16 \
+{/reg_wr_buffer_tb/dut/fifo_track/reset_i} -height 16 \
+{/reg_wr_buffer_tb/dut/fifo_track/deq_i} -height 16 \
+{/reg_wr_buffer_tb/dut/fifo_track/enq_i} -height 16 \
+}
+wvCollapseGroup -win $_nWave3 \
+           "G2//reg_wr_buffer_tb/dut/fifo_track/full@25\(1s\)#ValueChange"
+wvAddSignal -win $_nWave3 -group {"G2" {/reg_wr_buffer_tb/dut/fifo_track/full_o} -height 16 \
+}
+wvAddSignal -win $_nWave3 -group {"G2//reg_wr_buffer_tb/dut/fifo_track/full_o@25(1s)#ActiveDriver" \
+{/reg_wr_buffer_tb/dut/fifo_track/full_o} -height 16 \
+{/reg_wr_buffer_tb/dut/fifo_track/full} -height 16 \
+}
+wvAddSignal -win $_nWave3 -group {"G2" {/reg_wr_buffer_tb/dut/fifo_track/reset_i} -height 16 \
+{/reg_wr_buffer_tb/dut/fifo_track/rptr_n\[2:0\]} -height 16 \
+{/reg_wr_buffer_tb/dut/fifo_track/rptr_n_o\[2:0\]} -height 16 \
+{/reg_wr_buffer_tb/dut/fifo_track/rptr_r\[2:0\]} -height 16 \
+{/reg_wr_buffer_tb/dut/fifo_track/rptr_r_o\[2:0\]} -height 16 \
+{/reg_wr_buffer_tb/dut/fifo_track/wptr_r\[2:0\]} -height 16 \
+{/reg_wr_buffer_tb/dut/fifo_track/wptr_r_o\[2:0\]} -height 16 \
+}
+wvAddSignal -win $_nWave3 -group {"G3" \
+}
+wvSelectSignal -win $_nWave3 {( "G1" 7 )} 
+wvSetPosition -win $_nWave3 {("G1" 7)}
+wvGetSignalClose -win $_nWave3
+wvSetCursor -win $_nWave3 25.140297 -snap {("G1" 7)}
+wvDisplayGridCount -win $_nWave3 -off
+wvCloseGetStreamsDialog -win $_nWave3
+wvAttrOrderConfigDlg -win $_nWave3 -close
+wvCloseDetailsViewDlg -win $_nWave3
+wvCloseDetailsViewDlg -win $_nWave3 -streamLevel
+wvCloseFilterColorizeDlg -win $_nWave3
+wvGetSignalClose -win $_nWave3
+wvReloadFile -win $_nWave3
+wvSetCursor -win $_nWave3 20.474258 -snap {("G1" 7)}
+wvSetCursor -win $_nWave3 24.134685 -snap {("G1" 7)}
+wvSetCursor -win $_nWave3 24.697828 -snap {("G1" 7)}
+srcActiveTrace "reg_wr_buffer_tb.dut.enq_li" -TraceByDConWave -TraceTime 0 \
+           -TraceValue 0 -win $_nTrace1
+verdiSetActWin -dock widgetDock_MTB_SOURCE_TAB_1
+verdiSetActWin -win $_nWave3
+wvSetCursor -win $_nWave3 24.054236 -snap {("G1" 7)}
+wvSetCursor -win $_nWave3 23.812889 -snap {("G1" 7)}
+verdiSetActWin -dock widgetDock_MTB_SOURCE_TAB_1
+srcHBSelect "reg_wr_buffer_tb.dut" -win $_nTrace1
+verdiSetActWin -dock widgetDock_<Inst._Tree>
+srcHBSelect "reg_wr_buffer_tb.dut" -win $_nTrace1
+srcSetScope "reg_wr_buffer_tb.dut" -delim "." -win $_nTrace1
+srcHBSelect "reg_wr_buffer_tb.dut" -win $_nTrace1
+srcHBSelect "reg_wr_buffer_tb" -win $_nTrace1
+srcSetScope "reg_wr_buffer_tb" -delim "." -win $_nTrace1
+srcHBSelect "reg_wr_buffer_tb" -win $_nTrace1
+srcHBSelect "reg_wr_buffer_tb" -win $_nTrace1
 srcDeselectAll -win $_nTrace1
 verdiSetActWin -dock widgetDock_MTB_SOURCE_TAB_1
+srcDeselectAll -win $_nTrace1
+srcDeselectAll -win $_nTrace1
+srcHBSelect "reg_wr_buffer_tb.dut" -win $_nTrace1
+verdiSetActWin -dock widgetDock_<Inst._Tree>
+srcHBSelect "reg_wr_buffer_tb.dut" -win $_nTrace1
+srcHBSelect "reg_wr_buffer_tb.dut" -win $_nTrace1
+srcHBSelect "reg_wr_buffer_tb.dut" -win $_nTrace1
+srcSetScope "reg_wr_buffer_tb.dut" -delim "." -win $_nTrace1
+srcHBSelect "reg_wr_buffer_tb.dut" -win $_nTrace1
+verdiSetActWin -win $_nWave3
+wvSelectSignal -win $_nWave3 {( "G1" 7 )} 
+wvShowOneTraceSignals -win $_nWave3 -signal "/reg_wr_buffer_tb/dut/enq_li" \
+           -chainDriver
+wvSelectSignal -win $_nWave3 {( "G1" 7 )} 
+wvSelectSignal -win $_nWave3 {( "G1" 8 )} 
+wvSelectSignal -win $_nWave3 {( "G1" 7 )} 
+wvShowOneTraceSignals -win $_nWave3 -signal "/reg_wr_buffer_tb/dut/enq_li" \
+           -valuechange
+wvSelectSignal -win $_nWave3 \
+           {( "G1//reg_wr_buffer_tb/dut/enq_li@25(1s)#ValueChange" \
+           1 )} 
+wvSelectGroup -win $_nWave3 {G1//reg_wr_buffer_tb/dut/enq_li@25(1s)#ValueChange}
+wvSelectSignal -win $_nWave3 \
+           {( "G1//reg_wr_buffer_tb/dut/enq_li@25(1s)#ValueChange" \
+           1 )} 
+wvSelectGroup -win $_nWave3 {G1//reg_wr_buffer_tb/dut/enq_li@25(1s)#ValueChange}
+wvSelectSignal -win $_nWave3 \
+           {( "G1//reg_wr_buffer_tb/dut/enq_li@25(1s)#ValueChange" \
+           1 )} 
+wvSelectSignal -win $_nWave3 {( "G1" 10 )} 
+wvSelectGroup -win $_nWave3 {G2}
+wvSelectSignal -win $_nWave3 {( "G1" 10 )} 
+wvSelectSignal -win $_nWave3 \
+           {( "G1//reg_wr_buffer_tb/dut/enq_li@25(1s)#ValueChange" \
+           1 )} 
+wvSelectGroup -win $_nWave3 {G1//reg_wr_buffer_tb/dut/enq_li@25(1s)#ValueChange}
+wvResizeWindow -win $_nWave3 0 27 1800 972
+wvResizeWindow -win $_nWave3 0 27 1800 972
+wvSelectSignal -win $_nWave3 \
+           {( "G1//reg_wr_buffer_tb/dut/enq_li@25(1s)#ValueChange" \
+           1 )} 
+wvShowOneTraceSignals -win $_nWave3 -signal "/reg_wr_buffer_tb/dut/enq_li" \
+           -driver
+verdiSetActWin -dock widgetDock_<Inst._Tree>
+verdiSetActWin -win $_nWave3
+wvSetCursor -win $_nWave3 21.158074 -snap \
+           {("/reg_wr_buffer_tb/dut/enq_li@25(1s)#ActiveDriver" 2)}
+wvDisplayGridCount -win $_nWave3 -off
+wvResizeWindow -win $_nWave3 0 27 1800 972
+wvCloseGetStreamsDialog -win $_nWave3
+wvAttrOrderConfigDlg -win $_nWave3 -close
+wvCloseDetailsViewDlg -win $_nWave3
+wvCloseDetailsViewDlg -win $_nWave3 -streamLevel
+wvCloseFilterColorizeDlg -win $_nWave3
+wvGetSignalClose -win $_nWave3
+wvResizeWindow -win $_nWave3 0 27 1800 972
+wvReloadFile -win $_nWave3
+wvSelectSignal -win $_nWave3 \
+           {( "G1//reg_wr_buffer_tb/dut/enq_li@25(1s)#ValueChange//reg_wr_buffer_tb/dut/enq_li@25(1s)#ActiveDriver" \
+           1 )} 
+wvSelectSignal -win $_nWave3 \
+           {( "G1//reg_wr_buffer_tb/dut/enq_li@25(1s)#ValueChange//reg_wr_buffer_tb/dut/enq_li@25(1s)#ActiveDriver" \
+           2 )} 
+wvSelectSignal -win $_nWave3 \
+           {( "G1//reg_wr_buffer_tb/dut/enq_li@25(1s)#ValueChange//reg_wr_buffer_tb/dut/enq_li@25(1s)#ActiveDriver" \
+           1 )} 
+wvSelectGroup -win $_nWave3 \
+           {G1//reg_wr_buffer_tb/dut/enq_li@25(1s)#ValueChange//reg_wr_buffer_tb/dut/enq_li@25(1s)#ActiveDriver}
+wvSelectSignal -win $_nWave3 \
+           {( "G1//reg_wr_buffer_tb/dut/enq_li@25(1s)#ValueChange" \
+           1 )} 
+wvSelectGroup -win $_nWave3 {G1//reg_wr_buffer_tb/dut/enq_li@25(1s)#ValueChange}
+wvCut -win $_nWave3
+wvSetPosition -win $_nWave3 {("G2" 0)}
+wvSetPosition -win $_nWave3 {("G1" 7)}
+wvResizeWindow -win $_nWave3 0 27 1800 972
+wvSelectSignal -win $_nWave3 {( "G1" 8 )} 
+wvSelectSignal -win $_nWave3 {( "G1" 7 )} 
+wvSetCursor -win $_nWave3 25.301195 -snap {("G1" 7)}
+wvSetCursor -win $_nWave3 24.939175 -snap {("G1" 7)}
+wvSetCursor -win $_nWave3 24.778277 -snap {("G2" 1)}
+wvSetCursor -win $_nWave3 24.778277 -snap {("G2" 3)}
+wvDisplayGridCount -win $_nWave3 -off
+wvCloseGetStreamsDialog -win $_nWave3
+wvAttrOrderConfigDlg -win $_nWave3 -close
+wvCloseDetailsViewDlg -win $_nWave3
+wvCloseDetailsViewDlg -win $_nWave3 -streamLevel
+wvCloseFilterColorizeDlg -win $_nWave3
+wvGetSignalClose -win $_nWave3
+wvReloadFile -win $_nWave3
+wvSelectSignal -win $_nWave3 {( "G1" 7 )} 
+wvScrollDown -win $_nWave3 0
+wvScrollDown -win $_nWave3 0
+wvScrollDown -win $_nWave3 0
+wvScrollDown -win $_nWave3 0
+wvSelectSignal -win $_nWave3 {( "G1" 5 )} 
+wvSelectSignal -win $_nWave3 {( "G1" 7 )} 
+wvShowOneTraceSignals -win $_nWave3 -signal "/reg_wr_buffer_tb/dut/enq_li" \
+           -valuechange
+wvDisplayGridCount -win $_nWave3 -off
+wvResizeWindow -win $_nWave3 0 27 1800 972
+wvCloseGetStreamsDialog -win $_nWave3
+wvAttrOrderConfigDlg -win $_nWave3 -close
+wvCloseDetailsViewDlg -win $_nWave3
+wvCloseDetailsViewDlg -win $_nWave3 -streamLevel
+wvCloseFilterColorizeDlg -win $_nWave3
+wvGetSignalClose -win $_nWave3
+wvResizeWindow -win $_nWave3 0 27 1800 972
+wvReloadFile -win $_nWave3
+wvSelectGroup -win $_nWave3 {G1//reg_wr_buffer_tb/dut/enq_li@25(1s)#ValueChange}
+wvSelectSignal -win $_nWave3 \
+           {( "G1//reg_wr_buffer_tb/dut/enq_li@25(1s)#ValueChange" \
+           2 )} 
+wvSelectSignal -win $_nWave3 \
+           {( "G1//reg_wr_buffer_tb/dut/enq_li@25(1s)#ValueChange" \
+           1 )} 
+wvScrollDown -win $_nWave3 4
+wvSelectGroup -win $_nWave3 \
+           {G2//reg_wr_buffer_tb/dut/fifo_track/full_o@25(1s)#ActiveDriver}
+wvScrollUp -win $_nWave3 4
+wvResizeWindow -win $_nWave3 0 27 1800 658
+wvCreateWindow
+verdiFindBar -show -win nWave_4
+verdiSetActWin -win $_nWave4
+wvCloseWindow -win $_nWave4
+verdiSetActWin -dock widgetDock_<Inst._Tree>
 debExit

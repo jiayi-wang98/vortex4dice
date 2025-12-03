@@ -224,7 +224,8 @@ Selection-LineWidth = 1
 [FSM_Dlg-Print]
 Orientation = Landscape
 [FileBrowser]
-LoadSimulationResults = "\"/home/amanoj3/vortex4dice/dice_new/tb/cgra_core/dispatcher/regfile/addr_swizzle_tb.fsdb\"" "\"/data/amanoj3/vortex4dice/dice_new/tb/cgra_core/dispatcher/regfile/addr_swizzle_tb.fsdb\""
+LoadSimulationResults = "\"/home/amanoj3/vortex4dice/dice_new/tb/cgra_core/dispatcher/regfile/addr_swizzle_tb.fsdb\"" "\"/data/amanoj3/vortex4dice/dice_new/tb/cgra_core/dispatcher/regfile/addr_swizzle_tb.fsdb\"" "\"/data/amanoj3/vortex4dice/dice_new/tb/cgra_core/dispatcher/regfil\
+e/reg_wr_buffer_tb.fsdb\""
 [Form]
 version = Verdi_X-2025.06
 [General]
@@ -232,13 +233,13 @@ autoSaveSession = FALSE
 TclAutoSource = 
 cmd_enter_form = FALSE
 SyncBrowserDir = TRUE
-FindBarVisible = 
-recent_commands_nWave = zoomOut
 ColorThemeModern = bright
 version = Verdi_X-2025.06
-recent_commands_Verdi = hbLoadFsdbFile,hbImpDsg,hbInvokeWave,textCaretLineRight,textCaretLineLeft,hbSaveSession
+recent_commands_nWave = reread,traceValueChange,rightFullPage,leftFullPage,editCut,traceDriver,traceChainDriver,getSignal,zoomOut,zoomAll
+recent_commands_Verdi = hbInvokeWave,hbLoadFsdbFile,raiseNextWinAct,schCreateWindowByScopeGroup,designTreeMarkDown,hbCloseFsdbFile,hbImpDsg,textCaretLineRight,textCaretLineLeft,hbSaveSession
 prevColorThemeModern = bright
 SignalCaseInSensitive = FALSE
+FindBarVisible = nWave
 [GlobalProp]
 ErrWindow_Font = Helvetica_M_R_12
 [Globals]
@@ -389,12 +390,16 @@ saveWaveformStat = TRUE
 savePropStat = FALSE
 savePropDtl = TRUE
 [QtDialog]
-QwUserAskDlg = 980,484,324,122
 fileWithNote = 572,239,655,543
-QwWarnMsgDlg = 590,438,600,250
-unknownSave = 669,388,461,245
-importDesignForm = 542,238,715,574
-loadFile = 593,309,614,432
+importDesignForm = 542,189,715,574
+openFileDlg = 599,271,602,483
+behaviorAnalysisDlg = 286,481,329,137
+tsMDTDialog = 531,228,719,601
+unknownSave = 219,353,461,245
+loadFile = 593,334,614,432
+QwUserAskDlg = 507,499,787,101
+qWaveSignalDialog = 500,236,800,479
+QwWarnMsgDlg = 590,571,600,250
 [Safety]
 RegisterObject = ID_RED4
 CoreObject = ID_ORANGE5
@@ -597,7 +602,7 @@ pdmlMacro = ID_BLACK
 font = COURIER12
 annotFont = FIXED12
 [Text.1]
-viewport = 0 42 1800 967 45
+viewport = 0 27 1800 972 45
 [TextPrinter]
 Orientation = Landscape
 Indicator = FALSE
@@ -688,45 +693,45 @@ isOneSearchVisible = TRUE
 [VIA.oneSearch.preference.vgifColumnSettingRC.setting0]
 parRuleSets = ""
 [VIA.oneSearch.preference.vgifColumnSettingRC.setting0.column0]
-name = "Message"
-width = 2000
-visualIndex = 5
-isHidden = FALSE
-isUserChangeColumnVisible = FALSE
-isColFilterColorCoding = FALSE
-[VIA.oneSearch.preference.vgifColumnSettingRC.setting0.column1]
-name = "Time"
-width = 60
-visualIndex = 0
-isHidden = FALSE
-isUserChangeColumnVisible = FALSE
-isColFilterColorCoding = FALSE
-[VIA.oneSearch.preference.vgifColumnSettingRC.setting0.column2]
 name = "Block's First Line"
 width = 120
 visualIndex = 1
 isHidden = TRUE
 isUserChangeColumnVisible = FALSE
 isColFilterColorCoding = FALSE
-[VIA.oneSearch.preference.vgifColumnSettingRC.setting0.column3]
-name = "Code"
-width = 60
-visualIndex = 3
-isHidden = TRUE
-isUserChangeColumnVisible = FALSE
-isColFilterColorCoding = FALSE
-[VIA.oneSearch.preference.vgifColumnSettingRC.setting0.column4]
+[VIA.oneSearch.preference.vgifColumnSettingRC.setting0.column1]
 name = "Type"
 width = 60
 visualIndex = 4
 isHidden = TRUE
 isUserChangeColumnVisible = FALSE
 isColFilterColorCoding = FALSE
-[VIA.oneSearch.preference.vgifColumnSettingRC.setting0.column5]
+[VIA.oneSearch.preference.vgifColumnSettingRC.setting0.column2]
 name = "Severity"
 width = 60
 visualIndex = 2
 isHidden = FALSE
+isUserChangeColumnVisible = FALSE
+isColFilterColorCoding = FALSE
+[VIA.oneSearch.preference.vgifColumnSettingRC.setting0.column3]
+name = "Message"
+width = 2000
+visualIndex = 5
+isHidden = FALSE
+isUserChangeColumnVisible = FALSE
+isColFilterColorCoding = FALSE
+[VIA.oneSearch.preference.vgifColumnSettingRC.setting0.column4]
+name = "Time"
+width = 60
+visualIndex = 0
+isHidden = FALSE
+isUserChangeColumnVisible = FALSE
+isColFilterColorCoding = FALSE
+[VIA.oneSearch.preference.vgifColumnSettingRC.setting0.column5]
+name = "Code"
+width = 60
+visualIndex = 3
+isHidden = TRUE
 isUserChangeColumnVisible = FALSE
 isColFilterColorCoding = FALSE
 [VIA.ruleHistory]
@@ -805,8 +810,8 @@ AutoApplySeverityColor = TRUE
 scope_to_save_with_macro
 open_file_dir
 open_rc_file_dir
-getSignalForm = 0 0 800 479 100 30 100 30
-viewPort = 0 11 1800 309 100 65
+getSignalForm = 500 199 800 479 241 387 461 186
+viewPort = 0 174 1800 658 293 114
 legendBackground = -c ID_BLACK
 valueBackground = -c ID_BLACK
 curveBackground = -c ID_BLACK
@@ -972,8 +977,9 @@ printBasic = 1 0 0 TRUE FALSE
 printDest = -printer {}
 printSignature = {%f %h %t} {}
 curveWindow_Drag&Drop_Mode = TRUE
-RecentFile1 = "\"/data/amanoj3/vortex4dice/dice_new/tb/cgra_core/dispatcher/regfile/addr_swizzle_tb.fsdb\""
-RecentFile2 = "\"/home/amanoj3/vortex4dice/dice_new/tb/cgra_core/dispatcher/regfile/addr_swizzle_tb.fsdb\""
+RecentFile1 = "\"/data/amanoj3/vortex4dice/dice_new/tb/cgra_core/dispatcher/regfile/reg_wr_buffer_tb.fsdb\""
+RecentFile2 = "\"/data/amanoj3/vortex4dice/dice_new/tb/cgra_core/dispatcher/regfile/addr_swizzle_tb.fsdb\""
+RecentFile3 = "\"/home/amanoj3/vortex4dice/dice_new/tb/cgra_core/dispatcher/regfile/addr_swizzle_tb.fsdb\""
 open_file_time_range = FALSE
 legend_window_font = -f COURIER12 -c ID_CYAN5
 value_window_font = -f COURIER12 -c ID_CYAN5
@@ -1610,7 +1616,7 @@ AddImportArgument = FALSE
 LineBreakWithScope = TRUE
 StopAfterCompileOption = -s
 [wave.0]
-viewPort = 0 11 1800 309 100 65
+viewPort = 0 174 1800 658 293 114
 [wave.1]
 viewPort = 127 219 960 332 100 65
 [wave.2]

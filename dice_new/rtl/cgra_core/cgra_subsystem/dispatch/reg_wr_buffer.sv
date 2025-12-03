@@ -8,6 +8,7 @@ import dice_pkg::*;
 
 typedef struct packed {
     logic                                        valid;
+    logic[DICE_ADDR_WIDTH-1:0]                   ws;
     logic[DICE_TID_WIDTH-1:0]                    tid;
     logic[DICE_ADDR_WIDTH-1:0]                   data;
 } entry_s;
@@ -28,15 +29,17 @@ module reg_wr_buffer #(
 
     // pop oldest entry (writeback consumed)
     , input  logic            pop_i
+    , input  logic            valid_i
 
     // status
     , output logic            full_o
     , output logic            empty_o
 
     // writeback (oldest entry)
-    , output logic [ADDR_WIDTH-1:0] wb_addr_o
-    , output logic [WIDTH-1:0]      wb_data_o
-    , output logic                  wb_valid_o
+    , output logic [ADDR_WIDTH-1:0]      wb_tid_o
+    , output logic [WIDTH-1:0]           wb_data_o
+    , output logic                       wb_valid_o
+    , output logic [DICE_ADDR_WIDTH-1:0] wb_ws_o
 
     // forwarding info
     , output logic [DEPTH-1:0]      fw_hit_o
@@ -49,17 +52,21 @@ module reg_wr_buffer #(
     // ----------------------------------------------------------------
     // Pointer tracker (no storage)
     // ----------------------------------------------------------------
-    logic [ptr_width_lp-1:0] wptr_r, rptr_r, rptr_n;
+    logic [ptr_width_lp-1:0] wptr_r, rptr_r;
     logic                    full, empty;
 
     logic enq_li, deq_li;
 
     // Enqueue when we have a write and not full
-    assign enq_li = wr_i.we & ~full;
+    assign enq_li =  valid_i & ~full;
     // Dequeue when pop requested and not empty
     assign deq_li = pop_i   & ~empty;
 
-    bsg_fifo_tracker #(
+
+
+    
+
+    fifo_ctrl_credit #(
         .els_p(DEPTH)
     ) fifo_track (
         .clk_i     (clk_i),
@@ -68,10 +75,11 @@ module reg_wr_buffer #(
         .deq_i     (deq_li),
         .wptr_r_o  (wptr_r),
         .rptr_r_o  (rptr_r),
-        .rptr_n_o  (rptr_n),
         .full_o    (full),
         .empty_o   (empty)
     );
+
+    // wire enq_r = fifo_track.enq_r;
 
     assign full_o  = full;
     assign empty_o = empty;
@@ -89,20 +97,16 @@ module reg_wr_buffer #(
             for (i = 0; i < DEPTH; i++) begin
                 buffer[i].valid <= 1'b0;
                 buffer[i].tid   <= '0;
+                buffer[i].ws    <= '0;
                 buffer[i].data  <= '0;
             end
         end else begin
-            // Dequeue: invalidate oldest entry
-            if (deq_li && !empty) begin
-                buffer[rptr_r].valid <= 1'b0;
-            end
-
             // Enqueue: write new entry at current write pointer
             if (enq_li && !full) begin
-                buffer[wptr_r].valid <= 1'b1;
+                buffer[wptr_r].valid <= wr_i.we;
                 buffer[wptr_r].tid   <= wr_i.tid;
-                // buffer[wptr_r].addr  <= wr_i.ws[ADDR_WIDTH-1:0];
-                buffer[wptr_r].data  <= wr_i.data[WIDTH-1:0];
+                buffer[wptr_r].ws  <= wr_i.ws;
+                buffer[wptr_r].data  <= wr_i.data;
             end
         end
     end
@@ -111,9 +115,10 @@ module reg_wr_buffer #(
     // Oldest entry for writeback (at rptr_r)
     // ----------------------------------------------------------------
     always_comb begin
-        wb_addr_o  = buffer[rptr_r].tid;
+        wb_tid_o  = buffer[rptr_r].tid;
         wb_data_o  = buffer[rptr_r].data;
-        wb_valid_o = buffer[rptr_r].valid & ~empty;
+        wb_valid_o = buffer[rptr_r].valid;
+        wb_ws_o    = buffer[rptr_r].ws;
     end
 
     // ----------------------------------------------------------------
@@ -123,11 +128,23 @@ module reg_wr_buffer #(
     //    We build an "age_hits" vector in age order and use casez.
     // ----------------------------------------------------------------
     logic [DEPTH-1:0] hit_vec;
-    logic [DEPTH-1:0] age_hits;
-    logic [ptr_width_lp-1:0] sel_idx;
-    logic [ptr_width_lp-1:0] idx_rel;
-    logic [ptr_width_lp-1:0] off;    
 
+    function automatic logic in_window (
+    input logic [ptr_width_lp-1:0] idx,
+    input logic [ptr_width_lp-1:0] rptr,
+    input logic [ptr_width_lp-1:0] wptr,
+    input logic          full,
+    input logic          empty
+    );
+    if (empty)      return 1'b0;
+    else if (full)  return 1'b1;
+    else if (wptr > rptr)
+        // straight region: [rptr .. wptr-1]
+        return (idx >= rptr) && (idx < wptr);
+    else
+        // wrapped region: [rptr .. DEPTH-1] U [0 .. wptr-1]
+        return (idx >= rptr) || (idx < wptr);
+    endfunction
 
 
     always_comb begin
@@ -136,48 +153,44 @@ module reg_wr_buffer #(
         fw_data_valid_o = 1'b0;
 
         hit_vec         = '0;
-        age_hits        = '0;
-        sel_idx         = '0;
 
-        if (fw_req_i.re) begin
-            // mark all physical hits
-            for (int j = 0; j < DEPTH[ptr_width_lp-1:0]; j++) begin
-                if (buffer[j].valid &&
-                    buffer[j].tid  == fw_req_i.tid) begin
-                    hit_vec[j] = 1'b1;
+        if (fw_req_i.re && !empty_o) begin
+        for (int j = 0; j < DEPTH; j++) begin
+            logic [ptr_width_lp-1:0] ji = j[ptr_width_lp-1:0];
+
+            if (in_window(ji, rptr_r, wptr_r, full_o, empty_o) &&
+                buffer[j].tid  == fw_req_i.tid &&
+                buffer[j].addr == fw_req_i.rs[ADDR_WIDTH-1:0]) begin
+                    hit_vec[j]  = 1'b1;
                 end
             end
+        end
 
-            // map hits into age order:
-            // age_hits[0] = newest (wptr_r - 1)
-            // age_hits[1] = next   (wptr_r - 2)
-            // ...
-            for (off = 0; off < DEPTH; off++) begin
-                idx_rel = wptr_r - (off + 1);
-                age_hits[off] = hit_vec[idx_rel];
-            end
+        fw_hit_o = hit_vec;
 
-            // expose physical hit map
-            fw_hit_o = hit_vec;
+        // idx0 = wptr_r - 1;
+        // idx1 = wptr_r - 2;
+        // idx2 = wptr_r - 3;
+        // idx3 = wptr_r - 4;
+        // idx4 = wptr_r - 5;
+        // idx5 = wptr_r - 6;
+        // idx6 = wptr_r - 7;
+        // idx7 = wptr_r - 8;
 
-            // priority on age_hits: bit 0 is youngest
-            casez (age_hits)
-                8'b???????1: sel_idx = wptr_r - 1;
-                8'b??????10: sel_idx = wptr_r - 2;
-                8'b?????100: sel_idx = wptr_r - 3;
-                8'b????1000: sel_idx = wptr_r - 4;
-                8'b???10000: sel_idx = wptr_r - 5;
-                8'b??100000: sel_idx = wptr_r - 6;
-                8'b?1000000: sel_idx = wptr_r - 7;
-                8'b10000000: sel_idx = wptr_r - 8;
-                default:     sel_idx = '0;
-            endcase
-
-            if (|age_hits) begin
-                fw_data_o       = buffer[sel_idx].data;
-                fw_data_valid_o = 1'b1;
+        if (fw_req_i.re && !empty_o) begin
+            // if (in_window(idx0, rptr_r, wptr_r, full_o, empty_o) && hit_vec[idx0]) begin
+            //     fw_data_o       = buffer[idx0].data;
+            //     fw_data_valid_o = 1'b1;
+            // end
+            for(int i = 1; i<=DEPTH; i++) begin
+                if (in_window(wptr_r-i, rptr_r, wptr_r, full_o, empty_o) && hit_vec[wptr_r-i]) begin
+                    fw_data_o       = buffer[wptr_r-i].data;
+                    fw_data_valid_o = 1'b1;
+                end
             end
         end
+
+
     end
 
 endmodule
