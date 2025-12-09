@@ -1,8 +1,7 @@
 import frontend_pkg::*;
 `include "VX_define.vh"
 
-// Need to make interfaces still
-
+//need to make interfaces
 module fdr_top #(
 
 )(
@@ -10,39 +9,55 @@ module fdr_top #(
     input logic rst,
 
     // Vortex memory interface for reusing instruction cache
+    // PLANNING FOR MEM SYS/CACHE TO BE INSTATIATED IN HIGHER LEVEL
     VX_mem_bus_if.master icache_bus_if,
 
     // DICE stage interfaces that still need to be defined
-    schedule_if.slave   schedule_if,
-    fdr_if.master       fdr_if
+    cta_sched_if.slave   schedule_if,
+    fdr_if.master        fdr_if
 );
 
     logic fire_eblock_internal;
 
+    //general metadata
+    pgraph_meta_t meta_internal;
+    logic meta_valid_internal;
+
+    
+    // Internal parts of meta
+    logic [31:0] branch_meta_internal; 
+    logic [31:0] bitstream_addr;  
+    logic [7:0]  bitstream_length; //currently not given to bitstream fetch
+    //(hanging and needs to be resolved/determine if that module needs it)
+
+    // Misc Internal Sigs
+    logic bitstream_addr_valid;
+
+
+
     // -------------------------------------------------------------------------
     // META FETCH
     // -------------------------------------------------------------------------
-    meta_fetch #(
+    meta_fetch #( //NEED TO FIGURE OUT HOW TO BEST DEAL WITH REPEATEDLY USED PARAMS - RESEARCH THIS
         .MAX_NUM_CTA        (),
         .PC_WIDTH           (),
         .UUID_WIDTH         ()
     ) meta_fetch_inst (
         .clk                (clk),
-        .rst_n              (rts)
+        .rst_n              (rst)
 
         // From Scheduler
-        .schedule_valid     (),
-        .fdr_next_pc        (),
+        .schedule_valid     (schedule_if.valid),
+        .fdr_next_pc        (schedule_if.data.schedule_next_pc),
         // .schedule_uuid      (), //This is going to probably be e-block id
-        .schedule_ready     (),
+        .schedule_ready     (schedule_if.ready),
 
         .meta_fetch_bus_if  (icache_bus_if),
 
         // To decoder
-        .outgoing_meta      (),
-        .meta_valid         (),
+        .outgoing_meta      (internal_meta),
+        .meta_valid         (internal_meta_valid),
 
-        // Feedback
         .fire_eblock        (fire_eblock_internal)
     );
 
@@ -53,16 +68,16 @@ module fdr_top #(
         .MASK_WIDTH             ()
     ) decode_inst (
         // From meta fetch unit
-        .metadata_in            (),
-        .meta_in_valid          (),
+        .metadata_in            (internal_meta),
+        .meta_in_valid          (internal_meta_valid),
 
         // To bitstream fetch unit
-        .bitstream_addr         (),
-        .bitstream_addr_valid   (),
-        .bitstream_length       (),
+        .bitstream_addr         (bitstream_addr),
+        .bitstream_addr_valid   (bitstream_addr_valid),
+        .bitstream_length       (bitstream_length), //hanging
 
         // Branch handler
-        .branch_metadata        (),
+        .branch_metadata        (branch_meta_internal),
         .branch_req_valid       (),
 
         .real_active_thread_mask(),
@@ -79,18 +94,18 @@ module fdr_top #(
     // -------------------------------------------------------------------------
     // BITSTREAM FETCH
     // -------------------------------------------------------------------------
-    bitstream_fetch_load #(
+    bitstream_fetch_load #( // bitstream length is hanging
         .BITSTREAM_ADDR_WIDTH   (),
         .BITSTREAM_SIZE         (),
         .CHUNK_SIZE             (),
         .NUM_CHUNKS             ()
     ) bitstream_fetch_load_inst (
-        .clk                    (),
-        .rst_n                  (),
+        .clk                    (clk),
+        .rst_n                  (rst),
 
         // From decoder
-        .meta_valid             (),
-        .bitstream_addr         (),
+        .meta_valid             (bitstream_addr_valid),
+        .bitstream_addr         (bitstream_addr),
 
         // P-graph buffers (stream bitstream)
         .cm0_data               (),
@@ -109,6 +124,15 @@ module fdr_top #(
         // To FDR EX buffer
         .cm_num                 ()
     );
+
+    // -------------------------------------------------------------------------
+    // BRANCH HANDLER
+    // -------------------------------------------------------------------------
+
+    //UNFINISHED AS OF NOW -> SOME SCAFFOLDING DONE
+
+
+
 
     // -------------------------------------------------------------------------
     // VALID CHECKER

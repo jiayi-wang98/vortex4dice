@@ -4,6 +4,10 @@
 import VX_gpu_pkg::*;
 import frontend_pkg::*;
 
+//CURRENTLY NOT USING BITSTREAM LENGTH
+//DETERMINE IF THIS IS NEEDED IN THIS MODULE
+//OR IF IT IS JUST SOMETHING THE BACKEND NEEDS SEPARATELY
+
 module bitstream_fetch_load #(
     parameter int BITSTREAM_ADDR_WIDTH = 32,
     parameter int BITSTREAM_SIZE = 2056,
