@@ -1,6 +1,7 @@
 `timescale 1ns/1ps
 `include "VX_define.vh"
 
+import VX_gpu_pkg::*;
 import frontend_pkg::*; //frontend package for metadata structure
 
 //recent modification modifies the FMS so it is 3 states,
@@ -8,29 +9,31 @@ import frontend_pkg::*; //frontend package for metadata structure
 //it can be more easily integrated into the framework
 
 module meta_fetch #(
-    parameter MAX_NUM_CTA = 4,
-    parameter PC_WIDTH = 32,
-    parameter CTA_ID_WIDTH = $clog2(MAX_NUM_CTA),
+    parameter MAX_NUM_CTA     = 4,
+    parameter PC_WIDTH        = 32,
     parameter EBLOCK_ID_WIDTH = $clog2(MAX_NUM_CTA + 4),
-    parameter MAX_EBLOCK = MAX_NUM_CTA + 4,
-    parameter ADDR_WIDTH = 64
+    parameter TAG_WIDTH       = VX_gpu_pkg::ICACHE_MEM_TAG_WIDTH  
 )(
     input logic clk,
-    input logic rst_n,
+    input logic rst,
 
-    //from CS/FDR barrier
+    // From CS/FDR barrier
     input logic schedule_valid,
     input logic [PC_WIDTH-1:0] fdr_next_pc,
+    input logic [EBLOCK_ID_WIDTH-1:0] schedule_eblock_id, 
     output logic schedule_ready,
 
-    //request channel to cache
+    // Request channel to cache
     VX_mem_bus_if.master meta_fetch_bus_if,
 
-    //to decoder
+    // To decoder
     output pgraph_meta_t outgoing_meta,
     output logic meta_valid,
-    input logic decode_ready
+
+    // From stage barrier
+    input logic fire_eblock
 );
+    localparam PAD_WIDTH = TAG_WIDTH - EBLOCK_ID_WIDTH;
 
     // FSM states
     typedef enum logic [1:0] {
@@ -42,17 +45,17 @@ module meta_fetch #(
 
     meta_fetch_states state_q, state_d;
     logic meta_valid_q;
+    logic [EBLOCK_ID_WIDTH-1:0] eblock_id_q;
     
     //'Event Signals' 2x for cache handshake - 1x for decode====================
-    logic rsp_fire, consume_fire, req_fire;
+    logic rsp_fire, req_fire;
     assign rsp_fire = meta_fetch_bus_if.rsp_valid && meta_fetch_bus_if.rsp_ready;
     assign req_fire = meta_fetch_bus_if.req_valid && meta_fetch_bus_if.req_ready;
-    assign consume_fire = meta_valid_q && decode_ready;
     //'Event Signals' 2x for cache handshake - 1x for decode====================
 
     //DIRECTLY FROM VORTEX======================================================
     logic [ICACHE_ADDR_WIDTH-1:0] meta_cache_req_addr_q, meta_cache_req_addr_d;
-    assign meta_cache_req_addr_d = fdr_next_pc[2-(`XLEN-PC_BITS) +: ICACHE_ADDR_WIDTH]; 
+    assign meta_cache_req_addr_d = fdr_next_pc[2-(`XLEN-PC_WIDTH) +: ICACHE_ADDR_WIDTH]; 
     // 4-byte aligned addresses
     //DIRECTLY FROM VORTEX======================================================
 
@@ -77,29 +80,31 @@ module meta_fetch #(
                 end
             end
             S_HOLD_DATA: begin
-                if(consume_fire) state_d = S_READY;
+                if(fire_eblock) state_d = S_READY;
             end 
             default: state_d = S_READY;
         endcase
     end
 
 
-    always_ff @(posedge clk or negedge rst_n) begin
-        if(!rst_n) begin
+    always_ff @(posedge clk) begin
+        if(rst) begin
             state_q <= S_READY;
             meta_valid_q <= 1'b0;
             meta_cache_req_addr_q <= '0;
             outgoing_meta <= '0;
+            eblock_id_q <= '0;
         end else begin
             state_q <= state_d;
             if(state_q == S_READY && schedule_valid && schedule_ready) begin
                 meta_cache_req_addr_q <= meta_cache_req_addr_d;
+                eblock_id_q <= schedule_eblock_id;
             end
             if(rsp_fire) begin
                 outgoing_meta <= meta_fetch_bus_if.rsp_data.data;
                 meta_valid_q <= 1'b1;
             end
-            if(consume_fire) begin
+            if(fire_eblock) begin
                 meta_valid_q <= 1'b0;
             end
         end
@@ -111,13 +116,15 @@ module meta_fetch #(
     assign meta_fetch_bus_if.req_data.rw     = 0; //read/write bit
     assign meta_fetch_bus_if.req_data.byteen = '1; //byte mask (for stores)
     assign meta_fetch_bus_if.req_data.data   = '0; //write payload
-    assign meta_fetch_bus_if.req_data.tag    = '0; //unneeded because there only one concurrent access
+
+    //Pad unused part of VORTEX tag with zeros
+    //Logic is less complicated since there is only one cta
+    //in fdr at once as opposed to vortexs large # of warps
+    assign meta_fetch_bus_if.req_data.tag = {{PAD_WIDTH{1'b0}}, eblock_id_q }; 
     
     //============ MISC ASSIGNS ======================//
     assign meta_fetch_bus_if.req_data.addr = meta_cache_req_addr_q;
     assign meta_fetch_bus_if.req_valid = (state_q == S_REQ_VAL);
     assign meta_fetch_bus_if.rsp_ready = (state_q == S_WAIT_RESP);
     assign meta_valid = meta_valid_q;
-
-
 endmodule
