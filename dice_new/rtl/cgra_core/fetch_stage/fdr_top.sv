@@ -1,14 +1,20 @@
 import frontend_pkg::*;
 `include "VX_define.vh"
 
-//need to make interfaces
+/*
+TO DO: 
+-add comms with status table, dispatcher...
+-branch handler
+-sort out some of the valid check sigs
+-figure out best way to do parameters
+*/
+
 module fdr_top #(
+
 
 )(
     input logic clk,
     input logic rst,
-
-
 
     // Vortex memory interface for reusing instruction cache
     // PLANNING FOR MEM SYS/CACHE TO BE INSTATIATED IN HIGHER LEVEL
