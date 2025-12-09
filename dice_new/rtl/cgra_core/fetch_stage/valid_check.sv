@@ -7,7 +7,7 @@ CONDITIONS FOR VALID TO BE ASSERTED:
 and gets the info from the retire table. I assume it will be easier to have the decoder just read from the status table
 and have a separate controller for the status table -> will make decoder assuming that)
 */
- //TO DO: Ensure that the prefetch and unresolved divergence is correct
+ //TO DO: Ensure that the prefetch and unresolved divergence is correct -> WHAT IS HAPPENING WITH BARRIER
 module valid_check #(
     parameter PC_WIDTH = 32
 )(
@@ -32,16 +32,16 @@ module valid_check #(
 
     //from cta status table
     input logic unresolved_div,
-    input logic barrier_done,
+    input logic barrier,
 
 
     //to FDR DE buffer
     output logic fdr_valid,
-    input logic ex_ready
+    input logic ex_ready,
+    
+    // Feedback to Fetch Stage
+    output logic fire_eblock
 );
-
-    //'STATES'
-    logic valid_d, valid_q; 
 
     //intermediate signals
     logic pc_match; //if the pc from the simt stack and the pc from schedule match
@@ -53,13 +53,12 @@ module valid_check #(
 
 
     logic can_issue; // true if all conditions are valid
-    logic is_issued; // asserted when the FDR stage is valid and the EX stage is ready
 
     assign pc_match = eblock_pc == simt_stack_pc;
     assign prefetch_ok = !prefetch_block; //NEED TO MODIFY
     assign bitstream_ok = bitstream_valid;
     assign mask_ok = mask_valid;
-    assign barrier_ok = barrier_done || (!barrier_indicator);
+    assign barrier_ok = barrier || (!barrier_indicator); // Assuming barrier input means "barrier done"
     assign no_divergence = !unresolved_div;
 
     //checks if all conditions are true
@@ -70,36 +69,13 @@ module valid_check #(
                        mask_ok          &&
                        no_divergence;
 
-    assign valid_ready = (!valid_q) || (valid_q && ex_ready); //may not need this -> need to assess decode logic
-    assign is_issued = can_issue && ex_ready;
-    assign fdr_valid = valid_q;
+    // Output to DE Stage
+    assign fdr_valid = can_issue;
 
+    // Feedback to Fetch Stage (Fire when valid AND accepted by next stage)
+    assign fire_eblock = can_issue && ex_ready;
 
-    always_comb begin
-        valid_d = valid_q;
-        if (valid_q) begin
-            if (ex_ready) begin
-                if (can_issue) begin
-                    valid_d = 1'b1;
-                end else begin
-                    valid_d = 1'b0;
-                end
-            end else begin
-                valid_d = 1'b1;
-            end
-        end else begin
-            if (can_issue) begin
-                valid_d = 1'b1;
-            end
-        end
-    end
-
-
-    always_ff @(posedge clk or negedge rst_n) begin
-        if(!rst_n) begin
-            valid_q <= 1'b0;
-        end else begin
-            valid_q <= valid_d;
-        end
-    end
+    // Ready signal (Pass through backpressure/completion)
+    assign valid_ready = fire_eblock;
+    
 endmodule
