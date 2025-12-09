@@ -31,7 +31,6 @@ module bitstream_fetch_load #(
 
     //to valid checker
     output logic done_streaming,
-    input logic fire_eblock,
 
     //cache interface
     VX_mem_bus_if.master cache_bus_if,

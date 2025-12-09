@@ -45,6 +45,20 @@ package frontend_pkg;
     logic                         schedule_cta_predicted; //prefetch?
     logic [THREAD_WIDTH-1:0]      active_mask;
     dice_kernel_desc_t            kernel_info; //MAY NEED TO BE CHANGED
-  } schedule_t;
+  } schedule_t; //sched to fdr struct
+
+
+  typedef struct packed {
+    logic [CTA_ID_WIDTH-1:0]      schedule_hw_cta_id; //cta id
+    logic [EBLOCK_ID_WIDTH-1:0]   schedule_eblock_id; //e block id
+    logic                         schedule_cta_predicted; //prefetch?
+    logic [THREAD_WIDTH-1:0]      real_active_mask;
+    dice_kernel_desc_t            kernel_info; //MAY NEED TO BE CHANGED
+    pgraph_meta_t                 metadata; //may reduce to just vital metadata
+    logic                         loaded_buffer;
+  } fdr_t; //fdr to ex struct
+
+
+
   
 endpackage
