@@ -4,6 +4,13 @@
 // =========================================================================
 // MOCK INTERFACE (Temporarily defined here for testing)
 // =========================================================================
+
+/*
+Note: I generated this tb so that I could run some quick tests before I submitted a PR,
+I will be making an improved one by myself when I get a chance. I also tested this in ModelSim
+rather than on the squire server since I am more used to the workflow but I will be switching
+to using vcs/verdi full time when making more robust testbenches.
+*/
 interface VX_mem_bus_if #(
     parameter DATA_SIZE   = 1,
     parameter TAG_WIDTH   = 1,
