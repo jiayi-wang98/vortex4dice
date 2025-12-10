@@ -9,6 +9,8 @@ CONDITIONS FOR VALID TO BE ASSERTED:
 and gets the info from the retire table. I assume it will be easier to have the decoder just read from the status table
 and have a separate controller for the status table -> will make decoder assuming that)
 */
+
+
  //TO DO: Ensure that the prefetch and unresolved divergence is correct -> WHAT IS HAPPENING WITH BARRIER
 module valid_check (
 

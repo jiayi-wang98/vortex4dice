@@ -132,7 +132,16 @@ module fdr_top #(
 
 
     // -------------------------------------------------------------------------
-    // FINISH BRANCH HANDLER
+    // BRANCH HANDLER   UNFINISHED
     // -------------------------------------------------------------------------
+
+    branch_handler branch_handler_inst ( //UNFINISHED
+        .clk(clk),
+        .rst_n(!rst),
+        .branch_metadata(branch_meta_internal),
+        .branch_req_valid(branch_req_valid_internal),
+        .real_active_thread_mask(branch_mask_internal),
+        .mask_valid(branch_mask_valid)
+    );
 
 endmodule

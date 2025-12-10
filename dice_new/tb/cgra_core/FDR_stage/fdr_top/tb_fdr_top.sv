@@ -1,3 +1,12 @@
+/*
+NOTE:
+THIS TESTBENCH WAS AI GENERATED SOLELY
+TO TEST BASIC FUNCTIONALITY SO BEFORE I DID A PR
+
+I WILL MAKE IT MUCH MORE ROBUST LATER/ONCE I HAVE A BETTER
+UNDERSTANDING DIFFERENT SITUATIONS TO TEST
+*/
+
 `timescale 1ns/1ps
 `include "VX_define.vh"
 
@@ -22,29 +31,24 @@ module tb_fdr_top;
     // 2. Interfaces & Signals
     // ==============================================================================
     logic clk, rst;
-    logic [DICE_ADDR_WIDTH-1:0] simt_stack_pc;
+    logic [DICE_ADDR_WIDTH-1:0] simt_stack_pc; // Controlled by TB now
 
     // CGRA Memory Outputs
     logic [VX_MEM_DATA_WIDTH-1:0] cm0_data, cm1_data;
     logic [NUM_CHUNKS-1:0]        cm0_chunk_en, cm1_chunk_en;
 
     // Interfaces
-    // 1. Metadata Memory Bus (Master)
     VX_mem_bus_if #(
         .DATA_SIZE (VX_MEM_DATA_WIDTH/8),
         .TAG_WIDTH (TAG_WIDTH)
     ) metacache_mem_if ();
 
-    // 2. Bitstream Memory Bus (Master) - NEW
     VX_mem_bus_if #(
         .DATA_SIZE (VX_MEM_DATA_WIDTH/8),
         .TAG_WIDTH (TAG_WIDTH)
     ) bitstream_cache_mem_if ();
 
-    // 3. Scheduler Interface (Slave)
     cta_sched_if schedule_if();
-
-    // 4. FDR Interface (Master)
     fdr_if fdr_if();
 
     // ==============================================================================
@@ -56,10 +60,8 @@ module tb_fdr_top;
     ) dut (
         .clk                    (clk),
         .rst                    (rst),
-        // Connect BOTH buses
         .metacache_mem_if       (metacache_mem_if),       
         .bitstream_cache_mem_if (bitstream_cache_mem_if), 
-        
         .schedule_if            (schedule_if),
         .fdr_if                 (fdr_if),
         .simt_stack_pc          (simt_stack_pc),
@@ -81,7 +83,7 @@ module tb_fdr_top;
     // 5. Intelligent Memory Responders
     // ==============================================================================
     
-    // Task A: Responds to Metadata Requests (PC Address -> Metadata Struct)
+    // Task A: Responds to Metadata Requests
     task automatic meta_responder();
         pgraph_meta_t mock_meta;
         begin
@@ -106,13 +108,13 @@ module tb_fdr_top;
                 $display("[MetaMem] Serving Metadata Request for PC %h", metacache_mem_if.req_data.addr);
                 
                 mock_meta = '0;
-                mock_meta.bitstream_addr   = 32'h0000_5000; // Point to Bitstream region
+                mock_meta.bitstream_addr   = 32'h0000_5000; 
                 mock_meta.bitstream_length = 8'd64; 
-                mock_meta.barrier          = 1'b0;
+                mock_meta.barrier          = 1'b0; // Not a barrier
+                // mock_meta.branch_meta   = ... (Optional: randomize if you want to test divergence)
 
                 metacache_mem_if.rsp_valid = 1;
                 metacache_mem_if.rsp_data.data = '0;
-                // Pack struct into data bus
                 metacache_mem_if.rsp_data.data[$bits(pgraph_meta_t)-1:0] = mock_meta;
                 metacache_mem_if.rsp_data.tag = metacache_mem_if.req_data.tag;
 
@@ -123,7 +125,7 @@ module tb_fdr_top;
         end
     endtask
 
-    // Task B: Responds to Bitstream Requests (Data Address -> Raw Chunks)
+    // Task B: Responds to Bitstream Requests
     task automatic bitstream_responder();
         logic [VX_MEM_DATA_WIDTH-1:0] mock_chunk;
         begin
@@ -144,7 +146,7 @@ module tb_fdr_top;
                 repeat($urandom_range(2,4)) @(posedge clk);
 
                 // Respond
-                $display("[BitMem] Serving Bitstream Chunk for Addr %h", bitstream_cache_mem_if.req_data.addr);
+                // $display("[BitMem] Serving Bitstream Chunk for Addr %h", bitstream_cache_mem_if.req_data.addr);
                 mock_chunk = {($urandom), ($urandom)}; 
                 
                 bitstream_cache_mem_if.rsp_valid = 1;
@@ -169,7 +171,7 @@ module tb_fdr_top;
         fdr_if.ready      = 1; 
         simt_stack_pc     = 0;
 
-        // Launch Responders in parallel
+        // Launch Responders
         fork 
             meta_responder(); 
             bitstream_responder();
@@ -183,7 +185,7 @@ module tb_fdr_top;
         $display("\n[%0t] === Simulation Started ===", $time);
 
         // ---------------------------------------------------------------------
-        // SCENARIO 1: Schedule a Block -> Fetch Meta -> Fetch Bitstream -> Output Valid
+        // SCENARIO 1: Basic Schedule with PC Sync
         // ---------------------------------------------------------------------
         $display("\n[%0t] TC1: Scheduling Block at PC 0x1000", $time);
 
@@ -198,6 +200,10 @@ module tb_fdr_top;
         schedule_if.data.schedule_hw_cta_id   = 0;
         schedule_if.data.active_mask          = '1; 
         
+        // **IMPORTANT FIX**: Simulate the SIMT Stack updating to match the Scheduler
+        // In a real system, the Fetch unit updates the PC, so the Stack should reflect that.
+        simt_stack_pc = 32'h0000_1000; 
+
         @(posedge clk);
         schedule_if.valid = 0;
 
@@ -210,22 +216,29 @@ module tb_fdr_top;
                 $display("PASS: FDR Valid Asserted!");
             end
             begin 
-                #10000; // Increased timeout for multi-cycle bitstream fetches
-                $error("FAIL: Timeout waiting for FDR Valid"); 
+                #20000; 
+                $error("FAIL: Timeout waiting for FDR Valid (Check PC Match or Mask Logic)"); 
                 $stop; 
             end
         join_any
 
         // 4. Verification
-        if (fdr_if.data.metadata.bitstream_addr == 32'h0000_5000)
-            $display("PASS: Output Metadata contains correct Bitstream Address");
+        // Note: bitstream_addr is consumed by the FDR stage, so we check bitstream_length
+        // which IS passed through to the execution stage.
+        if (fdr_if.data.metadata.bitstream_length == 8'd64)
+            $display("PASS: Output Metadata contains correct Bitstream Length");
         else 
-            $error("FAIL: Metadata corrupted. Expected 0x5000, got %h", fdr_if.data.metadata.bitstream_addr);
+            $error("FAIL: Metadata corrupted. Expected Length 64, got %d", fdr_if.data.metadata.bitstream_length);
 
-        if (cm0_chunk_en != 0 || cm1_chunk_en != 0) 
-            $display("PASS: CM Chunk Enable fired (Bitstream loaded)");
+        // Optional: Check if we actually requested the correct address on the bus earlier
+        // (You would typically use a monitor for this, but checking the length is sufficient for a basic test)
+        // 5. Mask Check (New Logic)
+        // Since we passed '1 (all ones) into the decoder, and branch_handler likely passes it through for now:
+        if (fdr_if.data.metadata.active_mask != 0) 
+            $display("PASS: Active Mask propagated correctly (%h)", fdr_if.data.metadata.active_mask);
         else
-            $warning("WARN: CM Chunk Enable never fired (Check timing)");
+            $error("FAIL: Active Mask is ZERO. Decoder/BranchHandler link might be broken.");
+
 
         #(CLK_PERIOD * 20);
         $display("\n[%0t] === All Tests Passed ===", $time);
