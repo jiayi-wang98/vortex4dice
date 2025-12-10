@@ -22,7 +22,6 @@ module fdr_top #(
     input  logic [DICE_ADDR_WIDTH-1:0] simt_stack_pc,
  
     // CGRA configuration memories
-    // Use VX_MEM_DATA_WIDTH directly
     output logic [VX_MEM_DATA_WIDTH-1:0] cm0_data,
     output logic [((BITSTREAM_SIZE + VX_MEM_DATA_WIDTH - 1) / VX_MEM_DATA_WIDTH) - 1:0] cm0_chunk_en,
     
@@ -30,9 +29,6 @@ module fdr_top #(
     output logic [((BITSTREAM_SIZE + VX_MEM_DATA_WIDTH - 1) / VX_MEM_DATA_WIDTH) - 1:0] cm1_chunk_en
 );
 
-    // -------------------------------------------------------------------------
-    // Local wires
-    // -------------------------------------------------------------------------
     // Control & Meta
     pgraph_meta_t                       meta_internal;
     logic                               meta_valid_internal;
@@ -46,26 +42,18 @@ module fdr_top #(
     logic                               done_streaming_internal;
 
     // Branching & Masks
-    // USE PACKAGE TYPE
     thread_mask_t                       branch_mask_internal; 
     logic [31:0]                        branch_meta_internal;
     logic                               branch_mask_valid;
     logic                               branch_req_valid_internal;
-    logic                               mask_valid_internal;
+    logic                               is_barrier_internal;
 
     // Scheduler ready handshake
     assign schedule_if.ready = schedule_ready_internal;
 
-    //need to finish branch handler
-    assign branch_mask_internal = schedule_if.data.active_mask;
-    assign branch_mask_valid    = schedule_if.valid;
-
-
-
     //PASSTHROUGH STUFF
     assign fdr_if.data.schedule_hw_cta_id     = schedule_if.data.schedule_hw_cta_id;
     assign fdr_if.data.schedule_eblock_id     = schedule_if.data.schedule_eblock_id;
-    assign fdr_if.data.schedule_cta_predicted = schedule_if.data.schedule_cta_predicted;
     assign fdr_if.data.kernel_info            = schedule_if.data.kernel_info;
 
     // -------------------------------------------------------------------------
@@ -92,17 +80,14 @@ module fdr_top #(
     decode decode_inst (
         .metadata_in            (meta_internal),
         .meta_in_valid          (meta_valid_internal),
+        .real_active_thread_mask(branch_mask_internal), //branch handler
         .bitstream_addr         (bitstream_addr),
         .bitstream_addr_valid   (bitstream_addr_valid_internal),
         .bitstream_length       (bitstream_length),
         .branch_metadata        (branch_meta_internal),
         .branch_req_valid       (branch_req_valid_internal),
-        .real_active_thread_mask(branch_mask_internal),
-        .mask_valid             (branch_mask_valid),
-
-        .decode_valid           (mask_valid_internal),
-        .metadata_out           (fdr_if.data.metadata),
-        .mask_out               (fdr_if.data.real_active_mask)
+        .is_barrier             (is_barrier_internal),
+        .meta_out               (fdr_if.data.metadata)
     );
 
     // -------------------------------------------------------------------------
@@ -130,14 +115,16 @@ module fdr_top #(
     // -------------------------------------------------------------------------
 
     valid_check valid_check_inst (
-        .barrier_indicator (meta_internal.barrier),
-        .mask_valid        (mask_valid_internal),
+        .barrier_indicator (is_barrier_internal),
+        .mask_valid        (branch_mask_valid), //from branch handler?
         .eblock_pc         (schedule_if.data.schedule_next_pc),
         .prefetch_block    (schedule_if.data.schedule_cta_predicted),
         .simt_stack_pc     (simt_stack_pc),
         .bitstream_loaded  (done_streaming_internal),
         .unresolved_div    (1'b0),
-        .barrier           (1'b1),
+        .barrier           (1'b1), //cta status table? - the may need to be changed so that branch
+        //handler/decoder deal with this. Right now i have a separate signal for the 
+        //barrier METAdata to go to this module but once i dive into the branch handler this may be changed
         .fdr_valid         (fdr_if.valid),
         .ex_ready          (fdr_if.ready),
         .fire_eblock       (fire_eblock_internal)

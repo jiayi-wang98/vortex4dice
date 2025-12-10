@@ -3,11 +3,7 @@
 
 import VX_gpu_pkg::*;
 import dice_pkg::*;
-import frontend_pkg::*; //frontend package for metadata structure
-
-//recent modification modifies the FMS so it is 3 states,
-//replaces to generic cache handshake with the vortex bus so that 
-//it can be more easily integrated into the framework
+import frontend_pkg::*;
 
 module meta_fetch #(
     parameter int TAG_WIDTH = 48  
@@ -45,11 +41,9 @@ module meta_fetch #(
     logic meta_valid_q;
     logic [EBLOCK_ID_WIDTH-1:0] eblock_id_q;
     
-    //'Event Signals' 2x for cache handshake - 1x for decode====================
     logic rsp_fire, req_fire;
     assign rsp_fire = meta_fetch_bus_if.rsp_valid && meta_fetch_bus_if.rsp_ready;
     assign req_fire = meta_fetch_bus_if.req_valid && meta_fetch_bus_if.req_ready;
-    //'Event Signals' 2x for cache handshake - 1x for decode====================
 
     //DIRECTLY FROM VORTEX======================================================
     logic [ICACHE_ADDR_WIDTH-1:0] meta_cache_req_addr_q, meta_cache_req_addr_d;

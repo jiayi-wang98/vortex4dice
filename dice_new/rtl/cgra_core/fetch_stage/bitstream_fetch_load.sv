@@ -80,7 +80,6 @@ module bitstream_fetch_load #(
     assign cache_bus_if.req_data.byteen = '1; // All bytes enabled
     assign cache_bus_if.req_data.data   = '0; 
 
-    //
     assign cache_bus_if.req_data.tag = {TAG_WIDTH{1'b0}}; 
     
     assign cache_bus_if.req_data.addr = addr_q;
