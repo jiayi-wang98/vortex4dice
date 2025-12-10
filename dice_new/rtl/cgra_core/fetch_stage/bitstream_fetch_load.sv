@@ -95,9 +95,6 @@ module bitstream_fetch_load #(
     assign cm0_data = data_chunk;
     assign cm1_data = data_chunk;
 
-    // assign done_streaming = (cm0_valid_q && (cm0_addr == bitstream_addr_dec)) || 
-    //                         (cm1_valid_q && (cm1_addr == bitstream_addr_dec));
-
     assign done_streaming = (cm_select == 0 && cm0_valid_q && cm0_addr == bitstream_addr_dec) ||
                             (cm_select == 1 && cm1_valid_q && cm1_addr == bitstream_addr_dec);
 
@@ -113,8 +110,7 @@ module bitstream_fetch_load #(
         cm1_valid_d = cm1_valid_q;
         req_sent_d = req_sent_q;
         load_chunk_en_d = '0; 
-        
-        // Registered chunk enable usage
+
         cm0_chunk_en = (cm_select == 1'b0) ? load_chunk_en_q : '0;
         cm1_chunk_en = (cm_select == 1'b1) ? load_chunk_en_q : '0;
 
@@ -124,20 +120,12 @@ module bitstream_fetch_load #(
                 req_sent_d = 1'b0;
                 if(meta_valid) begin 
                     if (!done_streaming) begin
-                        // --- FIX START ---
-                        // Only toggle if we have valid data (Ping-Pong).
-                        // On a cold start (both invalid), force target to 0.
                         if (cm0_valid_q || cm1_valid_q) 
                             cm_select_n = ~cm_select; 
-                        else 
-                            cm_select_n = 1'b0;
-                        // --- FIX END ---
-
+                        else cm_select_n = 1'b0;
                         addr_d = bitstream_addr_dec; 
                         state_n = S_STREAMING;
                         chunk_count_d = '0; 
-                        
-                        // Setup the target buffer (invalidate it before filling)
                         if (cm_select_n == 1'b0) begin
                             cm0_addr_n = bitstream_addr_dec;
                             cm0_valid_d = 1'b0; 
@@ -146,17 +134,10 @@ module bitstream_fetch_load #(
                             cm1_valid_d = 1'b0; 
                         end
                     end 
-                    
-                    // NOTE: The `else if` block here is essentially dead code.
-                    // `done_streaming` is logic that checks (Valid AND AddrMatch).
-                    // If `done_streaming` is TRUE, we don't enter the first `if`.
-                    // If `done_streaming` is FALSE, we enter the first `if` immediately.
-                    // The `else if` is never reached. You can safely remove it.
                 end
             end
 
             S_STREAMING: begin 
-                // 1. Send Request
                 if (!req_sent_q) begin
                     if (req_fire) begin
                         req_sent_d = 1'b1; 
