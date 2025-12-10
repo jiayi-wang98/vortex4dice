@@ -1,25 +1,25 @@
 `timescale 1ns/1ps
 
 `include "VX_define.vh"
+
+// 1. Add Package Imports
 import VX_gpu_pkg::*;
 import dice_pkg::*;
 import frontend_pkg::*;
-/*
-Note: I generated this tb so that I could run some quick tests before I submitted a PR,
-I will be making an improved one by myself when I get a chance. I also tested this in ModelSim
-rather than on the squire server since I am more used to the workflow but I will be switching
-to using vcs/verdi full time when making more robust testbenches.
-*/
+
 module tb_bitstream_fetch_load;
 
     // ==============================================================================
-    // 1. Parameters (Matching DICE/DUT configuration)
+    // 1. Local Constants (Derived from Packages)
     // ==============================================================================
-    parameter int BITSTREAM_ADDR_WIDTH = 32;
-    parameter int BITSTREAM_SIZE       = 2056;
-    parameter int CHUNK_SIZE           = 512;
-    parameter int NUM_CHUNKS           = (BITSTREAM_SIZE + CHUNK_SIZE - 1) / CHUNK_SIZE;
-    parameter int TAG_WIDTH            = 48;
+    // We define these LOCALLY in the TB to size our wires, 
+    // matching what the DUT calculates internally.
+    localparam int BITSTREAM_SIZE = 2056; 
+    localparam int CHUNK_SIZE     = VX_MEM_DATA_WIDTH; // From VX_gpu_pkg
+    localparam int NUM_CHUNKS     = (BITSTREAM_SIZE + CHUNK_SIZE - 1) / CHUNK_SIZE;
+    
+    // Configurable Parameter (Passed to DUT)
+    parameter int TAG_WIDTH       = 48;
 
     // Simulation timing
     parameter time CLK_PERIOD = 10ns;
@@ -32,6 +32,7 @@ module tb_bitstream_fetch_load;
 
     // DUT Inputs
     logic meta_valid;
+    // Use package constant for width
     logic [BITSTREAM_ADDR_WIDTH-1:0] bitstream_addr;
 
     // DUT Outputs
@@ -43,7 +44,6 @@ module tb_bitstream_fetch_load;
     logic cm_num;
 
     // Vortex Memory Bus Interface
-    // DATA_SIZE is typically in bytes. 512 bits / 8 = 64 bytes.
     VX_mem_bus_if #(
         .DATA_SIZE (CHUNK_SIZE/8), 
         .TAG_WIDTH (TAG_WIDTH)
@@ -53,11 +53,9 @@ module tb_bitstream_fetch_load;
     // 3. DUT Instantiation
     // ==============================================================================
     bitstream_fetch_load #(
-        .BITSTREAM_ADDR_WIDTH (BITSTREAM_ADDR_WIDTH),
-        .BITSTREAM_SIZE       (BITSTREAM_SIZE),
-        .CHUNK_SIZE           (CHUNK_SIZE),
-        .NUM_CHUNKS           (NUM_CHUNKS),
-        .TAG_WIDTH            (TAG_WIDTH)
+        // REMOVED: BITSTREAM_SIZE, CHUNK_SIZE, etc.
+        // The DUT gets these from the packages now.
+        .TAG_WIDTH (TAG_WIDTH)
     ) dut (
         .clk            (clk),
         .rst            (rst),
@@ -83,7 +81,6 @@ module tb_bitstream_fetch_load;
     // ==============================================================================
     // 5. Memory Model (Simulates Cache Response)
     // ==============================================================================
-    // This task runs in the background to handle the ready/valid handshake
     task automatic memory_responder();
         logic [CHUNK_SIZE-1:0] mock_data;
         integer i;
@@ -97,7 +94,7 @@ module tb_bitstream_fetch_load;
                 // A. Wait for Request
                 wait(cache_bus_if.req_valid);
                 
-                // Simulate random bus busy/latency before accepting request
+                // Simulate random bus busy/latency
                 repeat($urandom_range(0, 2)) @(posedge clk);
                 
                 // Accept Request
@@ -109,7 +106,6 @@ module tb_bitstream_fetch_load;
                 repeat($urandom_range(2, 5)) @(posedge clk);
 
                 // C. Prepare Response Data
-                // Filling with random data to verify data path
                 mock_data = {CHUNK_SIZE{1'b0}};
                 for (i = 0; i < CHUNK_SIZE/32; i++) begin
                     mock_data[i*32 +: 32] = $urandom();
@@ -118,7 +114,7 @@ module tb_bitstream_fetch_load;
                 // D. Send Response
                 cache_bus_if.rsp_valid = 1;
                 cache_bus_if.rsp_data.data = mock_data;
-                cache_bus_if.rsp_data.tag  = cache_bus_if.req_data.tag; // Echo tag
+                cache_bus_if.rsp_data.tag  = cache_bus_if.req_data.tag;
 
                 // Wait for DUT to accept response
                 wait(cache_bus_if.rsp_ready);
@@ -162,12 +158,12 @@ module tb_bitstream_fetch_load;
         wait(dut.state == dut.S_STREAMING);
         $display("[%0t] State transitioned to S_STREAMING", $time);
         
-        // Lower valid (DUT captures it on transition from IDLE)
+        // Lower valid
         meta_valid = 0;
 
         // Wait for completion
         wait(done_streaming);
-        @(posedge clk); // Give one cycle for signals to settle
+        @(posedge clk);
         $display("[%0t] TC1 Complete.", $time);
 
         // Checks
@@ -198,7 +194,6 @@ module tb_bitstream_fetch_load;
         @(posedge clk);
         $display("[%0t] TC2 Complete.", $time);
 
-        // Checks
         if (cm_num !== 1) 
             $error("FAIL: cm_num should be 1 (Ping Pong), got %b", cm_num);
         else 

@@ -1,30 +1,26 @@
 `timescale 1ns/1ps
 
 `include "VX_define.vh"
+
+// 1. IMPORT PACKAGES
 import VX_gpu_pkg::*;
 import dice_pkg::*;
 import frontend_pkg::*;
-/*
-Note: I generated this tb so that I could run some quick tests before I submitted a PR,
-I will be making an improved one by myself when I get a chance. I also tested this in ModelSim
-rather than on the squire server since I am more used to the workflow but I will be switching
-to using vcs/verdi full time when making more robust testbenches.
-*/
+
 module tb_meta_fetch;
 
     // ==============================================================================
     // 1. Parameters & Constants
     // ==============================================================================
-    parameter int MAX_NUM_CTA     = 4;
-    parameter int PC_WIDTH        = 32;
-    parameter int MAX_EBLOCKS     = 8;
-    parameter int EBLOCK_ID_WIDTH = $clog2(MAX_EBLOCKS);
-    parameter int TAG_WIDTH       = 48;
+    // Only TAG_WIDTH remains a configurable parameter on the DUT
+    parameter int TAG_WIDTH = 48;
     
-    // Derived for the interface instantiation
-    // Assuming a standard cache line width for metadata or checking `pgraph_meta_t` size
-    // Adjust DATA_SIZE if pgraph_meta_t is larger than 64 bytes
-    localparam int CACHE_DATA_SIZE = 64; 
+    // Derived widths for Testbench wires (using package constants)
+    localparam int EBLOCK_WIDTH_TB = frontend_pkg::EBLOCK_ID_WIDTH;
+    localparam int ADDR_WIDTH_TB   = dice_pkg::DICE_ADDR_WIDTH;
+
+    // Calculate Data Size based on the Struct
+    localparam int CACHE_DATA_SIZE = $bits(pgraph_meta_t) / 8;
 
     parameter time CLK_PERIOD = 10ns;
 
@@ -36,8 +32,8 @@ module tb_meta_fetch;
 
     // DUT Inputs
     logic schedule_valid;
-    logic [PC_WIDTH-1:0] fdr_next_pc;
-    logic [EBLOCK_ID_WIDTH-1:0] schedule_eblock_id;
+    logic [ADDR_WIDTH_TB-1:0]   fdr_next_pc;        // Fixed width
+    logic [EBLOCK_WIDTH_TB-1:0] schedule_eblock_id; // Fixed width
     logic fire_eblock;
 
     // DUT Outputs
@@ -55,11 +51,9 @@ module tb_meta_fetch;
     // 3. DUT Instantiation
     // ==============================================================================
     meta_fetch #(
-        .MAX_NUM_CTA     (MAX_NUM_CTA),
-        .PC_WIDTH        (PC_WIDTH),
-        .MAX_EBLOCKS     (MAX_EBLOCKS),
-        .EBLOCK_ID_WIDTH (EBLOCK_ID_WIDTH),
-        .TAG_WIDTH       (TAG_WIDTH)
+        // REMOVED: MAX_NUM_CTA, PC_WIDTH, MAX_EBLOCKS, EBLOCK_ID_WIDTH
+        // Only TAG_WIDTH is left
+        .TAG_WIDTH (TAG_WIDTH)
     ) dut (
         .clk                (clk),
         .rst                (rst),
@@ -82,13 +76,13 @@ module tb_meta_fetch;
     end
 
     // ==============================================================================
-    // 5. Memory Model (Cache Responder) - License Safe Version
+    // 5. Memory Model (Cache Responder)
     // ==============================================================================
     task automatic memory_responder();
         pgraph_meta_t mock_meta;
-        // Create a temporary logic vector to hold random bits. 
-        // We make it large enough to cover the struct size.
-        logic [511:0] rand_bits; 
+        // Make sure this matches the total bits of the struct
+        logic [$bits(pgraph_meta_t)-1:0] rand_bits; 
+        
         begin
             meta_fetch_bus_if.req_ready = 0;
             meta_fetch_bus_if.rsp_valid = 0;
@@ -98,7 +92,7 @@ module tb_meta_fetch;
                 // 1. Wait for DUT to Request
                 wait(meta_fetch_bus_if.req_valid);
                 
-                // Random delay before acknowledging request
+                // Random delay
                 repeat($urandom_range(0, 3)) @(posedge clk);
                 
                 // 2. Accept Request (Address Phase)
@@ -110,13 +104,12 @@ module tb_meta_fetch;
                 repeat($urandom_range(2, 6)) @(posedge clk);
 
                 // 4. Prepare Random Metadata Response
-                // FIX: Use $urandom instead of std::randomize to avoid license errors
-                // We concatenate multiple $urandom calls to ensure we fill larger structs
+                // Fill random bits
                 rand_bits = {$urandom(), $urandom(), $urandom(), $urandom(), 
                              $urandom(), $urandom(), $urandom(), $urandom()};
                              
-                // Cast the random bits to your struct type (assuming packed struct)
-                mock_meta = pgraph_meta_t'(rand_bits[$bits(pgraph_meta_t)-1:0]); 
+                // Cast to struct
+                mock_meta = pgraph_meta_t'(rand_bits); 
                 
                 meta_fetch_bus_if.rsp_valid = 1;
                 meta_fetch_bus_if.rsp_data.data = mock_meta; 
@@ -158,70 +151,55 @@ module tb_meta_fetch;
         // -----------------------------------------------------------
         $display("\n[%0t] TC1: Basic Fetch (PC=0x1000, ID=2)", $time);
 
-        // A. Wait for DUT to be ready
         wait(schedule_ready);
         @(posedge clk);
 
-        // B. Send Schedule Request
         schedule_valid = 1;
         fdr_next_pc = 32'h0000_1000;
         schedule_eblock_id = 2;
         @(posedge clk);
-        schedule_valid = 0; // Pulse valid (DUT captures it on transition to S_REQ_VAL)
+        schedule_valid = 0; 
 
-        // C. Monitor for Cache Request (Internal check)
         wait(dut.state_q == dut.S_WAIT_RESP);
         $display("[%0t] DUT Sent Request, Waiting for Response...", $time);
 
-        // D. Monitor for Data Available (Meta Valid)
         wait(meta_valid);
         $display("[%0t] Metadata Received! (State: S_HOLD_DATA)", $time);
         
-        // E. Verify Hold State (Should stay valid until fired)
         repeat(3) @(posedge clk);
         if (!meta_valid) $error("FAIL: meta_valid dropped before fire_eblock!");
         if (schedule_ready) $error("FAIL: schedule_ready went high before fire_eblock!");
 
-        // F. Fire Eblock (Consume Data)
         $display("[%0t] Firing Eblock...", $time);
         fire_eblock = 1;
         @(posedge clk);
         fire_eblock = 0;
 
-        // G. Verify Return to Ready
         wait(schedule_ready);
         if (meta_valid) $error("FAIL: meta_valid should be low after fire");
         $display("[%0t] TC1 Complete: DUT returned to Ready.", $time);
-
 
         // -----------------------------------------------------------
         // Test Case 2: Back-to-Back Fetch
         // -----------------------------------------------------------
         $display("\n[%0t] TC2: Fetch (PC=0x2000)", $time);
         
-        // Input logic
         fdr_next_pc = 32'h0000_2000;
         schedule_eblock_id = 5;
         schedule_valid = 1;
         
-        // Wait for DUT to accept (it transitions out of READY)
         wait(!schedule_ready); 
         @(posedge clk);
         schedule_valid = 0;
 
-        // Wait for completion
         wait(meta_valid);
         
-        // Check Tag Logic (Mock check: The tag sent to cache should contain the eblock_id)
-        // Accessing internal signal for verification
-        // PAD_WIDTH is TAG_WIDTH - EBLOCK_ID_WIDTH.
-        // We verify the lower bits of the tag match the eblock ID.
-        if (meta_fetch_bus_if.req_data.tag[EBLOCK_ID_WIDTH-1:0] == 5)
+        // Verify Tag (using localparam EBLOCK_WIDTH_TB)
+        if (meta_fetch_bus_if.req_data.tag[EBLOCK_WIDTH_TB-1:0] == 5)
             $display("PASS: Cache Request Tag matched Eblock ID (5)");
         else 
             $warning("WARN: Cache Request Tag mismatch (Check timing/internal probes)");
 
-        // Fire to clear
         fire_eblock = 1;
         @(posedge clk);
         fire_eblock = 0;
