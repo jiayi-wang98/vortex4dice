@@ -2,6 +2,7 @@
 
 `include "VX_define.vh"
 import VX_gpu_pkg::*;
+import dice_pkg::*;
 import frontend_pkg::*;
 
 //CURRENTLY NOT USING BITSTREAM LENGTH
@@ -10,10 +11,10 @@ import frontend_pkg::*;
 
 module bitstream_fetch_load #(
     parameter int BITSTREAM_ADDR_WIDTH = 32,
-    parameter int BITSTREAM_SIZE = 2056,
-    parameter int CHUNK_SIZE = 512, //bits (may need to change)
-    parameter int NUM_CHUNKS = (BITSTREAM_SIZE + CHUNK_SIZE - 1) / CHUNK_SIZE,
-    parameter TAG_WIDTH = VX_gpu_pkg::ICACHE_MEM_TAG_WIDTH 
+    parameter int BITSTREAM_SIZE       = 2056,
+    parameter int CHUNK_SIZE           = 512, // bits (may need to change)
+    parameter int NUM_CHUNKS           = (BITSTREAM_SIZE + CHUNK_SIZE - 1) / CHUNK_SIZE,
+    parameter int TAG_WIDTH            = 48 
 )(
     input logic clk,
     input logic rst,

@@ -1,10 +1,14 @@
+import dice_pkg::*;
 import frontend_pkg::*;
 /*
 The is assuming the change to no longer need the 'barrier' info
 */
 
 module decode #(
-    parameter MASK_WIDTH = 512
+    parameter int THREAD_ID_WIDTH = 9,
+    parameter int MASK_WIDTH = (1 << THREAD_ID_WIDTH),
+    parameter int BITSTREAM_ADDR_WIDTH = 32,
+    parameter int BITSTREAM_LENGTH_WIDTH = 8
 
 )(
     //from meta fetch unit
@@ -12,9 +16,9 @@ module decode #(
     input logic meta_in_valid,
 
     //to bitstream fetch unit
-    output logic [31:0] bitstream_addr,
+    output logic [BITSTREAM_ADDR_WIDTH-1:0] bitstream_addr,
     output logic bitstream_addr_valid, // Now a level signal indicating valid metadata
-    output logic [7:0] bitstream_length,
+    output logic [BITSTREAM_LENGTH_WIDTH-1:0] bitstream_length,
 
     //branch handler
     output logic [31:0] branch_metadata,

@@ -2,6 +2,7 @@
 `include "VX_define.vh"
 
 import VX_gpu_pkg::*;
+import dice_pkg::*;
 import frontend_pkg::*; //frontend package for metadata structure
 
 //recent modification modifies the FMS so it is 3 states,
@@ -9,10 +10,11 @@ import frontend_pkg::*; //frontend package for metadata structure
 //it can be more easily integrated into the framework
 
 module meta_fetch #(
-    parameter MAX_NUM_CTA     = 4,
-    parameter PC_WIDTH        = 32,
-    parameter EBLOCK_ID_WIDTH = $clog2(MAX_NUM_CTA + 4),
-    parameter TAG_WIDTH       = VX_gpu_pkg::ICACHE_MEM_TAG_WIDTH  
+    parameter int MAX_NUM_CTA     = 4,
+    parameter int PC_WIDTH        = 32,
+    parameter int MAX_EBLOCKS     = 8,
+    parameter int EBLOCK_ID_WIDTH = $clog2(MAX_EBLOCKS),
+    parameter int TAG_WIDTH       = 48  
 )(
     input logic clk,
     input logic rst,
