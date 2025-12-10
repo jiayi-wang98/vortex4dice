@@ -1,4 +1,6 @@
-/*
+import dice_pkg::*;
+
+ /*
 CONDITIONS FOR VALID TO BE ASSERTED:
 1) Bitstream Loaded
 2) E-block prefetch cleared or not prefetch block
@@ -8,27 +10,21 @@ and gets the info from the retire table. I assume it will be easier to have the 
 and have a separate controller for the status table -> will make decoder assuming that)
 */
  //TO DO: Ensure that the prefetch and unresolved divergence is correct -> WHAT IS HAPPENING WITH BARRIER
-module valid_check #(
-    parameter PC_WIDTH = 32
-)(
-    input logic clk,
-    input logic rst_n,
+module valid_check (
 
     //from decoder (if it is 1 then all prev blocks must finish before ex this p graph)
     input logic barrier_indicator,
     input logic mask_valid,
-    output logic valid_ready,
 
     //from CS, FDR buffer
-    input logic [PC_WIDTH-1:0] eblock_pc,
+    input logic [DICE_ADDR_WIDTH-1:0] eblock_pc,
     input logic prefetch_block,
 
     //from SIMT_Stack
-    input logic [PC_WIDTH-1:0] simt_stack_pc, // "next pc"
+    input logic [DICE_ADDR_WIDTH-1:0] simt_stack_pc, // "next pc"
 
     
-    input logic bitstream_valid,
-    output logic bitstream_ready,
+    input logic bitstream_loaded,
 
     //from cta status table
     input logic unresolved_div,
@@ -56,7 +52,7 @@ module valid_check #(
 
     assign pc_match = eblock_pc == simt_stack_pc;
     assign prefetch_ok = !prefetch_block; //NEED TO MODIFY
-    assign bitstream_ok = bitstream_valid;
+    assign bitstream_ok = bitstream_loaded;
     assign mask_ok = mask_valid;
     assign barrier_ok = barrier || (!barrier_indicator); // Assuming barrier input means "barrier done"
     assign no_divergence = !unresolved_div;

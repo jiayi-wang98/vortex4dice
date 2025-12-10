@@ -1,29 +1,23 @@
 `timescale 1ns/1ps
 
-`include "VX_define.vh"
 import VX_gpu_pkg::*;
 import dice_pkg::*;
 import frontend_pkg::*;
 
-//CURRENTLY NOT USING BITSTREAM LENGTH
-//DETERMINE IF THIS IS NEEDED IN THIS MODULE
-//OR IF IT IS JUST SOMETHING THE BACKEND NEEDS SEPARATELY
-
 module bitstream_fetch_load #(
-    parameter int BITSTREAM_ADDR_WIDTH = 32,
-    parameter int BITSTREAM_SIZE       = 2056,
-    parameter int CHUNK_SIZE           = 512, // bits (may need to change)
-    parameter int NUM_CHUNKS           = (BITSTREAM_SIZE + CHUNK_SIZE - 1) / CHUNK_SIZE,
-    parameter int TAG_WIDTH            = 48 
+    parameter int TAG_WIDTH = 48,
+    parameter int BITSTREAM_SIZE = 2056,
+    parameter int CHUNK_SIZE = VX_MEM_DATA_WIDTH,
+    parameter int NUM_CHUNKS = (BITSTREAM_SIZE + CHUNK_SIZE - 1) / CHUNK_SIZE
 )(
     input logic clk,
     input logic rst,
 
     //from decoder
-    input logic meta_valid, // Renamed from enable_fetch, now level signal
+    input logic meta_valid, 
     input logic [BITSTREAM_ADDR_WIDTH-1:0] bitstream_addr,
 
-    //p-graph buffers (stream bitstream) -> bitstream fetcher acts as control module for cgra buffers
+    //to cgra buffers
     output logic [CHUNK_SIZE-1:0] cm0_data,
     output logic [NUM_CHUNKS-1:0] cm0_chunk_en,
 
@@ -40,8 +34,8 @@ module bitstream_fetch_load #(
     output logic cm_num
 );  
 
-    localparam int COUNTER_BITS = $clog2(NUM_CHUNKS+1);
-    localparam int OFFSET = CHUNK_SIZE / 8; 
+    localparam int COUNTER_BITS = $clog2(NUM_CHUNKS + 1);
+    localparam int OFFSET = CHUNK_SIZE / 8;
 
     typedef enum logic [1:0] {
         S_IDLE,
@@ -66,7 +60,6 @@ module bitstream_fetch_load #(
     // Track if we have sent the request for the current chunk
     logic req_sent_q, req_sent_d;
     
-    // Chunk enable registration
     logic [NUM_CHUNKS-1:0] load_chunk_en_d;
     logic [NUM_CHUNKS-1:0] load_chunk_en_q;
 

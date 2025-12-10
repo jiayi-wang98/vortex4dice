@@ -8,6 +8,10 @@ package dice_pkg;
   // =========================================================
   // Derived parameters (computed from configuration)
   // =========================================================
+  //ADDED THESE FOR FRONTEND
+  parameter int DICE_NUM_MAX_THREADS_PER_CORE = `DICE_NUM_MAX_THREADS_PER_CORE;
+  parameter int DICE_NUM_MAX_CTA_PER_CORE     = `DICE_NUM_MAX_CTA_PER_CORE;
+
   parameter int DICE_ADDR_WIDTH      = `DICE_ADDR_WIDTH;
   parameter int DICE_KERNEL_ID_WIDTH = $clog2(`DICE_MAX_KERNEL_ID);
   parameter int DICE_CTA_ID_WIDTH    = $clog2(`DICE_MAX_GRID_SIZE);

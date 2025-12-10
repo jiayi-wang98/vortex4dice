@@ -1,53 +1,38 @@
 import dice_pkg::*;
-import frontend_pkg::*;
-/*
-The is assuming the change to no longer need the 'barrier' info
-*/
+import frontend_pkg::*; 
 
-module decode #(
-    parameter int THREAD_ID_WIDTH = 9,
-    parameter int MASK_WIDTH = (1 << THREAD_ID_WIDTH),
-    parameter int BITSTREAM_ADDR_WIDTH = 32,
-    parameter int BITSTREAM_LENGTH_WIDTH = 8
+module decode (
 
-)(
-    //from meta fetch unit
-    input pgraph_meta_t metadata_in,
-    input logic meta_in_valid,
+    input  pgraph_meta_t        metadata_in,
+    input  logic                meta_in_valid,
 
-    //to bitstream fetch unit
-    output logic [BITSTREAM_ADDR_WIDTH-1:0] bitstream_addr,
-    output logic bitstream_addr_valid, // Now a level signal indicating valid metadata
+    output logic [BITSTREAM_ADDR_WIDTH-1:0]   bitstream_addr,
+    output logic                              bitstream_addr_valid, 
     output logic [BITSTREAM_LENGTH_WIDTH-1:0] bitstream_length,
 
-    //branch handler
-    output logic [31:0] branch_metadata,
-    output logic branch_req_valid,
+    output logic [31:0]         branch_metadata,
+    output logic                branch_req_valid,
+    input  thread_mask_t        real_active_thread_mask,
+    input  logic                mask_valid,
 
-
-    input logic [MASK_WIDTH-1:0] real_active_thread_mask,
-    input logic mask_valid,
-
-    //to valid checker
-    output logic decode_valid, //mask done
-
-    //to fdr stage barrier
-    output pgraph_meta_t metadata_out,
-    output logic [MASK_WIDTH-1:0] mask_out
+    output logic                decode_valid, 
+    
+    output pgraph_meta_t        metadata_out,
+    output thread_mask_t        mask_out
 );
 
-    // Combinational assignments
-    assign mask_out = real_active_thread_mask; 
-    assign metadata_out = metadata_in;
-
+    // Bitstream Fetch
+    assign bitstream_addr       = metadata_in.bitstream_addr;
+    assign bitstream_length     = metadata_in.bitstream_length;
     assign bitstream_addr_valid = meta_in_valid;
-    assign bitstream_addr = metadata_in.bitstream_addr;
-    assign bitstream_length = metadata_in.bitstream_length;
 
-    assign branch_metadata = metadata_in.branch_meta;
-    assign branch_req_valid = meta_in_valid;
-    
-    assign decode_valid = mask_valid;
-    
+    // Branch Handler
+    assign branch_metadata      = metadata_in.branch_meta;
+    assign branch_req_valid     = meta_in_valid;
+
+    // FDR / Pipeline
+    assign metadata_out         = metadata_in;
+    assign mask_out             = real_active_thread_mask;
+    assign decode_valid         = mask_valid;
 
 endmodule

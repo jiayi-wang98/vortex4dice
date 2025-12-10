@@ -10,18 +10,14 @@ import frontend_pkg::*; //frontend package for metadata structure
 //it can be more easily integrated into the framework
 
 module meta_fetch #(
-    parameter int MAX_NUM_CTA     = 4,
-    parameter int PC_WIDTH        = 32,
-    parameter int MAX_EBLOCKS     = 8,
-    parameter int EBLOCK_ID_WIDTH = $clog2(MAX_EBLOCKS),
-    parameter int TAG_WIDTH       = 48  
+    parameter int TAG_WIDTH = 48  
 )(
     input logic clk,
     input logic rst,
 
     // From CS/FDR barrier
     input logic schedule_valid,
-    input logic [PC_WIDTH-1:0] fdr_next_pc,
+    input logic [DICE_ADDR_WIDTH-1:0] fdr_next_pc,
     input logic [EBLOCK_ID_WIDTH-1:0] schedule_eblock_id, 
     output logic schedule_ready,
 
@@ -57,7 +53,7 @@ module meta_fetch #(
 
     //DIRECTLY FROM VORTEX======================================================
     logic [ICACHE_ADDR_WIDTH-1:0] meta_cache_req_addr_q, meta_cache_req_addr_d;
-    assign meta_cache_req_addr_d = fdr_next_pc[2-(`XLEN-PC_WIDTH) +: ICACHE_ADDR_WIDTH]; 
+    assign meta_cache_req_addr_d = fdr_next_pc[2-(`XLEN-DICE_ADDR_WIDTH) +: ICACHE_ADDR_WIDTH]; 
     // 4-byte aligned addresses
     //DIRECTLY FROM VORTEX======================================================
 
@@ -103,7 +99,7 @@ module meta_fetch #(
                 eblock_id_q <= schedule_eblock_id;
             end
             if(rsp_fire) begin
-                outgoing_meta <= meta_fetch_bus_if.rsp_data.data;
+                outgoing_meta <= pgraph_meta_t'(meta_fetch_bus_if.rsp_data.data);
                 meta_valid_q <= 1'b1;
             end
             if(fire_eblock) begin
