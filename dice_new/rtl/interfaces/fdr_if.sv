@@ -1,6 +1,5 @@
-`include "VX_define.vh"
 
-interface cta_sched_if import VX_gpu_pkg::*; ();
+interface cta_sched_if import frontend_pkg::*; ();
 
     logic  valid;
     fdr_t data;
