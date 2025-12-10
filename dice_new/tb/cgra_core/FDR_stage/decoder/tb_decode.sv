@@ -1,6 +1,7 @@
 `timescale 1ns/1ps
 
 // Import the package so the testbench understands pgraph_meta_t
+import dice_pkg::*;
 import frontend_pkg::*;
 
 
@@ -15,7 +16,8 @@ module tb_decode;
     // =========================================================
     // Parameters & Signals
     // =========================================================
-    parameter MASK_WIDTH = 512;
+    parameter int THREAD_ID_WIDTH = 9;
+    parameter int MASK_WIDTH = (1 << THREAD_ID_WIDTH);
 
     // Inputs to DUT
     pgraph_meta_t           metadata_in;
@@ -37,7 +39,10 @@ module tb_decode;
     // Device Under Test (DUT) Instantiation
     // =========================================================
     decode #(
-        .MASK_WIDTH(MASK_WIDTH)
+        .THREAD_ID_WIDTH      (THREAD_ID_WIDTH),
+        .MASK_WIDTH           (MASK_WIDTH),
+        .BITSTREAM_ADDR_WIDTH (32),
+        .BITSTREAM_LENGTH_WIDTH(8)
     ) dut (
         // Metadata inputs/outputs
         .metadata_in(metadata_in),
