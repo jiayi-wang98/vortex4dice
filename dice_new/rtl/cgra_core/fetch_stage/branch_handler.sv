@@ -1,9 +1,9 @@
+import dice_pkg::*;
 import frontend_pkg::*;
 
 
-module branch_handler #(
-    parameter MASK_WIDTH = 512
-)(
+
+module branch_handler (
     input logic clk,
     input logic rst_n,
 
@@ -24,11 +24,12 @@ module branch_handler #(
     //CTA Status Table
 
 
-    //decoder
-    input logic [31:0] branch_metadata,
-    input logic branch_req_valid, //one cycle -> may remove
 
-    output logic [MASK_WIDTH-1:0] real_active_thread_mask,
+    //decoder / valid checker?
+    input logic [31:0] branch_metadata,
+    input logic branch_req_valid,
+
+    output thread_mask_t real_active_thread_mask,
     output logic mask_valid
 );
 
@@ -39,8 +40,9 @@ module branch_handler #(
 
 
     always_comb begin
-
-
+        // Temporary logic for basic functionality
+        real_active_thread_mask = '1; // Default to all threads active
+        mask_valid = 1'b1;            // Always valid for now
     end
 
 
