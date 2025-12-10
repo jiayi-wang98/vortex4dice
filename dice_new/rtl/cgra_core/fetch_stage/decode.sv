@@ -1,6 +1,7 @@
 import dice_pkg::*;
 import frontend_pkg::*; 
 
+//AS OF NOW THIS MODULE IS JUST A ROUTER
 module decode (
     input  pgraph_meta_t metadata_in,
     input  logic         meta_in_valid, //keeping
