@@ -47,7 +47,8 @@ module meta_fetch #(
 
     //DIRECTLY FROM VORTEX======================================================
     logic [ICACHE_ADDR_WIDTH-1:0] meta_cache_req_addr_q, meta_cache_req_addr_d;
-    assign meta_cache_req_addr_d = fdr_next_pc[2-(`XLEN-DICE_ADDR_WIDTH) +: ICACHE_ADDR_WIDTH]; 
+    localparam ADDR_SHIFT = $clog2(VX_MEM_DATA_WIDTH/8); // Should calculate shift based on data width (bytes)
+    assign meta_cache_req_addr_d = fdr_next_pc[ADDR_SHIFT +: ICACHE_ADDR_WIDTH]; 
     // 4-byte aligned addresses
     //DIRECTLY FROM VORTEX======================================================
 
