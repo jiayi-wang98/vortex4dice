@@ -32,71 +32,6 @@ module dispatcher(
     output logic dispatcher_busy,              // Dispatcher is active
     output logic dispatcher_done               // Current CTA dispatch complete
 );
-
-    // FSM states
-    typedef enum logic [1:0] {
-        IDLE        = 2'b00,
-        DISPATCHING = 2'b01,
-        DONE        = 2'b10
-    } fsm_state_t;
-    
-    fsm_state_t current_state, next_state;
-    
-    // Internal registers
-    logic [1:0] latched_unrolling_factor;
-    logic [65:0] latched_input_regs;
-    logic [1023:0] latched_active_mask;
-    logic [1:0] latched_cta_size;
-    logic [9:0] dispatched_count;
-    logic [1:0] chunk_counter;
-    logic [9:0] cta_total_size;
-    //logic [9:0] active_thread_count;           // Count of active threads in CTA
-    
-    // Count active threads in the CTA
-    //always_comb begin
-    //    active_thread_count = 10'b0;
-    //    for (int i = 0; i < 1024; i++) begin
-    //        if (latched_active_mask[i]) begin
-    //            active_thread_count = active_thread_count + 1'b1;
-    //        end
-    //    end
-    //end
-    
-    // Calculate total CTA size
-    always_comb begin
-        case (latched_cta_size)
-            2'b00: cta_total_size = 10'd256;
-            2'b01: cta_total_size = 10'd512;
-            2'b10: cta_total_size = 10'd1023;  // Fix: 1024 doesn't fit in 10 bits
-            default: cta_total_size = 10'd256;
-        endcase
-    end
-    
-    // Calculate maximum chunks needed
-    logic [1:0] max_chunks;
-    always_comb begin
-        case (latched_cta_size)
-            2'b00: max_chunks = 2'b00;        // 1 chunk (0)
-            2'b01: max_chunks = 2'b01;        // 2 chunks (0-1)
-            2'b10: max_chunks = 2'b11;        // 4 chunks (0-3)
-            default: max_chunks = 2'b00;
-        endcase
-    end
-    
-    // Chunk selection
-    logic [255:0] current_chunk;
-    logic [1:0] chunk_base_addr;
-    
-    always_comb begin
-        chunk_base_addr = chunk_counter;
-        
-        case (chunk_counter)
-            2'b00: current_chunk = latched_active_mask[255:0];     // Chunk 0
-            2'b01: current_chunk = latched_active_mask[511:256];   // Chunk 1
-            2'b10: current_chunk = latched_active_mask[767:512];   // Chunk 2
-            2'b11: current_chunk = latched_active_mask[1023:768];  // Chunk 3
-        endcase
-    end
     
     // Next thread logic signals
     logic thread_fifo_pop;
@@ -131,123 +66,35 @@ module dispatcher(
     logic [3:0] ready_fifo_full;
     logic last_chunk_done; // Indicates if the last chunk is done processing
     
-    // Check if all processing is done
-    logic all_processing_done;
-    assign all_processing_done = last_chunk_done && dispatch_fifo_empty;
-    
-    // Extract register bitmaps from latched input
-    assign gpr_bitmap = latched_input_regs[31:0];      // GPR (bits 0-31)
-    assign const_bitmap = latched_input_regs[63:32];   // Constants (bits 32-63)
-    assign pred_bitmap = latched_input_regs[65:64];    // Predicates (bits 64-65)
-    
-    // FSM - State register
-    always_ff @(posedge clk or negedge rst_n) begin
-        if (!rst_n) begin
-            current_state <= IDLE;
-        end else begin
-            current_state <= next_state;
-        end
-    end
-    
-    // FSM - Next state logic
-    always_comb begin
-        next_state = current_state;
-        
-        case (current_state)
-            IDLE: begin
-                if (fetch_done) begin
-                    next_state = DISPATCHING;
-                end
-            end
-            
-            DISPATCHING: begin
-                // Check if all active threads are dispatched AND all processing is done
-                if (all_processing_done) begin
-                    next_state = DONE;
-                end
-            end
-            
-            DONE: begin
-                // Stay in DONE until new fetch_done
-                if (fetch_done) begin
-                    next_state = DISPATCHING;
-                end else begin
-                    next_state = IDLE;
-                end
-            end
-        endcase
-    end
-    
-    // FSM - Output and control logic
-    always_ff @(posedge clk or negedge rst_n) begin
-        if (!rst_n) begin
-            latched_unrolling_factor <= 2'b0;
-            latched_input_regs <= 66'b0;
-            latched_active_mask <= 1024'b0;
-            latched_cta_size <= 2'b0;
-            dispatched_count <= 10'b0;
-            chunk_counter <= 2'b0;
-            last_chunk_done <= 1'b0;
-            restart <= 1'b0;
-        end else begin
-            case (current_state)
-                IDLE: begin
-                    if (fetch_done) begin
-                        // Latch all inputs
-                        latched_unrolling_factor <= unrolling_factor;
-                        latched_input_regs <= input_register_bitmap;
-                        latched_active_mask <= active_mask;
-                        latched_cta_size <= cta_size;
-                        dispatched_count <= 10'b0;
-                        chunk_counter <= 2'b0;
-                        restart <= 1'b1;
-                    end
-                end
-                
-                DISPATCHING: begin
-                    // Increment dispatched count when threads are successfully dispatched
-                    logic [2:0] dispatched_this_cycle;
-                    dispatched_this_cycle = dispatch_valid_0 + dispatch_valid_1 + 
-                                          dispatch_valid_2 + dispatch_valid_3;
-                    dispatched_count <= dispatched_count + dispatched_this_cycle;
-                    restart <= 1'b0;
-                    // Advance chunk counter when current chunk is done
-                    if (thread_chunk_done) begin
-                        if(chunk_counter < max_chunks) begin
-                            chunk_counter <= chunk_counter + 1'b1;
-                            restart <= 1'b1;
-                        end else begin
-                            chunk_counter <= max_chunks; // Reset to 0 if max chunks reached
-                            last_chunk_done <= 1'b1; // Indicate last chunk is done
-                        end
-                    end 
-
-                end
-                
-                DONE: begin
-                    if (fetch_done) begin
-                        // Start new CTA
-                        latched_unrolling_factor <= unrolling_factor;
-                        latched_input_regs <= input_register_bitmap;
-                        latched_active_mask <= active_mask;
-                        latched_cta_size <= cta_size;
-                        dispatched_count <= 10'b0;
-                        chunk_counter <= 2'b0;
-                        last_chunk_done <= 1'b0;
-                        restart <= 1'b0;
-                    end
-                end
-            endcase
-        end
-    end
-    
-    // Status outputs
-    assign dispatcher_busy = (current_state == DISPATCHING);
-    assign dispatcher_done = (current_state == DONE);
-    
     // ============================================================
     // Component Instantiations
     // ============================================================
+
+    dispatcher_fsm dispatcher_fsm_inst (
+        .current_chunk(current_chunk),
+        .gpr_bitmap(gpr_bitmap),
+        .const_bitmap(const_bitmap),
+        .chunk_base_addr(chunk_base_addr),
+        .latched_unrolling_factor(latched_unrolling_factor),
+        .pred_bitmap(pred_bitmap),
+        .dispatcher_busy(dispatcher_busy),
+        .dispatcher_done(dispatcher_done),
+        .restart(restart),
+
+        .active_mask(active_mask),
+        .input_register_bitmap(input_register_bitmap),
+        .unrolling_factor(unrolling_factor),
+        .cta_size(cta_size),
+        .dispatch_valid_0(dispatch_valid_0),
+        .dispatch_valid_1(dispatch_valid_1),
+        .dispatch_valid_2(dispatch_valid_2),
+        .dispatch_valid_3(dispatch_valid_3),
+        .fetch_done(fetch_done),
+        .thread_chunk_done(thread_chunk_done),
+        .dispatch_fifo_empty(dispatch_fifo_empty),
+        .clk(clk),
+        .rst_n(rst_n),
+    );
     
     // Next Thread Logic Top - Updated interface with chunk_done
     next_thread_logic_top next_thread_top (

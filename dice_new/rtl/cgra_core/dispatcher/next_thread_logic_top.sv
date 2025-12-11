@@ -35,9 +35,9 @@ module next_thread_logic_top(
     assign next_tid_3 = fifo_data_3[9:0];
     
     assign valid_0 = fifo_data_0[10]; // Extract valid bit from FIFO data
-    assign valid_1 = fifo_data_1[10];
-    assign valid_2 = fifo_data_2[10];
-    assign valid_3 = fifo_data_3[10];
+    assign valid_1 = fifo_data_1[10] && unrolling_factor >= 1;
+    assign valid_2 = fifo_data_2[10] && unrolling_factor >= 2;
+    assign valid_3 = fifo_data_3[10] && unrolling_factor >= 2;
 
     // Internal signals for next thread logic
     logic [3:0] update;                     // Update signals for each lane
