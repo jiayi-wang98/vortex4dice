@@ -96,7 +96,6 @@ module temporal_coalescing_unit#(
         end
     end
 
-
     // Input commnd will be sent to all buffers that are in COALESCING state
     assign buffer_incmd_valid = incmd_valid;
 
@@ -181,5 +180,14 @@ module temporal_coalescing_unit#(
         .full(fifo_full),
         .count()
     );
-
+    
+    // Elaborate-time power-of-2 parameter check
+    initial begin
+        assert ((NUMBER_OF_MAX_COALESCED_COMMANDS > 0) &&
+                ((NUMBER_OF_MAX_COALESCED_COMMANDS &
+                  (NUMBER_OF_MAX_COALESCED_COMMANDS - 1)) == 0))
+        else $fatal(1,
+            "NUMBER_OF_MAX_COALESCED_COMMANDS (%0d) must be a power of 2.",
+            NUMBER_OF_MAX_COALESCED_COMMANDS);
+    end
 endmodule

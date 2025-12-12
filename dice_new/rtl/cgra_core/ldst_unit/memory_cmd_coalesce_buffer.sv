@@ -8,7 +8,7 @@ module memory_cmd_coalesce_buffer#(
     parameter int DATA_WIDTH = 64,
     parameter int ADDR_WIDTH = 64,
     parameter int MAX_REG_WIDTH = 7,
-    parameter int BITMAP_WIDTH = 8,
+    parameter int TID_BITMAP_WIDTH = = NUMBER_OF_MAX_COALESCED_COMMANDS,
     parameter int NEXT_BITMAP = 32
 )
 (
@@ -22,8 +22,8 @@ module memory_cmd_coalesce_buffer#(
     input logic [EBLOCK_ID_WIDTH-1:0] incmd_block_id,       // Input command block ID
     input logic [TID_WIDTH-1:0] incmd_tid,            // Input command thread ID
     input logic incmd_write_enable,         // Write enable signal
-    input logic [DATA_WIDTH/8-1:0] incmd_write_data,    // Data to write
-    input logic [BITMAP_WIDTH-1:0] incmd_write_mask,     // 1 means no write, 0 means write
+    input logic [DATA_WIDTH-1:0] incmd_write_data,    // Data to write
+    input logic [DATA_WIDTH/8-1:0] incmd_write_mask,     // 1 means no write, 0 means write
     input logic [ADDR_WIDTH-1:0] incmd_address,       // Address for the command
     input logic [1:0] incmd_size,          // Size of the command (e.g., 00=1B, 01=2B, 10=4B, 11=8B)
     input logic [MAX_REG_WIDTH-1:0] incmd_ld_dest_reg,    // Load destination register
@@ -35,7 +35,7 @@ module memory_cmd_coalesce_buffer#(
     output logic outcmd_valid,              // Output command valid signal
     output logic [EBLOCK_ID_WIDTH-1:0] outcmd_block_id,     // Output command block ID
     output logic [TID_WIDTH-1:0] outcmd_base_tid,     // Output command thread ID
-    output logic [BITMAP_WIDTH-1:0] outcmd_tid_bitmap,  // Bitmap of TIDs for the command
+    output logic [TID_BITMAP_WIDTH-1:0] outcmd_tid_bitmap,  // Bitmap of TIDs for the command
     output logic outcmd_write_enable,       // Write enable signal
     output logic [CACHE_LINE_SIZE*8-1:0] outcmd_write_data,  // Data to write
     output logic [CACHE_LINE_SIZE-1:0] outcmd_write_mask, // 1 means no write, 0 means write
@@ -113,7 +113,7 @@ module memory_cmd_coalesce_buffer#(
     logic same_write_enable;
 
     logic [TID_WIDTH-1:0] incmd_base_tid;
-    assign incmd_base_tid = {incmd_tid[TID_WIDTH:BASE_TID_ADDRESS_OFFSET], {(BASE_TID_ADDRESS_OFFSET){1'b0}}};
+    assign incmd_base_tid = {incmd_tid[TID_WIDTH-1:BASE_TID_ADDRESS_OFFSET], {(BASE_TID_ADDRESS_OFFSET){1'b0}}};
 
     logic [BASE_TID_ADDRESS_OFFSET-1:0] incmd_tid_offset;
     assign incmd_tid_offset = incmd_tid[BASE_TID_ADDRESS_OFFSET-1:0];
@@ -217,5 +217,15 @@ module memory_cmd_coalesce_buffer#(
                 end
             end 
         end
+    end
+
+    // Elaborate-time power-of-2 parameter check
+    initial begin
+        assert ((NUMBER_OF_MAX_COALESCED_COMMANDS > 0) &&
+                ((NUMBER_OF_MAX_COALESCED_COMMANDS &
+                  (NUMBER_OF_MAX_COALESCED_COMMANDS - 1)) == 0))
+        else $fatal(1,
+            "NUMBER_OF_MAX_COALESCED_COMMANDS (%0d) must be a power of 2.",
+            NUMBER_OF_MAX_COALESCED_COMMANDS);
     end
 endmodule

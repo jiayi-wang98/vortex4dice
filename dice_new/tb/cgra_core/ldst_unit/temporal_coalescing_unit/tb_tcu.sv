@@ -420,6 +420,17 @@ module temporal_coalescing_unit_testbench;
     initial begin
         $display("=== Starting Temporal Coalescing Unit Testbench ===\n");
         
+        // Elaborate-time power-of-2 parameter check
+   
+        assert ((NUMBER_OF_MAX_COALESCED_COMMANDS > 0) &&
+                ((NUMBER_OF_MAX_COALESCED_COMMANDS &
+                  (NUMBER_OF_MAX_COALESCED_COMMANDS - 1)) == 0))
+        else $fatal(1,
+            "NUMBER_OF_MAX_COALESCED_COMMANDS (%0d) must be a power of 2.",
+            NUMBER_OF_MAX_COALESCED_COMMANDS);
+
+
+
         reset_dut();
         
         // ============================================================
