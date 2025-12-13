@@ -120,23 +120,30 @@ module bitstream_fetch_load #(
                 req_sent_d = 1'b0;
                 if(meta_valid) begin 
                     if (!done_streaming) begin
-                        if (cm0_valid_q || cm1_valid_q) 
-                            cm_select_n = ~cm_select; 
-                        else cm_select_n = 1'b0;
-                        addr_d = bitstream_addr_dec; 
-                        state_n = S_STREAMING;
-                        chunk_count_d = '0; 
-                        if (cm_select_n == 1'b0) begin
-                            cm0_addr_n = bitstream_addr_dec;
-                            cm0_valid_d = 1'b0; 
+                        if (cm_select == 1'b0 && cm1_valid_q && cm1_addr == bitstream_addr_dec) begin
+                            cm_select_n = 1'b1;
+                        end else if (cm_select == 1'b1 && cm0_valid_q && cm0_addr == bitstream_addr_dec) begin
+                            cm_select_n = 1'b0;
                         end else begin
-                            cm1_addr_n = bitstream_addr_dec;
-                            cm1_valid_d = 1'b0; 
+                            if (cm0_valid_q || cm1_valid_q) 
+                                cm_select_n = ~cm_select; 
+                            else cm_select_n = 1'b0;
+                            
+                            addr_d = bitstream_addr_dec; 
+                            state_n = S_STREAMING;
+                            chunk_count_d = '0; 
+                            
+                            if (cm_select_n == 1'b0) begin
+                                cm0_addr_n = bitstream_addr_dec;
+                                cm0_valid_d = 1'b0; 
+                            end else begin
+                                cm1_addr_n = bitstream_addr_dec;
+                                cm1_valid_d = 1'b0; 
+                            end
                         end
-                    end 
+                    end
                 end
             end
-
             S_STREAMING: begin 
                 if (!req_sent_q) begin
                     if (req_fire) begin
