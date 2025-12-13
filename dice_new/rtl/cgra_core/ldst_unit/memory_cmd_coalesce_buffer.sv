@@ -8,8 +8,7 @@ module memory_cmd_coalesce_buffer#(
     parameter int DATA_WIDTH = 64,
     parameter int ADDR_WIDTH = 64,
     parameter int MAX_REG_WIDTH = 7,
-    parameter int TID_BITMAP_WIDTH = = NUMBER_OF_MAX_COALESCED_COMMANDS,
-    parameter int NEXT_BITMAP = 32
+    parameter int TID_BITMAP_WIDTH = NUMBER_OF_MAX_COALESCED_COMMANDS
 )
 (
     input logic clk,                        // Clock signal
@@ -49,7 +48,7 @@ module memory_cmd_coalesce_buffer#(
     logic outcmd_valid_next; 
     logic [EBLOCK_ID_WIDTH-1:0] outcmd_block_id_next;
     logic [TID_WIDTH-1:0] outcmd_base_tid_next;
-    logic [NEXT_BITMAP-1:0] outcmd_tid_bitmap_next;
+    logic [TID_BITMAP_WIDTH-1:0] outcmd_tid_bitmap_next;
     logic outcmd_write_enable_next;
     logic [CACHE_LINE_SIZE*8-1:0] outcmd_write_data_next;
     logic [CACHE_LINE_SIZE-1:0] outcmd_write_mask_next;
@@ -64,7 +63,7 @@ module memory_cmd_coalesce_buffer#(
             outcmd_valid <= 1'b0;
             outcmd_block_id <= {EBLOCK_ID_WIDTH{1'b0}};
             outcmd_base_tid <= {TID_WIDTH{1'b0}};
-            outcmd_tid_bitmap <= {NEXT_BITMAP{1'b0}};
+            outcmd_tid_bitmap <= {TID_BITMAP_WIDTH{1'b0}};
             outcmd_write_enable <= 1'b0;
             outcmd_write_data <= {(CACHE_LINE_SIZE*8){1'b0}};
             outcmd_write_mask <= {(CACHE_LINE_SIZE){1'b1}}; // Initialize write mask to all masked

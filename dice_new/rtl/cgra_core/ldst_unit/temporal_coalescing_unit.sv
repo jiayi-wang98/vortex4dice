@@ -9,7 +9,7 @@ module temporal_coalescing_unit#(
     parameter int DATA_WIDTH = 64,
     parameter int ADDR_WIDTH = 64,
     parameter int MAX_REG_WIDTH = 7,
-    parameter int BITMAP_WIDTH = 8
+    parameter int TID_BITMAP_WIDTH = NUMBER_OF_MAX_COALESCED_COMMANDS
 )
 (   
     input logic clk,                     // Clock signal
@@ -32,7 +32,7 @@ module temporal_coalescing_unit#(
     output logic outcmd_valid,              // Output command valid signal
     output logic [EBLOCK_ID_WIDTH-1:0] outcmd_block_id,     // Output command block ID
     output logic [TID_WIDTH-1:0] outcmd_base_tid,     // Output command thread ID
-    output logic [BITMAP_WIDTH-1:0] outcmd_tid_bitmap,  // Bitmap of TIDs for the command
+    output logic [TID_BITMAP_WIDTH-1:0] outcmd_tid_bitmap,  // Bitmap of TIDs for the command
     output logic outcmd_write_enable,       // Write enable signal
     output logic [CACHE_LINE_SIZE*8-1:0] outcmd_write_data,  // Data to write
     output logic [CACHE_LINE_SIZE-1:0] outcmd_write_mask, // 1 means no write, 0 means write
@@ -60,7 +60,7 @@ module temporal_coalescing_unit#(
     logic buffer_outcmd_valid;
     logic [EBLOCK_ID_WIDTH-1:0] buffer_outcmd_block_id;
     logic [TID_WIDTH-1:0] buffer_outcmd_base_tid;
-    logic [BITMAP_WIDTH-1:0] buffer_outcmd_tid_bitmap;
+    logic [TID_BITMAP_WIDTH-1:0] buffer_outcmd_tid_bitmap;
     logic buffer_outcmd_write_enable;
     logic [CACHE_LINE_SIZE*8-1:0] buffer_outcmd_write_data;
     logic [CACHE_LINE_SIZE-1:0] buffer_outcmd_write_mask;

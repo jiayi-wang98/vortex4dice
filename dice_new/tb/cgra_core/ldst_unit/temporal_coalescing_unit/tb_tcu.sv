@@ -12,7 +12,7 @@ module temporal_coalescing_unit_testbench;
     parameter int DATA_WIDTH = 64;
     parameter int ADDR_WIDTH = 64;
     parameter int MAX_REG_WIDTH = 7;
-    parameter int BITMAP_WIDTH = 8;
+    parameter int TID_BITMAP_WIDTH = NUMBER_OF_MAX_COALESCED_COMMANDS;
     parameter int WRITE_MASK_WIDTH = 8;
 
     // Clock and reset
@@ -36,7 +36,7 @@ module temporal_coalescing_unit_testbench;
     logic outcmd_valid;
     logic [EBLOCK_ID_WIDTH-1:0] outcmd_block_id;
     logic [TID_WIDTH-1:0] outcmd_base_tid;
-    logic [BITMAP_WIDTH:0] outcmd_tid_bitmap;
+    logic [TID_BITMAP_WIDTH-1:0] outcmd_tid_bitmap;
     logic outcmd_write_enable;
     logic [CACHE_LINE_SIZE*8-1:0] outcmd_write_data;
     logic [CACHE_LINE_SIZE-1:0] outcmd_write_mask;
@@ -70,7 +70,7 @@ module temporal_coalescing_unit_testbench;
     typedef struct {
         logic [EBLOCK_ID_WIDTH-1:0] block_id;
         logic [TID_WIDTH-1:0] base_tid;
-        logic [BITMAP_WIDTH-1:0] tid_bitmap;
+        logic [TID_BITMAP_WIDTH-1:0] tid_bitmap;
         logic write_enable;
         logic [CACHE_LINE_SIZE*8-1:0] write_data;
         logic [CACHE_LINE_SIZE-1:0] write_mask;
@@ -163,7 +163,7 @@ module temporal_coalescing_unit_testbench;
     task automatic add_expected_output(
         input [EBLOCK_ID_WIDTH-1:0] block_id,
         input [TID_WIDTH-1:0] base_tid,
-        input [BITMAP_WIDTH-1:0] tid_bitmap,
+        input [TID_BITMAP_WIDTH-1:0] tid_bitmap,
         input logic write_enable,
         input [CACHE_LINE_SIZE*8-1:0] write_data,
         input [CACHE_LINE_SIZE-1:0] write_mask,
@@ -413,7 +413,7 @@ module temporal_coalescing_unit_testbench;
     logic [ADDR_WIDTH-1:0] addr_data_temp2 = 'hDEADBEEF_00000000;
     logic [ADDR_WIDTH-1:0] addr_data_temp3 = 'hDEEDBEEB_00000000;
     logic [MAX_REG_WIDTH-1:0] ld_dest_reg_temp = 'd10;
-    logic [BITMAP_WIDTH-1:0] bitmap_temp = 'hFF;
+    logic [TID_BITMAP_WIDTH-1:0] bitmap_temp = 'hFF;
     
 
 
