@@ -1,0 +1,8 @@
+Command exited with non-zero status 255
+{"vcs1":{"timestamp_begin":1765672896.696695960, "rt":0.10, "ut":0.03, "st":0.04}}
+{"SNPS_VCS_INTERNAL_ROOT_START_TIME": 1765672896.309479541}
+{"VCS_COMP_START_TIME": 1765672896.309479541}
+{"VCS_COMP_END_TIME": 1765672896.874344529}
+{"VCS_USER_OPTIONS": "-full64 -sverilog -f filelist.f -top addr_swizzle_tb -debug_access+pp+all -kdb -lca +vpi +define+FSDB -o simv"}
+{"kdb": {"elabcom_name":"<Kdbresolver>", "log_dir":"simv.daidir/kdbresolverLog"}}
+{"vcs1": {"peak_mem": 429684}}
