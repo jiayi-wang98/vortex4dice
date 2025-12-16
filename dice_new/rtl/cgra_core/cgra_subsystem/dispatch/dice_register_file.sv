@@ -1,5 +1,5 @@
 module dice_register_file #(
-    parameter int NUM_BANK = 4,
+    parameter int NUM_BANK = 32,
     parameter int WIDTH = 32,
     parameter int DEPTH = 512,
     parameter int ADDR_WIDTH = $clog2(DEPTH)
@@ -19,7 +19,7 @@ module dice_register_file #(
     genvar i;
     generate
         for (i = 0; i < NUM_BANK; i++) begin : gen_bank
-            simple_ram #(
+            dice_ram_1w1r #(
                 .WIDTH(WIDTH),
                 .DEPTH(DEPTH)
             ) bank_ram (
