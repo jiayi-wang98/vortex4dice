@@ -29,7 +29,7 @@ module dispatcher_dataflow #(
     input logic last_chunk_fin,
     input logic start_new_cta,
     input logic clk, rst_n
-)
+);
 
     always_ff @(posedge clk) begin
         if (!rst_n) begin
