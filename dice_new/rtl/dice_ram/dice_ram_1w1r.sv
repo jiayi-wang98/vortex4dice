@@ -2,7 +2,7 @@
 
 import dice_pkg::*;
 
-module dice_ram_1w1r 
+module dice_ram_1w1r
 (
 
     parameter DATA_WIDTH = DICE_ADDR_WIDTH,
@@ -10,12 +10,12 @@ module dice_ram_1w1r
     parameter ADDR_WIDTH = DICE_TID_WIDTH
 )(
     input logic clk,
-    
+
     // Write port
     input logic                  wr_en,
     input logic [ADDR_WIDTH-1:0] wr_addr,
     input logic [DATA_WIDTH-1:0] wr_data,
-    
+
     // Read port
     input logic [ADDR_WIDTH-1:0]  rd_addr,
     output logic [DATA_WIDTH-1:0] rd_data
@@ -47,7 +47,7 @@ xpm_memory_sdpram #(
    .MESSAGE_CONTROL(0),            // DECIMAL
    .RAM_DECOMP("auto"),            // String
    .READ_DATA_WIDTH_B(DATA_WIDTH),         // DECIMAL
-   .READ_LATENCY_B(2),             // DECIMAL
+   .READ_LATENCY_B(1),             // DECIMAL
    .READ_RESET_VALUE_B("0"),       // String
    .RST_MODE_A("SYNC"),            // String
    .RST_MODE_B("SYNC"),            // String
@@ -57,13 +57,13 @@ xpm_memory_sdpram #(
    .USE_MEM_INIT_MMI(0),           // DECIMAL
    .WAKEUP_TIME("disable_sleep"),  // String
    .WRITE_DATA_WIDTH_A(DATA_WIDTH),        // DECIMAL
-   .WRITE_MODE_B("no_change"),     // String
+   .WRITE_MODE_B("read_first"),     // String
    .WRITE_PROTECT(1)               // DECIMAL
 )
 xpm_memory_sdpram_inst (
-   .dbiterrb(dbiterrb),             // 1-bit output: Status signal to indicate double bit error occurrence on the data output of port B.
+   .dbiterrb(),             // 1-bit output: Status signal to indicate double bit error occurrence on the data output of port B.
    .doutb(rd_data),                   // READ_DATA_WIDTH_B-bit output: Data output for port B read operations.
-   .sbiterrb(sbiterrb),             // 1-bit output: Status signal to indicate single bit error occurrence on the data output of port B.
+   .sbiterrb(),             // 1-bit output: Status signal to indicate single bit error occurrence on the data output of port B.
    .addra(wr_addr),                   // ADDR_WIDTH_A-bit input: Address for port A write operations.
    .addrb(rd_addr),                   // ADDR_WIDTH_B-bit input: Address for port B read operations.
    .clka(clk),                     // 1-bit input: Clock signal for port A. Also clocks port B when parameter CLOCKING_MODE is "common_clock".
@@ -77,13 +77,13 @@ xpm_memory_sdpram_inst (
    .enb(1),                       // 1-bit input: Memory enable signal for port B. Must be high on clock cycles when read operations are
                                     // initiated. Pipelined internally.
 
-   .injectdbiterra(injectdbiterra), // 1-bit input: Controls double bit error injection on input data when ECC enabled (Error injection capability
+   .injectdbiterra(), // 1-bit input: Controls double bit error injection on input data when ECC enabled (Error injection capability
                                     // is not available in "decode_only" mode).
 
-   .injectsbiterra(injectsbiterra), // 1-bit input: Controls single bit error injection on input data when ECC enabled (Error injection capability
+   .injectsbiterra(), // 1-bit input: Controls single bit error injection on input data when ECC enabled (Error injection capability
                                     // is not available in "decode_only" mode).
 
-   .regceb(0),                 // 1-bit input: Clock Enable for the last register stage on the output data path.
+   .regceb(1),                 // 1-bit input: Clock Enable for the last register stage on the output data path.
    .rstb(0),                     // 1-bit input: Reset signal for the final port B output register stage. Synchronously resets output port
                                     // doutb to the value specified by parameter READ_RESET_VALUE_B.
 
@@ -99,7 +99,7 @@ xpm_memory_sdpram_inst (
 
 
 `elsif ASIC
-// TODO: add macro from GF12 sram compiler 
+// TODO: add macro from GF12 sram compiler
 
 `else
 // simulation
@@ -123,4 +123,3 @@ xpm_memory_sdpram_inst (
         end
     end
 endmodule
-

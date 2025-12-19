@@ -25,16 +25,11 @@ fdb_proj =
 fdb_campaign = 
 fdb_tool = 
 [hb]
-postSimFile = /data/amanoj3/vortex4dice/dice_new/tb/cgra_core/dispatcher/regfile/reg_wr_buffer_tb.fsdb
-syncTime = 35
-viewport = 0 27 1800 972 0 0 395 1798
-activeNode = "reg_wr_buffer_tb.dut"
-activeScope = "reg_wr_buffer_tb.dut"
-activeFile = "/data/amanoj3/vortex4dice/dice_new/rtl/cgra_core/cgra_subsystem/dispatch/reg_wr_buffer.sv"
+viewport = 0 32 2136 1266 0 0 518 2134
 interactiveMode = False
 viewType = Source
 simulatorMode = False
-sourceBeginLine = 48
+sourceBeginLine = 0
 baMode = False
 srcLineNum = True
 AutoWrap = True
@@ -51,21 +46,5 @@ DnDtraceCrossHierOnly = True
 leadingZero = False
 signalPane = False
 SourceVerticalScrollLines = 5
-Scope1 = "reg_wr_buffer_tb.dut"
-Scope2 = "reg_wr_buffer_tb.dut.fifo_track.wptr"
-Scope3 = "reg_wr_buffer_tb.dut.fifo_track"
-Scope4 = "reg_wr_buffer_tb"
-multipleSelection = 1 60 3 0 0
 sdfCheckUndef = FALSE
 simFlow = FALSE
-[hb.design]
-importCmd = "-dbdir" "/data/amanoj3/vortex4dice/dice_new/tb/cgra_core/dispatcher/regfile/simv.daidir" 
-invokeDir = /data/amanoj3/vortex4dice/dice_new/tb/cgra_core/dispatcher/regfile
-[hb.sourceTab.1]
-scope = reg_wr_buffer_tb.dut
-File = /data/amanoj3/vortex4dice/dice_new/rtl/cgra_core/cgra_subsystem/dispatch/reg_wr_buffer.sv
-Line = 49
-[nMemoryManager]
-WaveformFile = /data/amanoj3/vortex4dice/dice_new/tb/cgra_core/dispatcher/regfile/reg_wr_buffer_tb.fsdb
-UserActionNum = 0
-nMemWindowNum = 0
