@@ -16,26 +16,18 @@ module VX_cache_with_temporal #(
     input  logic clk,
     input  logic reset,
 
-    input logic temporal 
-    output logic cache?
+    input logic incmd_valid,                // Input command valid signal
+    input logic [EBLOCK_ID_WIDTH-1:0] incmd_block_id,       // Input command block ID
+    input logic [TID_WIDTH-1:0] incmd_tid,            // Input command thread ID
+    input logic incmd_write_enable,         // Write enable signal
+    input logic [DATA_WIDTH-1:0] incmd_write_data,    // Data to write
+    input logic [DATA_WIDTH/8-1:0] incmd_write_mask,     // 1 means no write, 0 means write
+    input logic [ADDR_WIDTH-1:0] incmd_address,       // Address for the command
+    input logic [1:0] incmd_size,          // Size of the command (e.g., 00=1B, 01=2B, 10=4B, 11=8B)
+    input logic [MAX_REG_WIDTH-1:0] incmd_ld_dest_reg,    // Load destination register
+   
+    VX_mem_bus_if.master    mem_bus_if [MEM_PORTS]
 );
-
-VX_mem_bus_if # (
-    .DATA_SIZE (DATA_WIDTH),
-    .TAG_WIDTH (TAG_WIDTH)
-) cache_mem_if [MEM_PORTS]();
-
-
-    logic incmd_valid;
-    logic [3:0] incmd_block_id;
-    logic [9:0] incmd_tid;
-    logic incmd_write_enable;
-    logic [63:0] incmd_write_data;
-    logic [7:0] incmd_write_mask;
-    logic [63:0] incmd_address;
-    logic [1:0] incmd_size;
-    logic [6:0] incmd_ld_dest_reg;
-    logic incmd_ready;
 
     logic outcmd_valid;
     logic [3:0] outcmd_block_id;
@@ -74,23 +66,26 @@ VX_mem_bus_if # (
         .outcmd_size(outcmd_size),
         .outcmd_ld_dest_reg(outcmd_ld_dest_reg),
         .outcmd_address_map(outcmd_address_map),
-        .outcmd_ready(1'b1) // always ready for simplicity
+        .outcmd_ready(outcmd_ready) // always ready for simplicity
     );
+    VX_mem_bus_if.slave #(
+        .DATA_SIZE(DATA_WIDTH/8),
+        // Tag include out_cmb_block_id, base_tid, tid_bitmap, ld destination register, address_map)
+
+    )   request_if [NUM_REQS]; 
+    assign request_if[0].req_valid = outcmd_valid;
+    assign request_if[0].data.rw = outcmd_write_enable;
+    assign outcmd_ready = request_if[0].req_ready
+    assign data into cache?
+
+
 
     VX_cache cache_inst (
         .clk(clk),
         .reset(rst),
-        .core_bus_if(), // will wire manually below
-        .mem_bus_if()   // tie memory ports as needed
+        .core_bus_if(request_if), // will wire manually below
+        .mem_bus_if(mem_bus_if)   // tie memory ports as needed
     );
-
-    
-    // Example wiring for single bank and single request:
-    assign cache_inst.core_bus_if[0].req_valid = outcmd_valid;
-    assign cache_inst.core_bus_if[0].req_data.addr  = outcmd_address;
-    assign cache_inst.core_bus_if[0].req_data.data  = outcmd_write_data[WORD_SIZE-1:0];
-    assign cache_inst.core_bus_if[0].req_data.rw    = outcmd_write_enable;
-    assign outcmd_ready = cache_inst.core_bus_if[0].req_ready;
 
 endmodule
 
