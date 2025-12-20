@@ -41,6 +41,9 @@ module dispatcher(
     logic thread_fifo_empty, thread_fifo_full;
     logic thread_chunk_done;
     logic restart;
+    logic [255:0] current_chunk;           // 256-bit chunk from active mask
+    logic [1:0] chunk_base_addr;           // Current chunk index (0-3)
+    logic [1:0] latched_unrolling_factor;  // Latched unrolling factor
     
     // Scoreboard signals
     logic [31:0] gpr_bitmap;                   // GPR portion of input registers
@@ -93,7 +96,7 @@ module dispatcher(
         .thread_chunk_done(thread_chunk_done),
         .dispatch_fifo_empty(dispatch_fifo_empty),
         .clk(clk),
-        .rst_n(rst_n),
+        .rst_n(rst_n)
     );
     
     // Next Thread Logic Top - Updated interface with chunk_done

@@ -27,9 +27,10 @@ module dispatcher_fsm (
     logic [1023:0] latched_active_mask;
     logic [65:0] latched_input_regs;
     logic [9:0] dispatched_count;
+    logic [9:0] cta_total_size;
     logic [1:0] latched_cta_size;
-    logic [1:0] last_chunk_done;
     logic [1:0] chunk_counter;
+    logic last_chunk_done;
     logic latch_inputs,
           update_count,
           deassert_restart,
@@ -77,7 +78,7 @@ module dispatcher_fsm (
     assign const_bitmap = latched_input_regs[63:32];   // Constants (bits 32-63)
     assign pred_bitmap = latched_input_regs[65:64];    // Predicates (bits 64-65)
 
-    dispatcher_df dispatcher_dataflow_inst (
+    dispatcher_dataflow dispatcher_df_inst (
         .latched_active_mask(latched_active_mask),
         .latched_input_regs(latched_input_regs),
         .dispatched_count(dispatched_count),
@@ -109,7 +110,7 @@ module dispatcher_fsm (
         .rst_n(rst_n)
     );
 
-    dispatcher_ctrl dispatcher_control_inst (
+    dispatcher_control dispatcher_ctrl_inst (
         .latch_inputs(latch_inputs),
         .update_count(update_count),
         .deassert_restart(deassert_restart),

@@ -7,7 +7,7 @@ module dispatcher_dataflow #(
     output logic [1:0] latched_unrolling_factor,
     output logic [1:0] latched_cta_size,
     output logic [1:0] chunk_counter,
-    output logic [1:0] last_chunk_done,
+    output logic last_chunk_done,
     output logic restart,
     
     // Input Data
@@ -17,7 +17,7 @@ module dispatcher_dataflow #(
     input logic [1:0] cta_size,
     input logic dispatch_valid_0, dispatch_valid_1,
                 dispatch_valid_2, dispatch_valid_3,
-    input logic max_chunks,
+    input logic [1:0] max_chunks,
 
     // Control Signals
     input logic latch_inputs,
