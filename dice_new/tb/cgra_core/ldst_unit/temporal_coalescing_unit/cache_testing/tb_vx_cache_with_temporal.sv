@@ -46,6 +46,7 @@ module tb_vx_cache_with_temporal;
     logic [MAX_REG_WIDTH-1:0] outcmd_ld_dest_reg;
     logic [NUMBER_OF_MAX_COALESCED_COMMANDS-1:0][BASE_ADDRESS_OFFSET-1:0] outcmd_address_map;
     
+    // Memory bus interface array
     VX_mem_bus_if mem_bus_if_inst[MEM_PORTS] ();
 
     // Instantiate wrapper
@@ -74,7 +75,7 @@ module tb_vx_cache_with_temporal;
         .incmd_size(incmd_size),
         .incmd_ld_dest_reg(incmd_ld_dest_reg),
         .incmd_ready(incmd_ready),
-        .mem_bus_if(mem_bus_if_inst)
+        .mem_bus_if(mem_bus_if_inst.master)
     );
 
     // ----------------------
@@ -93,7 +94,30 @@ module tb_vx_cache_with_temporal;
     end
 
     // ----------------------
-    // Stimulus: write value 5 at address 1
+    // Tiny memory model
+    // ----------------------
+    logic [CACHE_LINE_SIZE*8-1:0] mem [0:255];
+
+    always_ff @(posedge clk) begin
+        // Memory interface handshake
+        mem_bus_if_inst[0].req_ready <= 1'b1;
+        mem_bus_if_inst[0].rsp_valid <= 1'b0;
+
+        if (mem_bus_if_inst[0].req_valid) begin
+            if (mem_bus_if_inst[0].req_data.rw) begin
+                // STORE
+                mem[mem_bus_if_inst[0].req_data.addr] <= mem_bus_if_inst[0].req_data.data;
+            end else begin
+                // LOAD
+                mem_bus_if_inst[0].rsp_valid      <= 1'b1;
+                mem_bus_if_inst[0].rsp_data.data <= mem[mem_bus_if_inst[0].req_data.addr];
+                mem_bus_if_inst[0].rsp_data.tag  <= mem_bus_if_inst[0].req_data.tag;
+            end
+        end
+    end
+
+    // ----------------------
+    // Stimulus: store then load
     // ----------------------
     initial begin
         // Initialize inputs
@@ -106,35 +130,58 @@ module tb_vx_cache_with_temporal;
         incmd_address      = 0;
         incmd_size         = 0;
         incmd_ld_dest_reg  = 0;
+        outcmd_ready       = 1;
 
-        // Wait for reset deassertion
+        // Wait for reset
         @(negedge rst);
-
-        // Wait a few clock cycles
         repeat (2) @(posedge clk);
 
-        // Issue a write command: data = 5, address = 1
+        // ---- STORE 5 -> addr 1 ----
         incmd_valid        = 1;
         incmd_block_id     = 4'd1;
         incmd_tid          = 10'd0;
         incmd_write_enable = 1;
         incmd_write_data   = 64'd5;
-        incmd_write_mask   = 8'hFF;  // all bytes enabled
+        incmd_write_mask   = 8'hFF;
         incmd_address      = 64'd1;
-        incmd_size         = 2'b00; // assuming 1B write
+        incmd_size         = 2'b00;
         incmd_ld_dest_reg  = 7'd0;
+        @(posedge clk)
+        @(posedge clk);
+        incmd_valid = 0;
+        incmd_write_enable = 0;
+
+        // Wait a few cycles
+        repeat(5) @(posedge clk);
+
+        // ---- LOAD from addr 1 ----
+        incmd_valid        = 1;
+        incmd_write_enable = 0;
+        incmd_address      = 64'd1;
+        incmd_size         = 2'b00;
+        incmd_ld_dest_reg  = 7'd1;
 
         @(posedge clk);
-        incmd_valid = 0; // deassert after one cycle
+        incmd_valid = 0;
+
+        // Wait for response from cache/memory
+        wait(mem_bus_if_inst[0].rsp_valid);
+
+        $display("LOAD RESULT: %0d", mem_bus_if_inst[0].rsp_data.data);
+
+        $finish;
     end
 
-    initial begin
-    $monitor("Time=%0t | req_valid=%b | req_ready=%b | data=%h", 
-  $time, 
-  mem_bus_if_inst[0].req_valid, 
-  mem_bus_if_inst[0].req_ready, 
-  mem_bus_if_inst[0].req_data.data); // Add .req_data prefix
-    end 
+
+    always @(posedge clk) begin
+    $display("Time=%0t | req_valid=%b | req_ready=%b | req_data=%h | rsp_valid=%b | rsp_data=%h",
+             $time,
+             mem_bus_if_inst[0].req_valid,
+             mem_bus_if_inst[0].req_ready,
+             mem_bus_if_inst[0].req_data.data,
+             mem_bus_if_inst[0].rsp_valid,
+             mem_bus_if_inst[0].rsp_data.data);
+end
+
 
 endmodule
-

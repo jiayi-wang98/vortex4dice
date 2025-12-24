@@ -28,7 +28,7 @@ module VX_cache_with_temporal #(
 
     output logic incmd_ready,            // Ready signal for input command
    
-    VX_mem_bus_if.master mem_bus_if 
+    VX_mem_bus_if.master mem_bus_if [MEM_PORTS]
 );
     
 
@@ -81,7 +81,7 @@ module VX_cache_with_temporal #(
         .outcmd_size(outcmd_size),
         .outcmd_ld_dest_reg(outcmd_ld_dest_reg),
         .outcmd_address_map(outcmd_address_map),
-        .outcmd_ready(outcmd_ready) // always ready for simplicity
+        .outcmd_ready(outcmd_ready) 
     );
 
 
@@ -97,29 +97,12 @@ module VX_cache_with_temporal #(
     assign outcmd_ready = request_if[0].req_ready;
     assign request_if[0].req_data.data = outcmd_write_data;
 
-    VX_mem_bus_if #(
-        .DATA_SIZE(CACHE_LINE_SIZE), // Match cache line size
-        .TAG_WIDTH(TAG_WIDTH)
-    ) mem_bus_if_array [MEM_PORTS] ();
-
-    // Manually tie the single port to the array element
-    // Note: In SV, you tie interfaces by passing them through ports, 
-    // but within the same module, you must use signal-to-signal assignments 
-    // if you can't pass the array directly.
-    
-    assign mem_bus_if.req_valid     = mem_bus_if_array[0].req_valid;
-    assign mem_bus_if.req_data      = mem_bus_if_array[0].req_data;
-    assign mem_bus_if_array[0].req_ready = mem_bus_if.req_ready;
-    
-    assign mem_bus_if_array[0].rsp_valid = mem_bus_if.rsp_valid;
-    assign mem_bus_if_array[0].rsp_data  = mem_bus_if.rsp_data;
-    assign mem_bus_if.rsp_ready     = mem_bus_if_array[0].rsp_ready;
    
     VX_cache cache_inst (
         .clk(clk),
         .reset(rst),
-        .core_bus_if(core_if_temp), 
-        .mem_bus_if(mem_if_array)   
+        .core_bus_if(request_if), 
+        .mem_bus_if(mem_bus_if)   
     );
 
 endmodule
