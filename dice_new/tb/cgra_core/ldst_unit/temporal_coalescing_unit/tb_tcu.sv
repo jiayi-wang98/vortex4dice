@@ -3,7 +3,7 @@ module temporal_coalescing_unit_testbench;
     // Test parameters
     parameter CLK_PERIOD = 2.5;
     parameter int NUMBER_OF_MAX_COALESCED_COMMANDS = 8;
-    parameter int NUMBER_OF_MAX_COALESCED_INTERAL = 8;
+    parameter int NUMBER_OF_MAX_COALESCED_INTERNAL = 8;
     parameter int CACHE_LINE_SIZE = 32;
     parameter int BASE_ADDRESS_OFFSET = $clog2(CACHE_LINE_SIZE);
     parameter int BASE_TID_ADDRESS_OFFSET = $clog2(NUMBER_OF_MAX_COALESCED_COMMANDS);
@@ -100,7 +100,7 @@ module temporal_coalescing_unit_testbench;
     
     // DUT instantiation
     temporal_coalescing_unit #(
-        .number_of_max_coalesced_interval(NUMBER_OF_MAX_COALESCED_INTERAL),
+        .number_of_max_coalesced_interval(NUMBER_OF_MAX_COALESCED_INTERNAL),
         .CACHE_LINE_SIZE(CACHE_LINE_SIZE)
     ) dut (
         .clk(clk),

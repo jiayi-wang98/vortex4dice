@@ -13,8 +13,8 @@ module VX_cache_with_temporal #(
     parameter int NUM_REQS = 1,
     parameter int MEM_PORTS = 1 
 )(
-    input  logic clk,
-    input  logic reset,
+    input logic clk,
+    input logic rst,
 
     input logic incmd_valid,                // Input command valid signal
     input logic [EBLOCK_ID_WIDTH-1:0] incmd_block_id,       // Input command block ID
@@ -25,23 +25,38 @@ module VX_cache_with_temporal #(
     input logic [ADDR_WIDTH-1:0] incmd_address,       // Address for the command
     input logic [1:0] incmd_size,          // Size of the command (e.g., 00=1B, 01=2B, 10=4B, 11=8B)
     input logic [MAX_REG_WIDTH-1:0] incmd_ld_dest_reg,    // Load destination register
+
+    output logic incmd_ready,            // Ready signal for input command
    
-    VX_mem_bus_if.master    mem_bus_if [MEM_PORTS]
+    VX_mem_bus_if.master mem_bus_if 
 );
+    
 
-    logic outcmd_valid;
-    logic [3:0] outcmd_block_id;
-    logic [9:0] outcmd_base_tid;
-    logic [7:0] outcmd_tid_bitmap;
-    logic outcmd_write_enable;
-    logic [LINE_SIZE*8-1:0] outcmd_write_data;
-    logic [LINE_SIZE-1:0] outcmd_write_mask;
-    logic [63:0] outcmd_address;
-    logic [1:0] outcmd_size;
-    logic [6:0] outcmd_ld_dest_reg;
-    logic [7:0][5:0] outcmd_address_map;
+    logic outcmd_valid;              // Output command valid signal
+    logic [EBLOCK_ID_WIDTH-1:0] outcmd_block_id;    // Output command block ID
+    logic [TID_WIDTH-1:0] outcmd_base_tid;     // Output command thread ID
+    logic [TID_BITMAP_WIDTH-1:0] outcmd_tid_bitmap;  // Bitmap of TIDs for the command
+    logic outcmd_write_enable;       // Write enable signal
+    logic [CACHE_LINE_SIZE*8-1:0] outcmd_write_data;  // Data to write
+    logic [CACHE_LINE_SIZE-1:0] outcmd_write_mask; // 1 means no write, 0 means write
+    logic [ADDR_WIDTH-1:0] outcmd_address;     // Address for the command
+    logic [1:0] outcmd_size;        // Size of the command (e.g., 00=1B, 01=2B, 10=4B, 11=8B)
+    logic [MAX_REG_WIDTH-1:0] outcmd_ld_dest_reg;  // Load destination register
+    logic [NUMBER_OF_MAX_COALESCED_COMMANDS-1:0][BASE_ADDRESS_OFFSET-1:0] outcmd_address_map; //map from tid bitmap to address_offset
     logic outcmd_ready;
+    
+    typedef struct packed {
+    logic [EBLOCK_ID_WIDTH-1:0] outcmd_block_id;
+    logic [TID_WIDTH-1:0]       outcmd_base_tid;
+    logic [TID_BITMAP_WIDTH-1:0] outcmd_tid_bitmap;
+    logic [MAX_REG_WIDTH-1:0]   outcmd_ld_dest_reg;
+    logic [NUMBER_OF_MAX_COALESCED_COMMANDS-1:0]
+          [BASE_ADDRESS_OFFSET-1:0] outcmd_address_map;
+    } outcmd_tag_t;
 
+    localparam int TAG_WIDTH = $bits(outcmd_tag_t);
+
+    // Temporal instantiation 
     temporal_coalescing_unit temporal_inst (
         .clk(clk),
         .rst(rst),
@@ -68,23 +83,43 @@ module VX_cache_with_temporal #(
         .outcmd_address_map(outcmd_address_map),
         .outcmd_ready(outcmd_ready) // always ready for simplicity
     );
-    VX_mem_bus_if.slave #(
-        .DATA_SIZE(DATA_WIDTH/8),
+
+
+    VX_mem_bus_if #(
+        .DATA_SIZE(DATA_WIDTH/8),  // Insert data with bytes...?
+        .TAG_WIDTH(TAG_WIDTH)
         // Tag include out_cmb_block_id, base_tid, tid_bitmap, ld destination register, address_map)
 
-    )   request_if [NUM_REQS]; 
+    )   request_if [NUM_REQS] (); 
+
     assign request_if[0].req_valid = outcmd_valid;
-    assign request_if[0].data.rw = outcmd_write_enable;
-    assign outcmd_ready = request_if[0].req_ready
-    assign data into cache?
+    assign request_if[0].req_data.rw = outcmd_write_enable;
+    assign outcmd_ready = request_if[0].req_ready;
+    assign request_if[0].req_data.data = outcmd_write_data;
 
+    VX_mem_bus_if #(
+        .DATA_SIZE(CACHE_LINE_SIZE), // Match cache line size
+        .TAG_WIDTH(TAG_WIDTH)
+    ) mem_bus_if_array [MEM_PORTS] ();
 
-
+    // Manually tie the single port to the array element
+    // Note: In SV, you tie interfaces by passing them through ports, 
+    // but within the same module, you must use signal-to-signal assignments 
+    // if you can't pass the array directly.
+    
+    assign mem_bus_if.req_valid     = mem_bus_if_array[0].req_valid;
+    assign mem_bus_if.req_data      = mem_bus_if_array[0].req_data;
+    assign mem_bus_if_array[0].req_ready = mem_bus_if.req_ready;
+    
+    assign mem_bus_if_array[0].rsp_valid = mem_bus_if.rsp_valid;
+    assign mem_bus_if_array[0].rsp_data  = mem_bus_if.rsp_data;
+    assign mem_bus_if.rsp_ready     = mem_bus_if_array[0].rsp_ready;
+   
     VX_cache cache_inst (
         .clk(clk),
         .reset(rst),
-        .core_bus_if(request_if), // will wire manually below
-        .mem_bus_if(mem_bus_if)   // tie memory ports as needed
+        .core_bus_if(core_if_temp), 
+        .mem_bus_if(mem_if_array)   
     );
 
 endmodule

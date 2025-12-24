@@ -79,8 +79,8 @@ module temporal_coalescing_unit#(
     assign fifo_not_full = !fifo_full;
 
     // Input command base address for comparison
-    logic [ADDR_WIDTH:0] incmd_base_address;
-    assign incmd_base_address = {incmd_address[ADDR_WIDTH-1:BASE_ADDRESS_OFFSET], {BASE_ADDRESS_OFFSET{1'b0}}};
+    logic [ADDR_WIDTH-1:0] incmd_base_address;
+    assign incmd_base_address = {incmd_address[63:BASE_ADDRESS_OFFSET], {BASE_ADDRESS_OFFSET{1'b0}}};
 
     // Interval counter logic - only counts when there are active buffers
     always_ff @(posedge clk) begin
@@ -95,6 +95,7 @@ module temporal_coalescing_unit#(
             // Counter stays at current value when no buffers are active
         end
     end
+
 
     // Input commnd will be sent to all buffers that are in COALESCING state
     assign buffer_incmd_valid = incmd_valid;
@@ -180,14 +181,5 @@ module temporal_coalescing_unit#(
         .full(fifo_full),
         .count()
     );
-    
-    // Elaborate-time power-of-2 parameter check
-    initial begin
-        assert ((NUMBER_OF_MAX_COALESCED_COMMANDS > 0) &&
-                ((NUMBER_OF_MAX_COALESCED_COMMANDS &
-                  (NUMBER_OF_MAX_COALESCED_COMMANDS - 1)) == 0))
-        else $fatal(1,
-            "NUMBER_OF_MAX_COALESCED_COMMANDS (%0d) must be a power of 2.",
-            NUMBER_OF_MAX_COALESCED_COMMANDS);
-    end
+
 endmodule

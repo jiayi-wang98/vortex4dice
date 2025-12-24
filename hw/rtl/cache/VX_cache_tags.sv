@@ -81,8 +81,30 @@ module VX_cache_tags import VX_gpu_pkg::*; #(
         // Fill requests are always followed by MSHR replays that hit the cache.
         // In Writeback mode, writes requests can be followed by Fill/flush requests reading the dirty bit.
         wire rdw_fill, rdw_write;
-        `BUFFER(rdw_fill, do_fill);
-        `BUFFER(rdw_write, do_write && (line_idx == line_idx_n));
+        VX_pipe_register #(
+        .DATAW  ($bits(do_fill)),
+        .RESETW ($bits(do_fill)),
+        .DEPTH  (1)
+    ) rdw_fill_buf (
+        .clk      (clk),
+        .reset    (reset),
+        .enable   (1'b1),
+        .data_in  (do_fill),
+        .data_out (rdw_fill)
+    );
+
+    // Replacement for `BUFFER(rdw_write, do_write && (line_idx == line_idx_name))
+    VX_pipe_register #(
+        .DATAW  ($bits(do_write && (line_idx == line_idx_n))),
+        .RESETW ($bits(do_write && (line_idx == line_idx_n))),
+        .DEPTH  (1)
+    ) rdw_write_buf (
+        .clk      (clk),
+        .reset    (reset),
+        .enable   (1'b1),
+        .data_in  (do_write && (line_idx == line_idx_n)),
+        .data_out (rdw_write)
+    );
 
         if (WRITEBACK) begin : g_wdata
             assign line_wdata = {line_valid, write, line_tag};
