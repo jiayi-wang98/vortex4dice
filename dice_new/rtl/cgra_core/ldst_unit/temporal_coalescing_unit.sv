@@ -80,7 +80,7 @@ module temporal_coalescing_unit#(
 
     // Input command base address for comparison
     logic [ADDR_WIDTH-1:0] incmd_base_address;
-    assign incmd_base_address = {incmd_address[63:BASE_ADDRESS_OFFSET], {BASE_ADDRESS_OFFSET{1'b0}}};
+    assign incmd_base_address = {incmd_address[ADDR_WIDTH-1:BASE_ADDRESS_OFFSET], {BASE_ADDRESS_OFFSET{1'b0}}};
 
     // Interval counter logic - only counts when there are active buffers
     always_ff @(posedge clk) begin
