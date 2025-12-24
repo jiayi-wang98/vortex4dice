@@ -1,5 +1,5 @@
 import dice_pkg::*;
-import frontend_pkg::*; 
+import dice_frontend_pkg::*; 
 
 //AS OF NOW THIS MODULE IS JUST A ROUTER
 module decode (
@@ -8,13 +8,13 @@ module decode (
 
     input  thread_mask_t real_active_thread_mask, //branch handler - to be packed
     //To bitstream Fetcher
-    output logic [BITSTREAM_ADDR_WIDTH-1:0]   bitstream_addr,
+    output logic [DICE_ADDR_WIDTH-1:0]        bitstream_addr,
     output logic                              bitstream_addr_valid, 
     output logic [BITSTREAM_LENGTH_WIDTH-1:0] bitstream_length,
 
     //To branch handler
-    output logic [31:0]  branch_metadata, //contains divergence info/jmp info
-    output logic         branch_req_valid, 
+    output branch_meta_t                      branch_metadata, //contains divergence info/jmp info
+    output logic                              branch_req_valid, 
 
     //To valid checker
     output logic         is_barrier, // may remove

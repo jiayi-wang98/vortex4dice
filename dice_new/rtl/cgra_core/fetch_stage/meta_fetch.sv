@@ -3,7 +3,7 @@
 
 import VX_gpu_pkg::*;
 import dice_pkg::*;
-import frontend_pkg::*;
+import dice_frontend_pkg::*;
 
 module meta_fetch #(
     parameter int TAG_WIDTH = 48  

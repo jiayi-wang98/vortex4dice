@@ -1,6 +1,6 @@
 `include "VX_define.vh"
 
-import frontend_pkg::*;
+import dice_frontend_pkg::*;
 import dice_pkg::*;
 import VX_gpu_pkg::*;
 
@@ -36,7 +36,7 @@ module fdr_top #(
     logic                               schedule_ready_internal;
 
     // Bitstream
-    logic [BITSTREAM_ADDR_WIDTH-1:0]    bitstream_addr;
+    logic [DICE_ADDR_WIDTH-1:0]    bitstream_addr;
     logic [BITSTREAM_LENGTH_WIDTH-1:0]  bitstream_length;
     logic                               bitstream_addr_valid_internal;
     logic                               done_streaming_internal;
