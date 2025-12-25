@@ -5,11 +5,11 @@ package dice_frontend_pkg;
 
   import dice_pkg::*;
 
-  localparam int DICE_ADDR_WIDTH   = 32;
   localparam int BITSTREAM_LENGTH_WIDTH = 8;
-  
-  localparam int MAX_EBLOCK      = 8; 
-  localparam int EBLOCK_ID_WIDTH = $clog2(MAX_EBLOCK);
+  localparam int MAX_EBLOCK            = DICE_NUM_MAX_CTA_PER_CORE + DICE_NUM_RETIRE_TABLE_ENTRIES;
+  localparam int EBLOCK_ID_WIDTH       = $clog2(MAX_EBLOCK);
+  localparam int SIMT_STACK_COUNT      = DICE_NUM_MAX_CTA_PER_CORE;
+  localparam int SIMT_STACK_THREAD_WIDTH = DICE_NUM_MAX_THREADS_PER_CORE;
 
   localparam int REG_NUM = `DICE_GPR_NUM + `DICE_PR_NUM + `DICE_CR_NUM;
 
@@ -73,11 +73,11 @@ package dice_frontend_pkg;
 
   typedef struct packed {
     logic                               update_with_divergence;  // 0 = no divergence, 1 = with divergence
-    logic [PC_WIDTH-1:0]                update_next_pc;  // No divergence: next PC, With divergence: branch taken PC
+    logic [DICE_ADDR_WIDTH-1:0]         update_next_pc;  // No divergence: next PC, With divergence: branch taken PC
     // Divergence case inputs (only used when update_with_divergence = 1)
-    logic [NUM_STACK*THREAD_WIDTH-1:0]  predicate_regs_value;
-    logic [PC_WIDTH-1:0]                branch_not_taken_pc;
-    logic [PC_WIDTH-1:0]                branch_reconvergence_pc;
+    logic [SIMT_STACK_COUNT*SIMT_STACK_THREAD_WIDTH-1:0]  predicate_regs_value;
+    logic [DICE_ADDR_WIDTH-1:0]         branch_not_taken_pc;
+    logic [DICE_ADDR_WIDTH-1:0]         branch_reconvergence_pc;
   } simt_stack_update_t; 
 
   /**
@@ -107,4 +107,3 @@ package dice_frontend_pkg;
 
 
 endpackage
-

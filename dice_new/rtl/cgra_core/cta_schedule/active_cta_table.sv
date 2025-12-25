@@ -1,4 +1,6 @@
 //TO DO: MODIFY TO USE THE STRUCTS IN DICE PACKAGE
+import dice_pkg::*;
+import dice_frontend_pkg::*;
 
 module active_cta_table #(
     parameter MAX_NUM_CTA = 4,
