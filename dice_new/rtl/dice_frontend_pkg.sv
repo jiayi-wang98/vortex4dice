@@ -69,6 +69,17 @@ package dice_frontend_pkg;
     logic                                     loaded_buffer;
   } fdr_t; 
 
+
+
+  typedef struct packed {
+    logic                               update_with_divergence;  // 0 = no divergence, 1 = with divergence
+    logic [PC_WIDTH-1:0]                update_next_pc;  // No divergence: next PC, With divergence: branch taken PC
+    // Divergence case inputs (only used when update_with_divergence = 1)
+    logic [NUM_STACK*THREAD_WIDTH-1:0]  predicate_regs_value;
+    logic [PC_WIDTH-1:0]                branch_not_taken_pc;
+    logic [PC_WIDTH-1:0]                branch_reconvergence_pc;
+  } simt_stack_update_t; 
+
   /**
   * Branch Metadata Structure
   * Defines control logic for p-graph branching, including predicate dependencies,
@@ -88,6 +99,11 @@ package dice_frontend_pkg;
       // Reconvergence PC = Current_PC + (branch_reconv_offset * Metadata_Length)
       logic [$clog2(DICE_MAX_PGRAPHS)-1:0]  branch_reconv_offset;      
   } branch_meta_t;
+
+
+
+
+
 
 
 endpackage

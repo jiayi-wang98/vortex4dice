@@ -1,4 +1,4 @@
-interface cta_sched_if import frontend_pkg::*; ();
+interface cta_sched_if import dice_frontend_pkg::*; ();
 
     logic  valid;
     schedule_t data;

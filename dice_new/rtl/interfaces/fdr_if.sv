@@ -1,5 +1,5 @@
 
-interface fdr_if import frontend_pkg::*; ();
+interface fdr_if import dice_frontend_pkg::*; ();
 
     logic  valid;
     fdr_t data;

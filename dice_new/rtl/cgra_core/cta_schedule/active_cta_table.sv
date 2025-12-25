@@ -1,3 +1,5 @@
+//TO DO: MODIFY TO USE THE STRUCTS IN DICE PACKAGE
+
 module active_cta_table #(
     parameter MAX_NUM_CTA = 4,
     parameter CTA_INDEX_WIDTH = $clog2(MAX_NUM_CTA),
