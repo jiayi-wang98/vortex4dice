@@ -98,7 +98,9 @@ module VX_cache_with_temporal #(
     assign request_if[0].req_data.data = outcmd_write_data;
 
    
-    VX_cache cache_inst (
+    VX_cache #(
+        .LINE_SIZE(CACHE_LINE_SIZE)
+    ) cache_inst (
         .clk(clk),
         .reset(rst),
         .core_bus_if(request_if), 

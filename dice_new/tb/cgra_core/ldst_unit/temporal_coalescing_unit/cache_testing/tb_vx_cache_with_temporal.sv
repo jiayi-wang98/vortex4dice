@@ -48,6 +48,18 @@ module tb_vx_cache_with_temporal;
     
     VX_mem_bus_if mem_bus_if_inst[MEM_PORTS] ();
 
+     // Clock generation
+    initial begin
+        clk = 0;
+        forever #(CLK_PERIOD/2) clk = ~clk;
+    end
+    
+     initial begin
+    //dump fsdb
+    $dumpfile("tb_vx_cache_with_temporal.fsdb");
+    $dumpvars("+all");
+    end
+
     // Instantiate wrapper
     VX_cache_with_temporal #(
         .NUMBER_OF_MAX_COALESCED_INTERVAL(NUMBER_OF_MAX_COALESCED_INTERVAL),
@@ -77,12 +89,7 @@ module tb_vx_cache_with_temporal;
         .mem_bus_if(mem_bus_if_inst)
     );
 
-    // ----------------------
-    // Clock generation
-    // ----------------------
-    initial clk = 0;
-    always #(CLK_PERIOD/2) clk = ~clk;
-
+    int i;
     // ----------------------
     // Reset sequence
     // ----------------------
@@ -91,50 +98,54 @@ module tb_vx_cache_with_temporal;
         #20;
         rst = 0;
     end
+   initial begin
+    // Initialize inputs
+    incmd_valid        = 0;
+    incmd_block_id     = 0;
+    incmd_tid          = 0;
+    incmd_write_enable = 0;
+    incmd_write_data   = 0;
+    incmd_write_mask   = 0;
+    incmd_address      = 0;
+    incmd_size         = 0;
+    incmd_ld_dest_reg  = 0;
 
-    // ----------------------
-    // Stimulus: write value 5 at address 1
-    // ----------------------
-    initial begin
-        // Initialize inputs
-        incmd_valid        = 0;
-        incmd_block_id     = 0;
-        incmd_tid          = 0;
-        incmd_write_enable = 0;
-        incmd_write_data   = 0;
-        incmd_write_mask   = 0;
-        incmd_address      = 0;
-        incmd_size         = 0;
-        incmd_ld_dest_reg  = 0;
+    mem_bus_if_inst[0].req_ready = 1; // memory ready high
 
-        // Wait for reset deassertion
-        @(negedge rst);
+    @(negedge rst); // wait for reset
+    repeat (2) @(posedge clk);
 
-        // Wait a few clock cycles
-        repeat (2) @(posedge clk);
+    // Send 4 words to fill cache line
+    for (i = 0; i < 4; i = i + 1) begin
+        @(posedge clk);
+        // Wait until cache can accept the write
+        while (!incmd_ready) @(posedge clk);
 
-        // Issue a write command: data = 5, address = 1
+        // Issue the write
         incmd_valid        = 1;
         incmd_block_id     = 4'd1;
         incmd_tid          = 10'd0;
         incmd_write_enable = 1;
-        incmd_write_data   = 64'd5;
-        incmd_write_mask   = 8'hFF;  // all bytes enabled
-        incmd_address      = 64'd1;
-        incmd_size         = 2'b00; // assuming 1B write
+        incmd_write_data   = 64'(i+1);  // 1,2,3,4
+        incmd_write_mask   = 8'hFF;
+        incmd_address      = 64'd0 + i*8; // consecutive addresses
+        incmd_size         = 2'b00;
         incmd_ld_dest_reg  = 7'd0;
 
         @(posedge clk);
-        incmd_valid = 0; // deassert after one cycle
+        incmd_valid = 0;  // deassert for 1 cycle between writes
     end
+end
 
     initial begin
-    $monitor("Time=%0t | req_valid=%b | req_ready=%b | data=%h", 
-  $time, 
-  mem_bus_if_inst[0].req_valid, 
-  mem_bus_if_inst[0].req_ready, 
-  mem_bus_if_inst[0].req_data.data); // Add .req_data prefix
-    end 
-
+    $monitor("Time=%0t | incmd_valid=%b | incmd_ready=%b | outcmd_valid=%b | req_ready=%b | data=%h%s",
+             $time,
+             incmd_valid,
+             incmd_ready,
+             mem_bus_if_inst[0].req_valid,   // outcmd_valid
+             mem_bus_if_inst[0].req_ready,
+             mem_bus_if_inst[0].req_data.data,
+             (mem_bus_if_inst[0].req_valid && mem_bus_if_inst[0].req_ready) ? " <- HANDSHAKE" : "");
+end
 endmodule
 
