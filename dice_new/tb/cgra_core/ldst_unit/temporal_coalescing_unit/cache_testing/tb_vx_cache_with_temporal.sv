@@ -115,8 +115,7 @@ module tb_vx_cache_with_temporal;
     incmd_size         = 0;
     incmd_ld_dest_reg  = 0;
 
-    mem_bus_if_inst[0].req_ready = 1; // memory ready high
-
+    
     @(negedge rst); // wait for reset
     repeat (2) @(posedge clk);
 

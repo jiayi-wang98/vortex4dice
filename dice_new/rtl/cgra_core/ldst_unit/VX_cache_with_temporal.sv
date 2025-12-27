@@ -26,14 +26,14 @@ module VX_cache_with_temporal #(
     input logic [ADDR_WIDTH-1:0] incmd_address,       // Address for the command
     input logic [1:0] incmd_size,          // Size of the command (e.g., 00=1B, 01=2B, 10=4B, 11=8B)
     input logic [MAX_REG_WIDTH-1:0] incmd_ld_dest_reg,    // Load destination register
-    input logic outcmd_ready,
+    output logic outcmd_ready,
 
     output logic incmd_ready,           // Ready signal for input command
     output logic [DATA_WIDTH-1:0] cache_data,
     output logic cache_valid
     
 );
-    
+    logic cache_perf;
     logic outcmd_valid;              // Output command valid signal
     logic [EBLOCK_ID_WIDTH-1:0] outcmd_block_id;    // Output command block ID
     logic [TID_WIDTH-1:0] outcmd_base_tid;     // Output command thread ID
@@ -56,6 +56,11 @@ module VX_cache_with_temporal #(
           [BASE_ADDRESS_OFFSET-1:0] outcmd_address_map;
     } outcmd_tag_t;
 
+    outcmd_tag_t core_tag_req;
+    outcmd_tag_t core_tag_rsp;
+    assign core_tag_req = {outcmd_block_id, outcmd_base_tid, outcmd_tid_bitmap, outcmd_ld_dest_reg, outcmd_address_map};
+    
+
     typedef struct packed {
     logic [EBLOCK_ID_WIDTH-1:0] incmd_block_id;
     logic [TID_WIDTH-1:0]       incmd_base_tid;
@@ -67,7 +72,8 @@ module VX_cache_with_temporal #(
 
 
     localparam int OUTCMD_TAG_WIDTH = $bits(outcmd_tag_t);
-    localparam int INCMD_TAG_WIDTH = $bits(incmd_tag_t);
+
+    
 
     // Temporal instantiation 
     temporal_coalescing_unit temporal_inst (
@@ -100,34 +106,39 @@ module VX_cache_with_temporal #(
    VX_cache_top #(
     .NUM_REQS(NUM_REQS),
     .LINE_SIZE(CACHE_LINE_SIZE),
-    .NUM_BANKS(NUM_BANKS)
+    .NUM_BANKS(NUM_BANKS),
+    .TAG_WIDTH(OUTCMD_TAG_WIDTH),
+    .WORD_SIZE(8)
     ) cache_inst (
-    .core_req_valid(outcmd_valid),
-    .core_req_rw(outcmd_write_enable),
-    .core_req_byteen(outcmd_write_mask),
-    .core_req_addr(outcmd_address),
-    .core_req_flags(0),
-    .core_req_data(outcmd_write_data),
-    .core_req_tag(OUTCMD_TAG_WIDTH),
-    .core_req_ready(outcmd_ready),
+    .clk(clk),
+    .reset(rst),
+    .core_req_valid('{outcmd_valid}),            // Array literal with 1 element
+    .core_req_rw('{outcmd_write_enable}),
+    .core_req_byteen('{outcmd_write_mask}),
+    .core_req_addr('{outcmd_address}),
+    .core_req_flags('{default: 0}),
+    .core_req_data('{outcmd_write_data}),
+    .core_req_tag('{core_tag_req}),
+    .core_req_ready('{outcmd_ready}),
 
-    .core_rsp_valid(cache_valid),
-    .core_rsp_data(cache_data),
-    .core_rsp_tag(INCMD_TAG_WIDTH),
-    .core_rsp_ready(incmd_ready), 
 
-    .mem_req_valid(0),
-    .mem_req_rw(0),
-    .mem_req_byteen(0),
-    .mem_req_addr(0),
-    .mem_req_data(0),
-    .mem_req_tag(0),
-    .mem_req_ready(0), 
+    .core_rsp_valid('{cache_valid}),
+    .core_rsp_data('{cache_data}),
+    .core_rsp_tag('{core_tag_rsp}),
+    .core_rsp_ready('{incmd_ready}), 
 
-    .mem_rsp_valid(0), 
-    .mem_rsp_data(0),
-    .mem_rsp_tag(0),
-    .mem_rsp_ready(0) 
+    .mem_req_valid(),
+    .mem_req_rw(),
+    .mem_req_byteen(),
+    .mem_req_addr(),
+    .mem_req_data(),
+    .mem_req_tag(),
+    .mem_req_ready('{default: 0}), 
+
+    .mem_rsp_valid('{default: 0}), 
+    .mem_rsp_data('{default: 0}),
+    .mem_rsp_tag('{default: 0}),
+    .mem_rsp_ready() 
 );
 
 
