@@ -15,6 +15,7 @@ module tb_vx_cache_with_temporal;
     parameter int WRITE_MASK_WIDTH = 8;
     parameter int NUM_REQS = 1;
     parameter int MEM_PORTS = 1; 
+    parameter int NUM_BANKS = 1;
 
     // Clock and reset
     bit clk;
@@ -46,7 +47,8 @@ module tb_vx_cache_with_temporal;
     logic [MAX_REG_WIDTH-1:0] outcmd_ld_dest_reg;
     logic [NUMBER_OF_MAX_COALESCED_COMMANDS-1:0][BASE_ADDRESS_OFFSET-1:0] outcmd_address_map;
     
-    VX_mem_bus_if mem_bus_if_inst[MEM_PORTS] ();
+    logic [DATA_WIDTH-1:0] cache_data;
+    logic cache_valid;
 
      // Clock generation
     initial begin
@@ -85,8 +87,11 @@ module tb_vx_cache_with_temporal;
         .incmd_address(incmd_address),
         .incmd_size(incmd_size),
         .incmd_ld_dest_reg(incmd_ld_dest_reg),
+        .outcmd_ready(outcmd_ready),
+        
         .incmd_ready(incmd_ready),
-        .mem_bus_if(mem_bus_if_inst)
+        .cache_data(cache_data),
+        .cache_valid(cache_valid)
     );
 
     int i;
@@ -116,7 +121,7 @@ module tb_vx_cache_with_temporal;
     repeat (2) @(posedge clk);
 
     // Send 4 words to fill cache line
-    for (i = 0; i < 4; i = i + 1) begin
+    for (i = 0; i < 128; i = i + 1) begin
         @(posedge clk);
         // Wait until cache can accept the write
         while (!incmd_ready) @(posedge clk);
@@ -138,14 +143,14 @@ module tb_vx_cache_with_temporal;
 end
 
     initial begin
-    $monitor("Time=%0t | incmd_valid=%b | incmd_ready=%b | outcmd_valid=%b | req_ready=%b | data=%h%s",
+    $monitor("Time=%0t | incmd_valid=%b | incmd_ready=%b | outcmd_valid=%b | cache_data=%b |  | cache_valid=%b", 
              $time,
              incmd_valid,
              incmd_ready,
-             mem_bus_if_inst[0].req_valid,   // outcmd_valid
-             mem_bus_if_inst[0].req_ready,
-             mem_bus_if_inst[0].req_data.data,
-             (mem_bus_if_inst[0].req_valid && mem_bus_if_inst[0].req_ready) ? " <- HANDSHAKE" : "");
+             outcmd_valid,
+             cache_data,
+             cache_valid);
+             
 end
 endmodule
 

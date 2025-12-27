@@ -197,24 +197,9 @@ module VX_stream_omega #(
             end
         end
 
-       VX_pipe_register #(
-    .DATAW  ($bits(per_cycle_collision)),
-    .RESETW ($bits(per_cycle_collision)),
-    .DEPTH  (1)
-) per_cycle_collision_reg (
-    .clk      (clk),
-    .reset    (reset),
-    .enable   (1'b1),
-    .data_in  (per_cycle_collision),
-    .data_out (per_cycle_collision_r)
-);
-VX_popcount #(
-    .N     ($bits(per_cycle_collision_r)),
-    .MODEL (1)
-) collision_popcount_inst (
-    .data_in  (per_cycle_collision_r),
-    .data_out (collision_count)
-);
+        `BUFFER(per_cycle_collision_r, per_cycle_collision);
+        `POP_COUNT(collision_count, per_cycle_collision_r);
+        
         always @(posedge clk) begin
             if (reset) begin
                 collisions_r <= '0;

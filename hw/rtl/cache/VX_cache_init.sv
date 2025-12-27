@@ -59,21 +59,8 @@ module VX_cache_init import VX_gpu_pkg::*; #(
         wire [NUM_REQS_W-1:0] core_bus_out_cnt;
         wire [NUM_BANKS_W-1:0] bank_req_cnt;
 
-        VX_popcount #(
-    .N     ($bits(core_bus_out_fire)),
-    .MODEL (1)
-) core_bus_out_popcount (
-    .data_in  (core_bus_out_fire),
-    .data_out (core_bus_out_cnt)
-);
-
-VX_popcount #(
-    .N     ($bits(bank_req_fire)),
-    .MODEL (1)
-) bank_req_popcount_inst (
-    .data_in  (bank_req_fire),
-    .data_out (bank_req_cnt)
-);
+        `POP_COUNT(core_bus_out_cnt, core_bus_out_fire);
+        `POP_COUNT(bank_req_cnt, bank_req_fire);
         `UNUSED_VAR (core_bus_out_cnt)
 
         VX_pending_size #(

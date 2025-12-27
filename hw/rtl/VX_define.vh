@@ -199,12 +199,12 @@
     VX_popcount #( \
         .N ($bits(in)), \
         .MODEL (model) \
-    ) __pop_count_ex`__LINE__ ( \
+    ) __pop_count_ex``__LINE__ ( \
         .data_in  (in), \
         .data_out (out) \
     )
 
-`define POP_COUNT(out, in) `POP_COUNT_EX(out, in, 1)
+`define POP_COUNT(out, in) ``POP_COUNT_EX(out, in, 1)
 
 `define CONCAT(out, left_in, right_in, L, R) \
     /* verilator lint_off GENUNNAMED */ \
@@ -222,7 +222,7 @@
         .DATAW  ($bits(dst)), \
         .RESETW (resetw), \
         .DEPTH  (latency) \
-    ) __buffer_ex`__LINE__ ( \
+    ) __buffer_ex``__LINE__ ( \
         .clk      (clk), \
         .reset    (reset), \
         .enable   (ena), \

@@ -11,7 +11,8 @@ module VX_cache_with_temporal #(
     parameter int MAX_REG_WIDTH = 7,
     parameter int TID_BITMAP_WIDTH = NUMBER_OF_MAX_COALESCED_COMMANDS,
     parameter int NUM_REQS = 1,
-    parameter int MEM_PORTS = 1 
+    parameter int MEM_PORTS = 1, 
+    parameter int NUM_BANKS = 1
 )(
     input logic clk,
     input logic rst,
@@ -25,13 +26,14 @@ module VX_cache_with_temporal #(
     input logic [ADDR_WIDTH-1:0] incmd_address,       // Address for the command
     input logic [1:0] incmd_size,          // Size of the command (e.g., 00=1B, 01=2B, 10=4B, 11=8B)
     input logic [MAX_REG_WIDTH-1:0] incmd_ld_dest_reg,    // Load destination register
+    input logic outcmd_ready,
 
-    output logic incmd_ready,            // Ready signal for input command
-   
-    VX_mem_bus_if.master mem_bus_if [MEM_PORTS]
+    output logic incmd_ready,           // Ready signal for input command
+    output logic [DATA_WIDTH-1:0] cache_data,
+    output logic cache_valid
+    
 );
     
-
     logic outcmd_valid;              // Output command valid signal
     logic [EBLOCK_ID_WIDTH-1:0] outcmd_block_id;    // Output command block ID
     logic [TID_WIDTH-1:0] outcmd_base_tid;     // Output command thread ID
@@ -43,7 +45,7 @@ module VX_cache_with_temporal #(
     logic [1:0] outcmd_size;        // Size of the command (e.g., 00=1B, 01=2B, 10=4B, 11=8B)
     logic [MAX_REG_WIDTH-1:0] outcmd_ld_dest_reg;  // Load destination register
     logic [NUMBER_OF_MAX_COALESCED_COMMANDS-1:0][BASE_ADDRESS_OFFSET-1:0] outcmd_address_map; //map from tid bitmap to address_offset
-    logic outcmd_ready;
+    
     
     typedef struct packed {
     logic [EBLOCK_ID_WIDTH-1:0] outcmd_block_id;
@@ -54,7 +56,18 @@ module VX_cache_with_temporal #(
           [BASE_ADDRESS_OFFSET-1:0] outcmd_address_map;
     } outcmd_tag_t;
 
-    localparam int TAG_WIDTH = $bits(outcmd_tag_t);
+    typedef struct packed {
+    logic [EBLOCK_ID_WIDTH-1:0] incmd_block_id;
+    logic [TID_WIDTH-1:0]       incmd_base_tid;
+    logic [TID_BITMAP_WIDTH-1:0] incmd_tid_bitmap;
+    logic [MAX_REG_WIDTH-1:0]   incmd_ld_dest_reg;
+    logic [NUMBER_OF_MAX_COALESCED_COMMANDS-1:0]
+          [BASE_ADDRESS_OFFSET-1:0] incmd_address_map;
+    } incmd_tag_t;
+
+
+    localparam int OUTCMD_TAG_WIDTH = $bits(outcmd_tag_t);
+    localparam int INCMD_TAG_WIDTH = $bits(incmd_tag_t);
 
     // Temporal instantiation 
     temporal_coalescing_unit temporal_inst (
@@ -84,28 +97,39 @@ module VX_cache_with_temporal #(
         .outcmd_ready(outcmd_ready) 
     );
 
-
-    VX_mem_bus_if #(
-        .DATA_SIZE(DATA_WIDTH/8),  // Insert data with bytes...?
-        .TAG_WIDTH(TAG_WIDTH)
-        // Tag include out_cmb_block_id, base_tid, tid_bitmap, ld destination register, address_map)
-
-    )   request_if [NUM_REQS] (); 
-
-    assign request_if[0].req_valid = outcmd_valid;
-    assign request_if[0].req_data.rw = outcmd_write_enable;
-    assign outcmd_ready = request_if[0].req_ready;
-    assign request_if[0].req_data.data = outcmd_write_data;
-
-   
-    VX_cache #(
-        .LINE_SIZE(CACHE_LINE_SIZE)
+   VX_cache_top #(
+    .NUM_REQS(NUM_REQS),
+    .LINE_SIZE(CACHE_LINE_SIZE),
+    .NUM_BANKS(NUM_BANKS)
     ) cache_inst (
-        .clk(clk),
-        .reset(rst),
-        .core_bus_if(request_if), 
-        .mem_bus_if(mem_bus_if)   
-    );
+    .core_req_valid(outcmd_valid),
+    .core_req_rw(outcmd_write_enable),
+    .core_req_byteen(outcmd_write_mask),
+    .core_req_addr(outcmd_address),
+    .core_req_flags(0),
+    .core_req_data(outcmd_write_data),
+    .core_req_tag(OUTCMD_TAG_WIDTH),
+    .core_req_ready(outcmd_ready),
+
+    .core_rsp_valid(cache_valid),
+    .core_rsp_data(cache_data),
+    .core_rsp_tag(INCMD_TAG_WIDTH),
+    .core_rsp_ready(incmd_ready), 
+
+    .mem_req_valid(0),
+    .mem_req_rw(0),
+    .mem_req_byteen(0),
+    .mem_req_addr(0),
+    .mem_req_data(0),
+    .mem_req_tag(0),
+    .mem_req_ready(0), 
+
+    .mem_rsp_valid(0), 
+    .mem_rsp_data(0),
+    .mem_rsp_tag(0),
+    .mem_rsp_ready(0) 
+);
+
 
 endmodule
 
