@@ -61,13 +61,18 @@ module dispatcher(
     logic [255:0] wb_tid_sb [4];               // Write-back bitmaps for each scoreboard
     
     // Ready-to-dispatch FIFO signals
-    logic ready_fifo_push;
     logic [10:0] ready_fifo_push_data [4];
     logic [10:0] ready_fifo_pop_data [4];
     logic [3:0] ready_fifo_pop_data_valid;
     logic [3:0] ready_fifo_empty;
     logic [3:0] ready_fifo_full;
     logic last_chunk_done; // Indicates if the last chunk is done processing
+
+    logic [1:0] lane_sb_sel [4];              // Which scoreboard (0-3) for each lane
+    logic [3:0] lane_collision;               // Per-lane collision results
+    logic [3:0] sb_rd_valid_per_sb [4];       // [scoreboard][lane] - tracks which lanes check which SB
+    logic [3:0] sb_rsv_valid_per_sb [4];      // [scoreboard][lane] - for reserve operations
+
     
     // ============================================================
     // Component Instantiations
@@ -132,18 +137,55 @@ module dispatcher(
     assign reserve_tid[1] = ready_fifo_pop_data[1][7:0];
     assign reserve_tid[2] = ready_fifo_pop_data[2][7:0];
     assign reserve_tid[3] = ready_fifo_pop_data[3][7:0];
+
+    // Extract scoreboard selectro from upper TID bits
+    assign lane_sb_sel[0] = thread_next_tid_0[9:8];  // Which scoreboard lane 0 should check
+    assign lane_sb_sel[1] = thread_next_tid_1[9:8];
+    assign lane_sb_sel[2] = thread_next_tid_2[9:8];
+    assign lane_sb_sel[3] = thread_next_tid_3[9:8];
     
     // Valid signals for scoreboards - only check when thread FIFO has valid data
-    assign sb_rd_valid[0] = thread_fifo_data_valid && thread_valid_0;
-    assign sb_rd_valid[1] = thread_fifo_data_valid && thread_valid_1;
-    assign sb_rd_valid[2] = thread_fifo_data_valid && thread_valid_2;
-    assign sb_rd_valid[3] = thread_fifo_data_valid && thread_valid_3;
+    always_comb begin
+        // Initialize: no lanes checking any scoreboards
+        for (int sb = 0; sb < 4; sb++) begin
+            sb_rd_valid_per_sb[sb] = 4'b0000;
+            sb_rsv_valid_per_sb[sb] = 4'b0000;
+        end
+        
+        // Route READ requests: each valid lane checks its target scoreboard
+        if (thread_fifo_data_valid && thread_valid_0)
+            sb_rd_valid_per_sb[lane_sb_sel[0]][0] = 1'b1;
+        if (thread_fifo_data_valid && thread_valid_1)
+            sb_rd_valid_per_sb[lane_sb_sel[1]][1] = 1'b1;
+        if (thread_fifo_data_valid && thread_valid_2)
+            sb_rd_valid_per_sb[lane_sb_sel[2]][2] = 1'b1;
+        if (thread_fifo_data_valid && thread_valid_3)
+            sb_rd_valid_per_sb[lane_sb_sel[3]][3] = 1'b1;
+        
+        // Route RESERVE requests: based on TID from ready FIFO
+        if (sb_rsv_valid[0]) // If lane 0 is reserving
+            sb_rsv_valid_per_sb[ready_fifo_pop_data[0][9:8]][0] = 1'b1;
+        if (sb_rsv_valid[1])
+            sb_rsv_valid_per_sb[ready_fifo_pop_data[1][9:8]][1] = 1'b1;
+        if (sb_rsv_valid[2])
+            sb_rsv_valid_per_sb[ready_fifo_pop_data[2][9:8]][2] = 1'b1;
+        if (sb_rsv_valid[3])
+            sb_rsv_valid_per_sb[ready_fifo_pop_data[3][9:8]][3] = 1'b1;
+    end
     
-    assign sb_rsv_valid[0] = ready_fifo_pop_data_valid[0] && ready_fifo_pop_data[0][10];
-    assign sb_rsv_valid[1] = ready_fifo_pop_data_valid[1] && ready_fifo_pop_data[1][10];
-    assign sb_rsv_valid[2] = ready_fifo_pop_data_valid[2] && ready_fifo_pop_data[2][10];
-    assign sb_rsv_valid[3] = ready_fifo_pop_data_valid[3] && ready_fifo_pop_data[3][10];
-    
+    // Aggregate: each scoreboard's rd_valid is OR of all lanes checking it
+    assign sb_rd_valid[0] = |sb_rd_valid_per_sb[0];  
+    assign sb_rd_valid[1] = |sb_rd_valid_per_sb[1];  
+    assign sb_rd_valid[2] = |sb_rd_valid_per_sb[2];  
+    assign sb_rd_valid[3] = |sb_rd_valid_per_sb[3];  
+
+    always_comb begin
+        for (int lane = 0; lane < 4; lane++) begin
+            // Each lane gets collision result from its target scoreboard
+            lane_collision[lane] = collision[lane_sb_sel[lane]];
+        end
+    end
+
     // Constant scoreboard valid signals (OR of all lanes)
     assign const_rd_valid = |sb_rd_valid;    // Check constants if any lane needs checking
     assign const_rsv_valid = |sb_rsv_valid;  // Reserve constants if any lane is reserving
@@ -203,9 +245,9 @@ module dispatcher(
     always_comb begin
         all_lane_can_dispatch = 1'b1;
         case (latched_unrolling_factor)
-            2'b00: all_lane_can_dispatch = !collision[0] && !const_collision; // 1-way
-            2'b01: all_lane_can_dispatch = !collision[0] && !collision[1] && !const_collision; // 2-way
-            2'b10: all_lane_can_dispatch = !collision[0] && !collision[1] && !collision[2] && !collision[3] && !const_collision; // 4-way
+            2'b00: all_lane_can_dispatch = !lane_collision[0] && !const_collision; // 1-way
+            2'b01: all_lane_can_dispatch = !lane_collision[0] && !lane_collision[1] && !const_collision; // 2-way
+            2'b10: all_lane_can_dispatch = !lane_collision[0] && !lane_collision[1] && !lane_collision[2] && !lane_collision[3] && !const_collision; // 4-way
             default: all_lane_can_dispatch = 1'b1; // Invalid unrolling factor
         endcase
     end
@@ -217,8 +259,19 @@ module dispatcher(
     assign thread_fifo_pop = !thread_fifo_empty && all_lane_can_dispatch && ready_fifo_not_full;
     
     // Collision-free dispatch logic
+    logic [3:0] ready_fifo_push_en; // per-lane push enable
     always_comb begin
-        ready_fifo_push =  thread_fifo_data_valid && thread_valid_0 && !collision[0] && !const_collision && ready_fifo_not_full;
+        // NEW: Calculating per-lane push enable
+        for (int i = 0; i < 4; i++) begin
+            ready_fifo_push_en[i] = thread_fifo_data_valid && 
+                                (i == 0 ? thread_valid_0 :
+                                 i == 1 ? thread_valid_1 :
+                                 i == 2 ? thread_valid_2 : thread_valid_3) &&
+                                !lane_collision[i] && 
+                                !const_collision && 
+                                !ready_fifo_full[i];
+        end
+        // Push data assignments (unchanged)
         ready_fifo_push_data[0] = {thread_valid_0, thread_next_tid_0};
         ready_fifo_push_data[1] = {thread_valid_1, thread_next_tid_1};
         ready_fifo_push_data[2] = {thread_valid_2, thread_next_tid_2};
@@ -234,7 +287,7 @@ module dispatcher(
             ) ready_fifo (
                 .clk(clk),
                 .rst_n(rst_n),
-                .push(ready_fifo_push),
+                .push(ready_fifo_push_en[i]),
                 .push_data(ready_fifo_push_data[i]),
                 .pop(dispatch_fifo_pop),
                 .pop_data(ready_fifo_pop_data[i]),

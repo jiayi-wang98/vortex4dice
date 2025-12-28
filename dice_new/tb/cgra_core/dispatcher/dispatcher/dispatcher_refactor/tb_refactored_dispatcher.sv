@@ -102,10 +102,9 @@ module dispatcher_basic_testbench;
     task pop_and_count();
         logic [3:0] valid_mask = {dispatch_valid_3, dispatch_valid_2, dispatch_valid_1, dispatch_valid_0};
         
-        if (valid_mask != 4'b0000) begin
+        if (!dispatch_fifo_empty) begin  // Changed: check if data available
             dispatch_fifo_pop = 1'b1;
-            @(negedge clk);
-            dispatch_fifo_pop = 1'b0;
+            @(negedge clk);  // Pop happens here
             
             // Count and display dispatched threads
             if (dispatch_valid_0) begin
@@ -124,7 +123,9 @@ module dispatcher_basic_testbench;
                 $display("Lane 3 dispatched TID: %0d", dispatch_tid_3);
                 dispatched_count++;
             end
-        end
+
+            dispatch_fifo_pop = 1'b0;
+        end 
     endtask
     
     // Task to simulate write-back

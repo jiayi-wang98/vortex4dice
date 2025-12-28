@@ -415,4 +415,10 @@ module dispatcher_fsm_tb;
         $finish;
     end
 
+    initial begin
+        // dump fsdb
+        $fsdbDumpfile("refactored_dispatcher_fsm.fsdb");
+        $fsdbDumpvars("+all");
+    end
+
 endmodule
