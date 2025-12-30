@@ -1,4 +1,5 @@
 //FIGURE OUT WHAT THE INITIAL RECONVERGENCE PC SHOULD BE
+//ADD interaction with status table and ability to pop
 
 `include "dice_define.vh"
 
@@ -41,9 +42,9 @@ module cta_controller #(
     output logic [PC_WIDTH-1:0] init_reconvergence_pc,
 
     //cta status table
-    input dice_pkg::cta_status [DICE_NUM_MAX_CTA_PER_CORE-1:0] cta_status_table
-    //interface to initiate table
-    //interface to remove from table
+    input dice_pkg::dice_cta_status_t [DICE_NUM_MAX_CTA_PER_CORE-1:0] cta_status_table,
+    input logic clear_entry_valid,
+    input logic [DICE_HW_CTA_ID_WIDTH:0] clear_entry_hw_id
 );
 
 
