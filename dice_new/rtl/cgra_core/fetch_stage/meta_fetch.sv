@@ -1,9 +1,4 @@
-`timescale 1ns / 1ps
 `include "VX_define.vh"
-
-import VX_gpu_pkg::*;
-import dice_pkg::*;
-import dice_frontend_pkg::*;
 
 module meta_fetch #(
     parameter int TAG_WIDTH = 48
@@ -13,21 +8,21 @@ module meta_fetch #(
 
     // From CS/FDR barrier
     input logic schedule_valid,
-    input logic [DICE_ADDR_WIDTH-1:0] fdr_next_pc,
-    input logic [EBLOCK_ID_WIDTH-1:0] schedule_eblock_id,
+    input logic [dice_pkg::DICE_ADDR_WIDTH-1:0] fdr_next_pc,
+    input logic [dice_frontend_pkg::EBLOCK_ID_WIDTH-1:0] schedule_eblock_id,
     output logic schedule_ready,
 
     // Request channel to cache
     VX_mem_bus_if.master meta_fetch_bus_if,
 
     // To decoder
-    output pgraph_meta_t outgoing_meta,
+    output dice_frontend_pkg::pgraph_meta_t outgoing_meta,
     output logic meta_valid,
 
     // From stage barrier
     input logic fire_eblock
 );
-  localparam PAD_WIDTH = TAG_WIDTH - EBLOCK_ID_WIDTH;
+  localparam PAD_WIDTH = TAG_WIDTH - dice_frontend_pkg::EBLOCK_ID_WIDTH;
 
   // FSM states
   typedef enum logic [1:0] {
@@ -39,18 +34,18 @@ module meta_fetch #(
 
   meta_fetch_state_e state_q, state_d;
   logic meta_valid_q;
-  logic [EBLOCK_ID_WIDTH-1:0] eblock_id_q;
+  logic [dice_frontend_pkg::EBLOCK_ID_WIDTH-1:0] eblock_id_q;
 
   logic rsp_fire, req_fire;
   assign rsp_fire = meta_fetch_bus_if.rsp_valid && meta_fetch_bus_if.rsp_ready;
   assign req_fire = meta_fetch_bus_if.req_valid && meta_fetch_bus_if.req_ready;
 
   //DIRECTLY FROM VORTEX======================================================
-  logic [ICACHE_ADDR_WIDTH-1:0] meta_cache_req_addr_q, meta_cache_req_addr_d;
+  logic [VX_gpu_pkg::ICACHE_ADDR_WIDTH-1:0] meta_cache_req_addr_q, meta_cache_req_addr_d;
   localparam ADDR_SHIFT = $clog2(
-      VX_MEM_DATA_WIDTH / 8
+      VX_gpu_pkg::VX_MEM_DATA_WIDTH / 8
   );  // Should calculate shift based on data width (bytes)
-  assign meta_cache_req_addr_d = fdr_next_pc[ADDR_SHIFT+:ICACHE_ADDR_WIDTH];
+  assign meta_cache_req_addr_d = fdr_next_pc[ADDR_SHIFT+:VX_gpu_pkg::ICACHE_ADDR_WIDTH];
   // 4-byte aligned addresses
   //DIRECTLY FROM VORTEX======================================================
 
@@ -96,7 +91,7 @@ module meta_fetch #(
         eblock_id_q <= schedule_eblock_id;
       end
       if (rsp_fire) begin
-        outgoing_meta <= pgraph_meta_t'(meta_fetch_bus_if.rsp_data.data);
+        outgoing_meta <= dice_frontend_pkg::pgraph_meta_t'(meta_fetch_bus_if.rsp_data.data);
         meta_valid_q  <= 1'b1;
       end
       if (fire_eblock) begin

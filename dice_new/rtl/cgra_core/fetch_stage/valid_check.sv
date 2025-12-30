@@ -1,4 +1,3 @@
-import dice_pkg::*;
 
 /*
 CONDITIONS FOR VALID TO BE ASSERTED:
@@ -19,11 +18,11 @@ module valid_check (
     input logic mask_valid,
 
     //from CS, FDR buffer
-    input logic [DICE_ADDR_WIDTH-1:0] eblock_pc,
+    input logic [dice_pkg::DICE_ADDR_WIDTH-1:0] eblock_pc,
     input logic prefetch_block,
 
     //from SIMT_Stack
-    input logic [DICE_ADDR_WIDTH-1:0] simt_stack_pc,  // "next pc"
+    input logic [dice_pkg::DICE_ADDR_WIDTH-1:0] simt_stack_pc,  // "next pc"
 
 
     input logic bitstream_loaded,
@@ -74,6 +73,7 @@ module valid_check (
   assign fire_eblock = can_issue && ex_ready;
 
   // Ready signal (Pass through backpressure/completion)
+  logic valid_ready;
   assign valid_ready = fire_eblock;
 
 endmodule

@@ -1,24 +1,22 @@
-import dice_pkg::*;
-import dice_frontend_pkg::*;
 
 //AS OF NOW THIS MODULE IS JUST A ROUTER
 module decode (
-    input pgraph_meta_t metadata_in,
+    input dice_frontend_pkg::pgraph_meta_t metadata_in,
     input logic         meta_in_valid, //keeping
 
-    input thread_mask_t real_active_thread_mask,  //branch handler - to be packed
+    input dice_frontend_pkg::thread_mask_t real_active_thread_mask,  //branch handler - to be packed
     //To bitstream Fetcher
-    output logic [DICE_ADDR_WIDTH-1:0] bitstream_addr,
+    output logic [dice_pkg::DICE_ADDR_WIDTH-1:0] bitstream_addr,
     output logic bitstream_addr_valid,
-    output logic [BITSTREAM_LENGTH_WIDTH-1:0] bitstream_length,
+    output logic [dice_frontend_pkg::BITSTREAM_LENGTH_WIDTH-1:0] bitstream_length,
 
     //To branch handler
-    output branch_meta_t branch_metadata,  //contains divergence info/jmp info
+    output dice_frontend_pkg::branch_meta_t branch_metadata,  //contains divergence info/jmp info
     output logic         branch_req_valid,
 
     //To valid checker
     output logic      is_barrier,  // may remove
-    output fdr_meta_t meta_out
+    output dice_frontend_pkg::fdr_meta_t meta_out
 );
 
   // Bitstream Fetch

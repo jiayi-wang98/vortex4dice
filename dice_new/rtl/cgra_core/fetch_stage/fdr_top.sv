@@ -1,9 +1,5 @@
 `include "VX_define.vh"
 
-import dice_frontend_pkg::*;
-import dice_pkg::*;
-import VX_gpu_pkg::*;
-
 module fdr_top #(
     parameter int TAG_WIDTH = 48,
     parameter int BITSTREAM_SIZE = 2056
@@ -19,30 +15,30 @@ module fdr_top #(
     cta_sched_if.slave schedule_if,
     fdr_if.master      fdr_if,
 
-    input logic [DICE_ADDR_WIDTH-1:0] simt_stack_pc,
+    input logic [dice_pkg::DICE_ADDR_WIDTH-1:0] simt_stack_pc,
 
     // CGRA configuration memories
-    output logic [VX_MEM_DATA_WIDTH-1:0] cm0_data,
-    output logic [((BITSTREAM_SIZE + VX_MEM_DATA_WIDTH - 1) / VX_MEM_DATA_WIDTH) - 1:0] cm0_chunk_en,
+    output logic [VX_gpu_pkg::VX_MEM_DATA_WIDTH-1:0] cm0_data,
+    output logic [((BITSTREAM_SIZE + VX_gpu_pkg::VX_MEM_DATA_WIDTH - 1) / VX_gpu_pkg::VX_MEM_DATA_WIDTH) - 1:0] cm0_chunk_en,
 
-    output logic [VX_MEM_DATA_WIDTH-1:0] cm1_data,
-    output logic [((BITSTREAM_SIZE + VX_MEM_DATA_WIDTH - 1) / VX_MEM_DATA_WIDTH) - 1:0] cm1_chunk_en
+    output logic [VX_gpu_pkg::VX_MEM_DATA_WIDTH-1:0] cm1_data,
+    output logic [((BITSTREAM_SIZE + VX_gpu_pkg::VX_MEM_DATA_WIDTH - 1) / VX_gpu_pkg::VX_MEM_DATA_WIDTH) - 1:0] cm1_chunk_en
 );
 
   // Control & Meta
-  pgraph_meta_t                              meta_internal;
+  dice_frontend_pkg::pgraph_meta_t              meta_internal;
   logic                                      meta_valid_internal;
   logic                                      fire_eblock_internal;
   logic                                      schedule_ready_internal;
 
   // Bitstream
-  logic         [       DICE_ADDR_WIDTH-1:0] bitstream_addr;
-  logic         [BITSTREAM_LENGTH_WIDTH-1:0] bitstream_length;
+  logic         [       dice_pkg::DICE_ADDR_WIDTH-1:0] bitstream_addr;
+  logic         [dice_frontend_pkg::BITSTREAM_LENGTH_WIDTH-1:0] bitstream_length;
   logic                                      bitstream_addr_valid_internal;
   logic                                      done_streaming_internal;
 
   // Branching & Masks
-  thread_mask_t                              branch_mask_internal;
+  dice_frontend_pkg::thread_mask_t                              branch_mask_internal;
   logic         [                      31:0] branch_meta_internal;
   logic                                      branch_mask_valid;
   logic                                      branch_req_valid_internal;
@@ -54,7 +50,8 @@ module fdr_top #(
   //PASSTHROUGH STUFF
   assign fdr_if.data.schedule_hw_cta_id = schedule_if.data.schedule_hw_cta_id;
   assign fdr_if.data.schedule_eblock_id = schedule_if.data.schedule_eblock_id;
-  assign fdr_if.data.kernel_info        = schedule_if.data.kernel_info;
+  // Note: kernel_info not in eblock_t, needs separate interface
+  assign fdr_if.data.schedule_cta_predicted = schedule_if.data.schedule_prefetch_block;
 
   // -------------------------------------------------------------------------
   // Meta Fetch
@@ -118,7 +115,7 @@ module fdr_top #(
       .barrier_indicator(is_barrier_internal),
       .mask_valid(branch_mask_valid),  //from branch handler?
       .eblock_pc(schedule_if.data.schedule_next_pc),
-      .prefetch_block(schedule_if.data.schedule_cta_predicted),
+      .prefetch_block(schedule_if.data.schedule_prefetch_block),
       .simt_stack_pc(simt_stack_pc),
       .bitstream_loaded(done_streaming_internal),
       .unresolved_div(1'b0),

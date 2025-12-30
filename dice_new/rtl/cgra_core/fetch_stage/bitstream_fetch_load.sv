@@ -1,13 +1,9 @@
-`timescale 1ns / 1ps
-
-import VX_gpu_pkg::*;
-import dice_pkg::*;
-import dice_frontend_pkg::*;
+`include "VX_define.vh"
 
 module bitstream_fetch_load #(
     parameter int TAG_WIDTH = 48,
     parameter int BITSTREAM_SIZE = 2056,
-    parameter int CHUNK_SIZE = VX_MEM_DATA_WIDTH,
+    parameter int CHUNK_SIZE = VX_gpu_pkg::VX_MEM_DATA_WIDTH,
     parameter int NUM_CHUNKS = (BITSTREAM_SIZE + CHUNK_SIZE - 1) / CHUNK_SIZE
 ) (
     input logic clk,
@@ -15,7 +11,7 @@ module bitstream_fetch_load #(
 
     //from decoder
     input logic meta_valid,
-    input logic [DICE_ADDR_WIDTH-1:0] bitstream_addr,
+    input logic [dice_pkg::DICE_ADDR_WIDTH-1:0] bitstream_addr,
 
     //to cgra buffers
     output logic [CHUNK_SIZE-1:0] cm0_data,
@@ -46,7 +42,7 @@ module bitstream_fetch_load #(
   bitstream_fetch_state state, state_n;
 
   // registered states
-  logic [DICE_ADDR_WIDTH-1:0] cm0_addr, cm1_addr, cm0_addr_n, cm1_addr_n;
+  logic [dice_pkg::DICE_ADDR_WIDTH-1:0] cm0_addr, cm1_addr, cm0_addr_n, cm1_addr_n;
   logic cm_select, cm_select_n;  // 0 = cm0, 1 = cm1
 
   logic [COUNTER_BITS-1:0] chunk_count_q, chunk_count_d;  //how many chunks have been streamed
@@ -54,7 +50,7 @@ module bitstream_fetch_load #(
   // Data
   logic [CHUNK_SIZE-1:0] data_chunk, data_chunk_n;
 
-  logic [DICE_ADDR_WIDTH-1:0] addr_q, addr_d;
+  logic [dice_pkg::DICE_ADDR_WIDTH-1:0] addr_q, addr_d;
   logic cm0_valid_d, cm1_valid_d, cm0_valid_q, cm1_valid_q;
 
   // Track if we have sent the request for the current chunk
@@ -64,7 +60,7 @@ module bitstream_fetch_load #(
   logic [NUM_CHUNKS-1:0] load_chunk_en_q;
 
   // Address alias
-  logic [DICE_ADDR_WIDTH-1:0] bitstream_addr_dec;
+  logic [dice_pkg::DICE_ADDR_WIDTH-1:0] bitstream_addr_dec;
   assign bitstream_addr_dec = bitstream_addr;
 
   // Bus Handshake Signals
