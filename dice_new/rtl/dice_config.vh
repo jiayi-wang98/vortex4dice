@@ -26,6 +26,10 @@
 `define DICE_L1_LINE_SIZE            128   // in Bytes
 `define DICE_L2_LINE_SIZE            128   // in Bytes
 `define DICE_L3_LINE_SIZE            128   // in Bytes
+
+// P-graph configuration
+`define DICE_MAX_PGRAPHS              256   // Maximum p-graphs per kernel
+
 `define DICE_GPR_NUM                 16    // General Purpose Registers
 `define DICE_PR_NUM                  8     // Predicate Registers
 `define DICE_CR_NUM                  8     // Constant Registers
