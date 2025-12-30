@@ -3,6 +3,7 @@
 // This is an issue that needs to be addressed.
 // if pop signal is sent, but buffer hasn't been consumed there may be data corruption
 // THERE ARE ISSUES WITH THE POP INTERFACE. IT MAY NEED BACKPRESSURE.
+//NEED to figure out the hw cta id stuff
 
 
 import dice_pkg::*;
@@ -37,7 +38,7 @@ module active_cta_table #(
 
     
     // Status outputs
-    output active_cta_t active_cta_entries [DICE_NUM_MAX_CTA_PER_CORE-1:0],
+    output active_cta_t [DICE_NUM_MAX_CTA_PER_CORE-1:0] active_cta_entries,
 
     //output flags
     output logic full,
