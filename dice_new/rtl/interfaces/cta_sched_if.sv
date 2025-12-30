@@ -1,8 +1,11 @@
-interface cta_sched_if import dice_frontend_pkg::*; ();
 
-    logic  valid;
-    schedule_t data;
-    logic  ready;
+import dice_frontend_pkg::*;
+
+interface cta_sched_if ();
+
+    logic       valid;
+    eblock_t   data;
+    logic       ready;
 
     modport master (
         output valid,

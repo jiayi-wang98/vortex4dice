@@ -1,5 +1,5 @@
-  //TODO: EITHER MAKE INTERFACES FOR SOME OF THE I/O OR AT LEAST SWITCH TO STRUCTS
-  //TODO: MAKE RESET SYNCHRONOUS HIGH FOR FPGA
+//TODO: EITHER MAKE INTERFACES FOR SOME OF THE I/O OR AT LEAST SWITCH TO STRUCTS
+//TODO: MAKE RESET SYNCHRONOUS HIGH FOR FPGA
 
 `include "VX_define.vh"
 
@@ -20,14 +20,14 @@ module cta_schedule_stage #(
     input logic rst,
 
     // Host/Dispatcher interface for new CTA allocation
-    input  logic        cta_add_valid,
-    output logic        cta_add_ready,
-    input dice_cta_desc_t new_cta_all_desc,
-    
+    input  logic           cta_add_valid,
+    output logic           cta_add_ready,
+    input  dice_cta_desc_t new_cta_all_desc,
+
     // CTA completion output (to dispatcher)
-    output logic            cta_complete_valid,
-    input  logic            cta_complete_ready,
-    output dice_cta_id_t    cta_done_id,
+    output logic         cta_complete_valid,
+    input  logic         cta_complete_ready,
+    output dice_cta_id_t cta_done_id,
 
     // Scheduler output interface (to FDR stage)
     cta_sched_if.master schedule_if,
@@ -37,7 +37,7 @@ module cta_schedule_stage #(
     // input logic [EBLOCK_ID_WIDTH-1:0] eblock_commit_id,
 
     // Branch handler / predictor interface (from FDR/execution)
-    branch_handler_if.slave    status_table_bh_if,
+    branch_handler_if.slave status_table_bh_if,
 
     // TO DO: Block Retire Table interface 
     // input dice_pkg::block_retire_status brt_info,
@@ -45,7 +45,7 @@ module cta_schedule_stage #(
 
 
     // UPDATE INTERFACE (SIMT STACK CONTROLLER AND BRANCH HANDLER)
-    dice_bh_simt_if.slave       simt_stack_update,
+    dice_bh_simt_if.slave simt_stack_update,
 
 
     // SIMT STACK STATUS - MAY CHANGE TO BE INCLUDED IN BH AND VC IFs
@@ -66,110 +66,78 @@ module cta_schedule_stage #(
   // CTA Controller
   // -------------------------------------------------------------------------
   cta_controller #(
-    // Parameters can be added here
+  // Parameters can be added here
   ) cta_controller_inst (
-    .clk                    (),
-    .rst                    (),
+      .clk(),
+      .rst(),
 
-    // Host/Dispatcher interface for new CTA allocation
-    .cta_add_valid          (cta_add_valid),
-    .cta_add_ready          (cta_add_ready),
-    .new_cta_all_desc       (new_cta_all_desc),
+      // Host/Dispatcher interface for new CTA allocation
+      .cta_add_valid   (cta_add_valid),
+      .cta_add_ready   (cta_add_ready),
+      .new_cta_all_desc(new_cta_all_desc),
 
-    // CTA completion output (to host/dispatcher)
-    .cta_complete_valid     (cta_complete_valid),
-    .cta_complete_ready     (cta_complete_ready),
-    .cta_done_id            (cta_done_id),
+      // CTA completion output (to host/dispatcher)
+      .cta_complete_valid(cta_complete_valid),
+      .cta_complete_ready(cta_complete_ready),
+      .cta_done_id       (cta_done_id),
 
-    // Initialization interface with simt stack
-    .init_valid             (),
-    .init_hw_cta_id         (),
-    .init_hw_cta_size       (),
-    .init_pc                (),
-    .init_reconvergence_pc  (),
-    .init_ready             (),
+      // Initialization interface with simt stack
+      .init_valid           (),
+      .init_hw_cta_id       (),
+      .init_hw_cta_size     (),
+      .init_pc              (),
+      .init_reconvergence_pc(),
+      .init_ready           (),
 
-    // Add new cta
-    .add_active_cta_valid   (),
-    .add_active_cta_ready   (),
-    .active_cta_table_desc  (),
+      // Add new cta
+      .add_active_cta_valid (),
+      .add_active_cta_ready (),
+      .active_cta_table_desc(),
 
-    // Pop/delete cta (active cta table)
-    .pop_valid              (),
-    .pop_hw_cta_id          ()
+      // Pop/delete cta (active cta table)
+      .pop_valid    (),
+      .pop_hw_cta_id()
   );
 
   // -------------------------------------------------------------------------
   // Active CTA Table
   // -------------------------------------------------------------------------
-  active_cta_table #(
-      .MAX_NUM_CTA    (MAX_NUM_CTA),
-      .CTA_INDEX_WIDTH(CTA_ID_WIDTH),
-      .THREAD_WIDTH   (THREAD_WIDTH)
-  ) active_cta_table_inst (
-      .clk                 (),
-      .rst_n               (),
-      .pop_valid           (),
-      .pop_hw_cta_id       (),
-      .add_valid           (),
-      .add_cta_id_x        (),
-      .add_cta_id_y        (),
-      .add_cta_id_z        (),
-      .add_grid_size_x     (),
-      .add_grid_size_y     (),
-      .add_grid_size_z     (),
-      .add_cta_size_x      (),
-      .add_cta_size_y      (),
-      .add_cta_size_z      (),
-      .add_cta_size        (),
-      .add_kernel_id       (),
-      .add_ready           (),
-      .out_valid           (),
-      .out_cta_id_x        (),
-      .out_cta_id_y        (),
-      .out_cta_id_z        (),
-      .out_cta_size        (),
-      .out_kernel_id       (),
-      .out_ready           (),
-      .cta_valid           (),
-      .cta_id_x            (),
-      .cta_id_y            (),
-      .cta_id_z            (),
-      .grid_size_x         (),
-      .grid_size_y         (),
-      .grid_size_z         (),
-      .cta_size_x          (),
-      .cta_size_y          (),
-      .cta_size_z          (),
-      .cta_size            (),
-      .kernel_id           (),
-      .full                (),
-      .next_empty_cta_index()
-  );
+    active_cta_table #(
+        .THREAD_WIDTH (THREAD_WIDTH)
+    ) active_cta_table_inst (
+        .clk                  (),
+        .rst                  (),
+        .add_ready            (),
+        .add_valid            (),
+        .add_cta_info         (),
+        .add_cta_size         (),
+        .pop_valid            (),
+        .pop_hw_cta_id        (),
+        .out_valid            (),
+        .out_ready            (),
+        .out_cta_id           (),
+        .out_cta_size         (),
+        .out_kernel_id        (),
+        .active_cta_entries   (),
+        .full                 (),
+        .next_empty_cta_index ()
+    );
+
 
   // -------------------------------------------------------------------------
   // CTA Scheduler
   // -------------------------------------------------------------------------
-  cta_scheduler #(
-      .MAX_NUM_CTA    (MAX_NUM_CTA),
-      .PC_WIDTH       (PC_WIDTH),
-      .CTA_ID_WIDTH   (CTA_ID_WIDTH),
-      .EBLOCK_ID_WIDTH(EBLOCK_ID_WIDTH)
-  ) cta_scheduler_inst (
-      .clk                   (),
-      .rst_n                 (),
-      .enable                (),
-      .cta_valid             (),
-      .cta_branch_resolving  (),
-      .cta_next_pc           (),
-      .eblock_commit_valid   (),
-      .eblock_commit_id      (),
-      .schedule_valid        (),
-      .schedule_hw_cta_id    (),
-      .schedule_next_pc      (),
-      .schedule_eblock_id    (),
-      .schedule_cta_predicted(),
-      .schedule_ready        ()
+  cta_scheduler cta_scheduler_inst (
+    .clk                   (),
+    .rst                   (),
+    .enable                (),
+    .active_cta_entries    (),
+    .cta_status_entries    (),
+    .cta_next_pc           (),
+    .stack_top_active_mask (),
+    .eblock_commit_valid   (),
+    .eblock_commit_id      (),
+    .scheduled_eblock      ()
   );
 
   // -------------------------------------------------------------------------
@@ -177,7 +145,7 @@ module cta_schedule_stage #(
   // -------------------------------------------------------------------------
   cta_status_table #(
       .MAX_CTA_SIZE(MAX_NUM_CTA)
-  ) cta_status_table_inst ( // use interface
+  ) cta_status_table_inst (  // use interface
       .clk                             (),
       .rst_n                           (),
       .branch_predict_info             (),
@@ -221,13 +189,5 @@ module cta_schedule_stage #(
       .stack_full                ()
   );
 
-
-
-
-
-
-
-
-  
 
 endmodule

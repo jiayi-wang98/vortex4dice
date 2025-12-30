@@ -1,9 +1,10 @@
 
 `include "dice_define.vh"
 
+import dice_pkg::*;
 package dice_frontend_pkg;
 
-  import dice_pkg::*;
+  
 
   localparam int BITSTREAM_LENGTH_WIDTH = 8;
   localparam int MAX_EBLOCK            = DICE_NUM_MAX_CTA_PER_CORE + DICE_NUM_RETIRE_TABLE_ENTRIES;
@@ -18,6 +19,27 @@ package dice_frontend_pkg;
   // Type definitions
   // =========================================================
   
+
+  /**
+  * Branch Metadata Structure
+  * Defines control logic for p-graph branching, including predicate dependencies,
+  * jump targets, and hardware reconvergence points.
+  */
+  typedef struct packed {
+      logic                                 branch_ena;                // Branch enable: active if branch is associated with current p-graph
+      logic                                 branch_uni;                // Universal branch: if set, ignore branch_pred_reg
+      logic [$clog2(DICE_PR_NUM)-1:0]       branch_pred_reg;           // Predicate register dependency index
+      logic                                 branch_neg_pred;           // Polarity: 1 = jump if pred is 0; 0 = jump if pred is 1
+      
+      // Jump Target Calculation: 
+      // Actual PC = Current_PC + (branch_jump_target_offset * Metadata_Length)
+      logic [$clog2(DICE_MAX_PGRAPHS)-1:0]  branch_jump_target_offset; 
+      
+      // Reconvergence Calculation: 
+      // Reconvergence PC = Current_PC + (branch_reconv_offset * Metadata_Length)
+      logic [$clog2(DICE_MAX_PGRAPHS)-1:0]  branch_reconv_offset;      
+  } branch_meta_t;
+
   //metadata
   typedef struct packed {
     logic [DICE_ADDR_WIDTH-1:0]             bitstream_addr;
@@ -50,13 +72,18 @@ package dice_frontend_pkg;
 
   //stage borders
   typedef struct packed {
-    logic [DICE_HW_CTA_ID_WIDTH-1:0]        schedule_hw_cta_id; 
-    logic [DICE_ADDR_WIDTH-1:0]             schedule_next_pc;   
-    logic [EBLOCK_ID_WIDTH-1:0]             schedule_eblock_id;
-    logic                                   schedule_cta_predicted;
-    thread_mask_t                           active_mask;
-    dice_kernel_desc_t                      kernel_info;
-  } schedule_t;
+    logic [DICE_HW_CTA_ID_WIDTH-1:0]                schedule_hw_cta_id; 
+    logic [DICE_ADDR_WIDTH-1:0]                     schedule_next_pc;   
+    logic [EBLOCK_ID_WIDTH-1:0]                     schedule_eblock_id;
+    thread_mask_t                                   schedule_active_mask;
+    logic                                           schedule_prefetch_block;
+    dice_cta_id_t                                   schedule_cta_id;
+    dice_grid_size_t                                schedule_grid_size;
+    dice_cta_size_t                                 schedule_cta_size;
+    logic [DICE_KERNEL_ID_WIDTH-1:0]                schedule_kernel_id;
+    logic [DICE_SMEM_SIZE_WIDTH-1:0]                schedule_smem_per_cta;
+    logic [DICE_NUM_MAX_THREADS_PER_CORE:0]         schedule_hw_cta_size;
+  } eblock_t;
 
 
   typedef struct packed {
@@ -67,7 +94,32 @@ package dice_frontend_pkg;
     dice_kernel_desc_t                        kernel_info; 
     fdr_meta_t                                metadata; 
     logic                                     loaded_buffer;
-  } fdr_t; 
+  } fdr_t;
+
+
+
+
+
+
+    // CTA table entry structure
+    typedef struct packed {
+        logic [DICE_CTA_ID_WIDTH:0]                     hw_cta_id; //may not need if it is indexed by this
+        logic                                           cta_valid;
+        dice_cta_id_t                                   cta_id;
+        dice_grid_size_t                                grid_size;
+        dice_cta_size_t                                 cta_size;
+        logic [DICE_KERNEL_ID_WIDTH-1:0]                kernel_id;
+        logic [DICE_SMEM_SIZE_WIDTH-1:0]                smem_per_cta;
+        logic [DICE_NUM_MAX_THREADS_PER_CORE:0]         hw_cta_size;
+    } active_cta_t;
+
+
+    typedef struct packed {
+        logic [DICE_CTA_ID_WIDTH:0] hw_cta_id;
+        logic                       is_prefetch;
+        logic [DICE_ADDR_WIDTH-1:0] predict_pc;                 
+    } cta_status_t;
+ 
 
 
 
@@ -79,28 +131,6 @@ package dice_frontend_pkg;
     logic [DICE_ADDR_WIDTH-1:0]         branch_not_taken_pc;
     logic [DICE_ADDR_WIDTH-1:0]         branch_reconvergence_pc;
   } simt_stack_update_t; 
-
-  /**
-  * Branch Metadata Structure
-  * Defines control logic for p-graph branching, including predicate dependencies,
-  * jump targets, and hardware reconvergence points.
-  */
-  typedef struct packed {
-      logic                                 branch_ena;                // Branch enable: active if branch is associated with current p-graph
-      logic                                 branch_uni;                // Universal branch: if set, ignore branch_pred_reg
-      logic [$clog2(DICE_PR_NUM)-1:0]       branch_pred_reg;           // Predicate register dependency index
-      logic                                 branch_neg_pred;           // Polarity: 1 = jump if pred is 0; 0 = jump if pred is 1
-      
-      // Jump Target Calculation: 
-      // Actual PC = Current_PC + (branch_jump_target_offset * Metadata_Length)
-      logic [$clog2(DICE_MAX_PGRAPHS)-1:0]  branch_jump_target_offset; 
-      
-      // Reconvergence Calculation: 
-      // Reconvergence PC = Current_PC + (branch_reconv_offset * Metadata_Length)
-      logic [$clog2(DICE_MAX_PGRAPHS)-1:0]  branch_reconv_offset;      
-  } branch_meta_t;
-
-
 
 
 

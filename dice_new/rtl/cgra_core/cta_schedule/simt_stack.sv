@@ -1,17 +1,23 @@
+//POTENTIAL ISSUES: 
+// -CAN'T MODIFY TOP WHEN FULL
+// -WHAT HAPPENS WHEN YOU READ AND WRITE AT THE SAME TIME? 
+
+import dice_pkg::*;
+
+
 module simt_stack #(
     parameter STACK_DEPTH = 32,
-    parameter PC_WIDTH = 32,
     parameter THREAD_WIDTH = 256,
     parameter STACK_INDEX_WIDTH = $clog2(STACK_DEPTH)
 )(
     input logic clk,
-    input logic rst_n,
+    input logic rst,
     
     // Push interface (can also modify top when modify_top is asserted)
     input logic push,
     input logic modify_top,  // When 1, don't increment stack, just update top
-    input logic [PC_WIDTH-1:0] push_next_pc,
-    input logic [PC_WIDTH-1:0] push_reconvergence_pc,
+    input logic [DICE_ADDR_WIDTH-1:0] push_next_pc,
+    input logic [DICE_ADDR_WIDTH-1:0] push_reconvergence_pc,
     input logic [THREAD_WIDTH-1:0] push_active_mask,
     
     // Pop interface
@@ -21,8 +27,8 @@ module simt_stack #(
     input logic read_top,  // Request to read top of stack
     
     // Stack top outputs (registered - valid next cycle after read_top)
-    output logic [PC_WIDTH-1:0] top_next_pc,
-    output logic [PC_WIDTH-1:0] top_reconvergence_pc,
+    output logic [DICE_ADDR_WIDTH-1:0] top_next_pc,
+    output logic [DICE_ADDR_WIDTH-1:0] top_reconvergence_pc,
     output logic [THREAD_WIDTH-1:0] top_active_mask,
     output logic out_valid,  // Indicates top outputs are valid
     
@@ -32,7 +38,7 @@ module simt_stack #(
 );
 
     // Constants
-    localparam ENTRY_WIDTH = PC_WIDTH + PC_WIDTH + THREAD_WIDTH;
+    localparam ENTRY_WIDTH = DICE_ADDR_WIDTH + DICE_ADDR_WIDTH + THREAD_WIDTH;
     
     // Stack pointer (0 = empty, points to top of stack + 1)
     logic [STACK_INDEX_WIDTH:0] stack_ptr;  // Extra bit to represent STACK_DEPTH
@@ -47,19 +53,19 @@ module simt_stack #(
     
     // Pack/unpack functions for RAM data
     function [ENTRY_WIDTH-1:0] pack_entry(
-        input logic [PC_WIDTH-1:0] next_pc,
-        input logic [PC_WIDTH-1:0] reconvergence_pc,
+        input logic [DICE_ADDR_WIDTH-1:0] next_pc,
+        input logic [DICE_ADDR_WIDTH-1:0] reconvergence_pc,
         input logic [THREAD_WIDTH-1:0] active_mask
     );
         return {next_pc, reconvergence_pc, active_mask};
     endfunction
     
-    function logic [PC_WIDTH-1:0] unpack_next_pc(input [ENTRY_WIDTH-1:0] entry);
-        return entry[ENTRY_WIDTH-1:PC_WIDTH+THREAD_WIDTH];
+    function logic [DICE_ADDR_WIDTH-1:0] unpack_next_pc(input [ENTRY_WIDTH-1:0] entry);
+        return entry[ENTRY_WIDTH-1:DICE_ADDR_WIDTH+THREAD_WIDTH];
     endfunction
     
-    function logic [PC_WIDTH-1:0] unpack_reconvergence_pc(input [ENTRY_WIDTH-1:0] entry);
-        return entry[PC_WIDTH+THREAD_WIDTH-1:THREAD_WIDTH];
+    function logic [DICE_ADDR_WIDTH-1:0] unpack_reconvergence_pc(input [ENTRY_WIDTH-1:0] entry);
+        return entry[DICE_ADDR_WIDTH+THREAD_WIDTH-1:THREAD_WIDTH];
     endfunction
     
     function logic [THREAD_WIDTH-1:0] unpack_active_mask(input [ENTRY_WIDTH-1:0] entry);
@@ -134,8 +140,8 @@ module simt_stack #(
     end
     
     // Sequential logic for stack pointer management and output valid
-    always_ff @(posedge clk or negedge rst_n) begin
-        if (!rst_n) begin
+    always_ff @(posedge clk) begin
+        if (rst) begin
             stack_ptr <= '0;
             out_valid_reg <= 1'b0;
             
@@ -163,7 +169,7 @@ module simt_stack #(
     // Assertions for debugging
     `ifndef SYNTHESIS
     always @(posedge clk) begin
-        if (rst_n) begin
+        if (!rst) begin
             if (push && stack_full) begin
                 $error("SIMT Stack overflow: trying to push when stack is full");
             end
