@@ -25,12 +25,12 @@ module cta_controller #(
 
     //active cta table
     output logic                       pop_valid,
-    input  logic [CTA_INDEX_WIDTH-1:0] pop_hw_cta_id,
+    output logic [CTA_INDEX_WIDTH-1:0] pop_hw_cta_id,
 
     input  logic                                add_ready,
     output logic                                add_valid,
-    output dice_cta_desc_t                      add_cta_info,
-    output logic           [DICE_TID_WIDTH-1:0] add_cta_size,  //ensure this is correct
+    output dice_pkg::dice_cta_desc_t            add_cta_info,
+    output logic           [dice_pkg::DICE_TID_WIDTH-1:0] add_cta_size,  //ensure this is correct
 
 
     //SIMT Stack Controller
@@ -42,9 +42,12 @@ module cta_controller #(
     output logic [PC_WIDTH-1:0] init_reconvergence_pc,
 
     //cta status table
-    input dice_pkg::dice_cta_status_t [DICE_NUM_MAX_CTA_PER_CORE-1:0] cta_status_table,
+    input dice_pkg::dice_cta_status_t [dice_pkg::DICE_NUM_MAX_CTA_PER_CORE-1:0] cta_status_table,
     input logic clear_entry_valid,
-    input logic [DICE_HW_CTA_ID_WIDTH:0] clear_entry_hw_id
+    input logic [dice_pkg::DICE_HW_CTA_ID_WIDTH:0] clear_entry_hw_id,
+
+    // Active CTA Table Status
+    input logic [dice_pkg::DICE_HW_CTA_ID_WIDTH-1:0] next_empty_cta_index
 );
 
 
@@ -74,13 +77,13 @@ module cta_controller #(
   //     2'b01 -> 2 stacks (512 threads)
   //     2'b11 -> 4 stacks (1024 threads)
   // ------------------------------------------------------------
-  function automatic logic [1:0] encode_hw_cta_size(input logic [DICE_TID_WIDTH:0] cta_size);
+  function automatic logic [1:0] encode_hw_cta_size(input logic [dice_pkg::DICE_TID_WIDTH:0] cta_size);
     // Thresholds sized to match cta_size exactly
-    logic [DICE_TID_WIDTH:0] thr1;
-    logic [DICE_TID_WIDTH:0] thr2;
+    logic [dice_pkg::DICE_TID_WIDTH:0] thr1;
+    logic [dice_pkg::DICE_TID_WIDTH:0] thr2;
     begin
-      thr1 = (DICE_TID_WIDTH + 1)'(THREAD_WIDTH);
-      thr2 = (DICE_TID_WIDTH + 1)'(2 * THREAD_WIDTH);
+      thr1 = (dice_pkg::DICE_TID_WIDTH + 1)'(THREAD_WIDTH);
+      thr2 = (dice_pkg::DICE_TID_WIDTH + 1)'(2 * THREAD_WIDTH);
 
       if (cta_size <= thr1) encode_hw_cta_size = 2'b00;
       else if (cta_size <= thr2) encode_hw_cta_size = 2'b01;

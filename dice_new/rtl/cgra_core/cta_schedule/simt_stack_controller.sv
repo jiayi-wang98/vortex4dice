@@ -1,4 +1,3 @@
-import dice_pkg::*;
 
 
 module simt_stack_controller #(
@@ -8,7 +7,7 @@ module simt_stack_controller #(
     parameter NUM_STACK = 4
 ) (
     input logic clk,
-    input logic rst_n,
+    input logic rst,
 
     // CTA configuration
     input logic [$clog2(NUM_STACK)-1:0] hw_cta_id,
@@ -17,12 +16,12 @@ module simt_stack_controller #(
     // Update request interface (valid/ready handshake)
     input logic update_valid,
     input logic update_with_divergence,  // 0 = no divergence, 1 = with divergence
-    input logic [DICE_ADDR_WIDTH-1:0] update_next_pc,  // No divergence: next PC, With divergence: branch taken PC
+    input logic [dice_pkg::DICE_ADDR_WIDTH-1:0] update_next_pc,  // No divergence: next PC, With divergence: branch taken PC
 
     // Divergence case inputs (only used when update_with_divergence = 1)
     input logic [NUM_STACK*THREAD_WIDTH-1:0] predicate_regs_value,
-    input logic [DICE_ADDR_WIDTH-1:0] branch_not_taken_pc,
-    input logic [DICE_ADDR_WIDTH-1:0] branch_reconvergence_pc,
+    input logic [dice_pkg::DICE_ADDR_WIDTH-1:0] branch_not_taken_pc,
+    input logic [dice_pkg::DICE_ADDR_WIDTH-1:0] branch_reconvergence_pc,
 
     output logic update_ready,
 
@@ -30,14 +29,14 @@ module simt_stack_controller #(
     input logic init_valid,
     input logic [$clog2(NUM_STACK)-1:0] init_hw_cta_id,
     input logic [1:0] init_hw_cta_size,
-    input logic [DICE_ADDR_WIDTH-1:0] init_pc,
-    input logic [DICE_ADDR_WIDTH-1:0] init_reconvergence_pc,
+    input logic [dice_pkg::DICE_ADDR_WIDTH-1:0] init_pc,
+    input logic [dice_pkg::DICE_ADDR_WIDTH-1:0] init_reconvergence_pc,
     output logic init_ready,
 
     // Stack top outputs (when not busy) - combined from active stacks
     output logic [NUM_STACK-1:0] stack_top_valid,
-    output logic [NUM_STACK-1:0][DICE_ADDR_WIDTH-1:0] stack_top_next_pc,
-    output logic [NUM_STACK-1:0][DICE_ADDR_WIDTH-1:0] stack_top_reconvergence_pc,
+    output logic [NUM_STACK-1:0][dice_pkg::DICE_ADDR_WIDTH-1:0] stack_top_next_pc,
+    output logic [NUM_STACK-1:0][dice_pkg::DICE_ADDR_WIDTH-1:0] stack_top_reconvergence_pc,
     output logic [NUM_STACK-1:0][THREAD_WIDTH-1:0] stack_top_active_mask,
 
     // Stack status - individual stack status
@@ -87,14 +86,14 @@ module simt_stack_controller #(
 
   // Internal registers for multi-cycle operations
   logic update_with_divergence_reg;
-  logic [DICE_ADDR_WIDTH-1:0] update_next_pc_reg;
+  logic [dice_pkg::DICE_ADDR_WIDTH-1:0] update_next_pc_reg;
   logic [NUM_STACK*THREAD_WIDTH-1:0] predicate_regs_value_reg;
-  logic [DICE_ADDR_WIDTH-1:0] branch_not_taken_pc_reg;
-  logic [DICE_ADDR_WIDTH-1:0] branch_reconvergence_pc_reg;
+  logic [dice_pkg::DICE_ADDR_WIDTH-1:0] branch_not_taken_pc_reg;
+  logic [dice_pkg::DICE_ADDR_WIDTH-1:0] branch_reconvergence_pc_reg;
 
   // Registers for init operation
-  logic [DICE_ADDR_WIDTH-1:0] init_pc_reg;
-  logic [DICE_ADDR_WIDTH-1:0] init_reconvergence_pc_reg;
+  logic [dice_pkg::DICE_ADDR_WIDTH-1:0] init_pc_reg;
+  logic [dice_pkg::DICE_ADDR_WIDTH-1:0] init_reconvergence_pc_reg;
 
   // Per-stack signals
   logic [NUM_STACK-1:0] stack_push;
@@ -105,17 +104,17 @@ module simt_stack_controller #(
   logic [NUM_STACK-1:0] stack_empty_individual;
   logic [NUM_STACK-1:0] stack_full_individual;
 
-  logic [DICE_ADDR_WIDTH-1:0] stack_push_next_pc[NUM_STACK];
-  logic [DICE_ADDR_WIDTH-1:0] stack_push_reconvergence_pc[NUM_STACK];
+  logic [dice_pkg::DICE_ADDR_WIDTH-1:0] stack_push_next_pc[NUM_STACK];
+  logic [dice_pkg::DICE_ADDR_WIDTH-1:0] stack_push_reconvergence_pc[NUM_STACK];
   logic [THREAD_WIDTH-1:0] stack_push_active_mask[NUM_STACK];
-  logic [DICE_ADDR_WIDTH-1:0] stack_top_next_pc_int[NUM_STACK];
-  logic [DICE_ADDR_WIDTH-1:0] stack_top_reconvergence_pc_int[NUM_STACK];
+  logic [dice_pkg::DICE_ADDR_WIDTH-1:0] stack_top_next_pc_int[NUM_STACK];
+  logic [dice_pkg::DICE_ADDR_WIDTH-1:0] stack_top_reconvergence_pc_int[NUM_STACK];
   logic [THREAD_WIDTH-1:0] stack_top_active_mask_int[NUM_STACK];
 
   // Combined stack signals
   logic combined_stack_out_valid;
-  logic [DICE_ADDR_WIDTH-1:0] combined_stack_top_next_pc;
-  logic [DICE_ADDR_WIDTH-1:0] combined_stack_top_reconvergence_pc;
+  logic [dice_pkg::DICE_ADDR_WIDTH-1:0] combined_stack_top_next_pc;
+  logic [dice_pkg::DICE_ADDR_WIDTH-1:0] combined_stack_top_reconvergence_pc;
   logic [NUM_STACK*THREAD_WIDTH-1:0] combined_stack_top_active_mask;
 
   // Computed values for divergence analysis
@@ -129,11 +128,11 @@ module simt_stack_controller #(
 
   // Operation control signals - registered
   logic need_pop_reg, need_modify_top_reg, need_push_first_reg, need_push_second_reg;
-  logic [DICE_ADDR_WIDTH-1:0] new_top_pc_reg;
-  logic [DICE_ADDR_WIDTH-1:0] new_top_reconvergence_pc_reg;
+  logic [dice_pkg::DICE_ADDR_WIDTH-1:0] new_top_pc_reg;
+  logic [dice_pkg::DICE_ADDR_WIDTH-1:0] new_top_reconvergence_pc_reg;
   logic [NUM_STACK*THREAD_WIDTH-1:0] new_top_active_mask_reg;
-  logic [DICE_ADDR_WIDTH-1:0] push_pc_1_reg, push_pc_2_reg;
-  logic [DICE_ADDR_WIDTH-1:0] push_reconvergence_pc_1_reg, push_reconvergence_pc_2_reg;
+  logic [dice_pkg::DICE_ADDR_WIDTH-1:0] push_pc_1_reg, push_pc_2_reg;
+  logic [dice_pkg::DICE_ADDR_WIDTH-1:0] push_reconvergence_pc_1_reg, push_reconvergence_pc_2_reg;
   logic [NUM_STACK*THREAD_WIDTH-1:0] push_active_mask_1_reg, push_active_mask_2_reg;
 
   // Generate individual SIMT stacks
@@ -145,7 +144,7 @@ module simt_stack_controller #(
           .THREAD_WIDTH(THREAD_WIDTH)
       ) stack_inst (
           .clk(clk),
-          .rst_n(rst_n),
+          .rst(rst),
           .push(stack_push[i]),
           .modify_top(stack_modify_top[i]),
           .push_next_pc(stack_push_next_pc[i]),
@@ -457,8 +456,8 @@ module simt_stack_controller #(
   end
 
   // Sequential logic
-  always_ff @(posedge clk or negedge rst_n) begin
-    if (!rst_n) begin
+  always_ff @(posedge clk) begin
+    if (rst) begin
       current_state <= IDLE;
       update_with_divergence_reg <= 1'b0;
       update_next_pc_reg <= '0;
@@ -585,7 +584,7 @@ module simt_stack_controller #(
   // Debug assertions
 `ifndef SYNTHESIS
   always @(posedge clk) begin
-    if (rst_n) begin
+    if (!rst) begin
       if (update_valid && update_ready && (hw_cta_id + hw_cta_size >= NUM_STACK)) begin
         $error(
             "SIMT Stack Controller: CTA configuration exceeds available stacks (hw_cta_id=%0d, hw_cta_size=%0d, max=%0d)",

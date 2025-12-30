@@ -5,32 +5,28 @@
 //the priority schedule was changed so it starts from id+1, ensure that is correct
 
 
-import dice_pkg::*;
-import dice_frontend_pkg::*;
-
-
 module cta_scheduler #(
-    parameter MAX_EBLOCK = DICE_NUM_MAX_CTA_PER_CORE + 4  //localparam?
+    parameter MAX_EBLOCK = dice_pkg::DICE_NUM_MAX_CTA_PER_CORE + 4  //localparam?
 ) (
     input logic clk,
     input logic rst,
     input logic enable, // Enable signal for scheduler operation
 
     // Active CTA Table
-    input active_cta_t [DICE_NUM_MAX_CTA_PER_CORE-1:0] active_cta_entries,
+    input dice_frontend_pkg::active_cta_t [dice_pkg::DICE_NUM_MAX_CTA_PER_CORE-1:0] active_cta_entries,
 
     //CTA STATUS TABLE
-    input cta_status_t [DICE_NUM_MAX_CTA_PER_CORE-1:0] cta_status_entries,
+    input dice_frontend_pkg::cta_status_t [dice_pkg::DICE_NUM_MAX_CTA_PER_CORE-1:0] cta_status_entries,
 
     //SIMT STACK
     //do i need this: stack_top_valid
-    input logic [DICE_NUM_MAX_CTA_PER_CORE-1:0][DICE_ADDR_WIDTH-1:0] cta_next_pc,
-    input logic [DICE_NUM_MAX_CTA_PER_CORE-1:0][   THREAD_WIDTH-1:0] stack_top_active_mask,
+    input logic [dice_pkg::DICE_NUM_MAX_CTA_PER_CORE-1:0][dice_pkg::DICE_ADDR_WIDTH-1:0] cta_next_pc,
+    input logic [dice_pkg::DICE_NUM_MAX_CTA_PER_CORE-1:0][dice_pkg::DICE_NUM_MAX_THREADS_PER_CORE-1:0] stack_top_active_mask,
 
 
     // External interface to invalidate committed e-blocks
     input logic                            eblock_commit_valid,
-    input logic [DICE_EBLOCK_ID_WIDTH-1:0] eblock_commit_id,
+    input logic [dice_pkg::DICE_EBLOCK_ID_WIDTH-1:0] eblock_commit_id,
 
     // Scheduler outputs
     cta_sched_if.master scheduled_eblock
@@ -38,32 +34,32 @@ module cta_scheduler #(
 
   // E-block tracking table
   logic [               MAX_EBLOCK-1:0] eblock_live;
-  logic [     DICE_EBLOCK_ID_WIDTH-1:0] eblock_ptr;  // Circular pointer for e-block allocation
+  logic [     dice_pkg::DICE_EBLOCK_ID_WIDTH-1:0] eblock_ptr;  // Circular pointer for e-block allocation
 
   // PC history for locality scheduling
-  logic [          DICE_ADDR_WIDTH-1:0] previous_pc;
+  logic [          dice_pkg::DICE_ADDR_WIDTH-1:0] previous_pc;
   logic                                 pc_history_valid;
 
   // Round-robin tracking
-  logic [        DICE_CTA_ID_WIDTH-1:0] last_dispatched_cta;
+  logic [        dice_pkg::DICE_CTA_ID_WIDTH-1:0] last_dispatched_cta;
 
   // Internal scheduling signals
-  logic [DICE_NUM_MAX_CTA_PER_CORE-1:0] priority_match;
-  logic [DICE_NUM_MAX_CTA_PER_CORE-1:0] non_branch_candidates;
-  logic [DICE_NUM_MAX_CTA_PER_CORE-1:0] any_valid_candidates;
+  logic [dice_pkg::DICE_NUM_MAX_CTA_PER_CORE-1:0] priority_match;
+  logic [dice_pkg::DICE_NUM_MAX_CTA_PER_CORE-1:0] non_branch_candidates;
+  logic [dice_pkg::DICE_NUM_MAX_CTA_PER_CORE-1:0] any_valid_candidates;
 
   logic                                 priority_found;
   logic                                 non_branch_found;
   logic                                 any_valid_found;
 
-  logic [        DICE_CTA_ID_WIDTH-1:0] selected_cta_id;
+  logic [        dice_pkg::DICE_CTA_ID_WIDTH-1:0] selected_cta_id;
   logic                                 selection_valid;
   logic                                 selected_from_branch_resolving;
 
   //unpack struct
-  logic [DICE_NUM_MAX_CTA_PER_CORE-1:0] cta_valid, cta_branch_resolving;
+  logic [dice_pkg::DICE_NUM_MAX_CTA_PER_CORE-1:0] cta_valid, cta_branch_resolving;
   always_comb begin
-    for (int i = 0; i < DICE_NUM_MAX_CTA_PER_CORE; i++) begin
+    for (int i = 0; i < dice_pkg::DICE_NUM_MAX_CTA_PER_CORE; i++) begin
       cta_valid[i] = active_cta_entries[i].cta_valid;
       cta_branch_resolving[i] = cta_status_entries[i].is_prefetch;
     end
@@ -76,7 +72,7 @@ module cta_scheduler #(
     priority_found = 1'b0;
 
     if (pc_history_valid) begin
-      for (int i = 0; i < DICE_NUM_MAX_CTA_PER_CORE; i++) begin
+      for (int i = 0; i < dice_pkg::DICE_NUM_MAX_CTA_PER_CORE; i++) begin
         if (cta_valid[i] && (cta_next_pc[i] == previous_pc)) begin
           priority_match[i] = 1'b1;
           priority_found = 1'b1;
@@ -115,9 +111,9 @@ module cta_scheduler #(
       //     end
       // end
 
-      for (int i = 0; i < DICE_NUM_MAX_CTA_PER_CORE; i++) begin
-        automatic logic [DICE_CTA_ID_WIDTH-1:0] check_idx;
-        check_idx = (last_dispatched_cta + 1 + i) & (DICE_NUM_MAX_CTA_PER_CORE - 1);
+      for (int i = 0; i < dice_pkg::DICE_NUM_MAX_CTA_PER_CORE; i++) begin
+        automatic logic [dice_pkg::DICE_CTA_ID_WIDTH-1:0] check_idx;
+        check_idx = (last_dispatched_cta + 1 + i) & (dice_pkg::DICE_NUM_MAX_CTA_PER_CORE - 1);
 
         if (priority_match[check_idx]) begin
           selected_cta_id = check_idx;
@@ -133,9 +129,9 @@ module cta_scheduler #(
       selected_from_branch_resolving = 1'b0;  // By definition, not branch resolving
 
       // Start from next CTA after last dispatched
-      for (int i = 0; i < DICE_NUM_MAX_CTA_PER_CORE; i++) begin
-        automatic logic [DICE_CTA_ID_WIDTH-1:0] check_idx;
-        check_idx = (last_dispatched_cta + 1 + i) & (DICE_NUM_MAX_CTA_PER_CORE - 1);
+      for (int i = 0; i < dice_pkg::DICE_NUM_MAX_CTA_PER_CORE; i++) begin
+        automatic logic [dice_pkg::DICE_CTA_ID_WIDTH-1:0] check_idx;
+        check_idx = (last_dispatched_cta + 1 + i) & (dice_pkg::DICE_NUM_MAX_CTA_PER_CORE - 1);
         if (non_branch_candidates[check_idx]) begin
           selected_cta_id = check_idx;
           break;
@@ -147,9 +143,9 @@ module cta_scheduler #(
       selection_valid = 1'b1;
 
       // Start from next CTA after last dispatched
-      for (int i = 0; i < DICE_NUM_MAX_CTA_PER_CORE; i++) begin
-        automatic logic [DICE_CTA_ID_WIDTH-1:0] check_idx;
-        check_idx = (last_dispatched_cta + 1 + i) & (DICE_NUM_MAX_CTA_PER_CORE - 1);
+      for (int i = 0; i < dice_pkg::DICE_NUM_MAX_CTA_PER_CORE; i++) begin
+        automatic logic [dice_pkg::DICE_CTA_ID_WIDTH-1:0] check_idx;
+        check_idx = (last_dispatched_cta + 1 + i) & (dice_pkg::DICE_NUM_MAX_CTA_PER_CORE - 1);
         if (any_valid_candidates[check_idx]) begin
           selected_cta_id = check_idx;
           selected_from_branch_resolving = cta_branch_resolving[check_idx];

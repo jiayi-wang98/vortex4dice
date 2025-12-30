@@ -1,8 +1,6 @@
-//POTENTIAL ISSUES: 
+//POTENTIAL ISSUES:
 // -CAN'T MODIFY TOP WHEN FULL
-// -WHAT HAPPENS WHEN YOU READ AND WRITE AT THE SAME TIME? 
-
-import dice_pkg::*;
+// -WHAT HAPPENS WHEN YOU READ AND WRITE AT THE SAME TIME?
 
 
 module simt_stack #(
@@ -12,66 +10,66 @@ module simt_stack #(
 )(
     input logic clk,
     input logic rst,
-    
+
     // Push interface (can also modify top when modify_top is asserted)
     input logic push,
     input logic modify_top,  // When 1, don't increment stack, just update top
-    input logic [DICE_ADDR_WIDTH-1:0] push_next_pc,
-    input logic [DICE_ADDR_WIDTH-1:0] push_reconvergence_pc,
+    input logic [dice_pkg::DICE_ADDR_WIDTH-1:0] push_next_pc,
+    input logic [dice_pkg::DICE_ADDR_WIDTH-1:0] push_reconvergence_pc,
     input logic [THREAD_WIDTH-1:0] push_active_mask,
-    
+
     // Pop interface
     input logic pop,
-    
+
     // Read top interface
     input logic read_top,  // Request to read top of stack
-    
+
     // Stack top outputs (registered - valid next cycle after read_top)
-    output logic [DICE_ADDR_WIDTH-1:0] top_next_pc,
-    output logic [DICE_ADDR_WIDTH-1:0] top_reconvergence_pc,
+    output logic [dice_pkg::DICE_ADDR_WIDTH-1:0] top_next_pc,
+    output logic [dice_pkg::DICE_ADDR_WIDTH-1:0] top_reconvergence_pc,
     output logic [THREAD_WIDTH-1:0] top_active_mask,
     output logic out_valid,  // Indicates top outputs are valid
-    
+
     // Stack status outputs
     output logic stack_empty,
     output logic stack_full
 );
 
     // Constants
-    localparam ENTRY_WIDTH = DICE_ADDR_WIDTH + DICE_ADDR_WIDTH + THREAD_WIDTH;
-    
+    localparam ENTRY_WIDTH = dice_pkg::DICE_ADDR_WIDTH + dice_pkg::DICE_ADDR_WIDTH + THREAD_WIDTH;
+
     // Stack pointer (0 = empty, points to top of stack + 1)
     logic [STACK_INDEX_WIDTH:0] stack_ptr;  // Extra bit to represent STACK_DEPTH
-    
+
     // Output valid register
     logic out_valid_reg;
-    
+
     // RAM interface signals
     logic ram_wr_en, ram_rd_en;
     logic [STACK_INDEX_WIDTH-1:0] ram_wr_addr, ram_rd_addr;
     logic [ENTRY_WIDTH-1:0] ram_wr_data, ram_rd_data;
-    
+
     // Pack/unpack functions for RAM data
     function [ENTRY_WIDTH-1:0] pack_entry(
-        input logic [DICE_ADDR_WIDTH-1:0] next_pc,
-        input logic [DICE_ADDR_WIDTH-1:0] reconvergence_pc,
+        input logic [dice_pkg::DICE_ADDR_WIDTH-1:0] next_pc,
+        input logic [dice_pkg::DICE_ADDR_WIDTH-1:0] reconvergence_pc,
         input logic [THREAD_WIDTH-1:0] active_mask
     );
         return {next_pc, reconvergence_pc, active_mask};
     endfunction
-    
-    function logic [DICE_ADDR_WIDTH-1:0] unpack_next_pc(input [ENTRY_WIDTH-1:0] entry);
-        return entry[ENTRY_WIDTH-1:DICE_ADDR_WIDTH+THREAD_WIDTH];
+
+    function logic [dice_pkg::DICE_ADDR_WIDTH-1:0] unpack_next_pc(input [ENTRY_WIDTH-1:0] entry);
+        return entry[ENTRY_WIDTH-1:dice_pkg::DICE_ADDR_WIDTH+THREAD_WIDTH];
     endfunction
-    
-    function logic [DICE_ADDR_WIDTH-1:0] unpack_reconvergence_pc(input [ENTRY_WIDTH-1:0] entry);
-        return entry[DICE_ADDR_WIDTH+THREAD_WIDTH-1:THREAD_WIDTH];
+
+    function logic [dice_pkg::DICE_ADDR_WIDTH-1:0] unpack_reconvergence_pc(input [ENTRY_WIDTH-1:0] entry);
+        return entry[dice_pkg::DICE_ADDR_WIDTH+THREAD_WIDTH-1:THREAD_WIDTH];
     endfunction
-    
+
     function logic [THREAD_WIDTH-1:0] unpack_active_mask(input [ENTRY_WIDTH-1:0] entry);
         return entry[THREAD_WIDTH-1:0];
     endfunction
-    
+
     // Instantiate DICE RAM for stack entries
 `ifndef NO_SRAM
     sram_0rw1r1w_320_32_freepdk45 stack_ram (
@@ -102,13 +100,13 @@ module simt_stack #(
     // Stack status
     assign stack_empty = (stack_ptr == 0);
     assign stack_full = (stack_ptr == STACK_DEPTH);
-    
+
     // Top of stack outputs - directly from RAM (registered)
     assign top_next_pc = unpack_next_pc(ram_rd_data);
     assign top_reconvergence_pc = unpack_reconvergence_pc(ram_rd_data);
     assign top_active_mask = unpack_active_mask(ram_rd_data);
     assign out_valid = out_valid_reg;
-    
+
     // Control logic for RAM operations
     always_comb begin
         // Default values
@@ -117,7 +115,7 @@ module simt_stack #(
         ram_wr_addr = '0;
         ram_rd_addr = '0;
         ram_wr_data = '0;
-        
+
         if (push && !stack_full) begin
             if (modify_top && stack_ptr > 0) begin
                 // Modify top: write to current top location
@@ -131,32 +129,32 @@ module simt_stack #(
                 ram_wr_data = pack_entry(push_next_pc, push_reconvergence_pc, push_active_mask);
             end
         end
-        
+
         // Read top of stack when requested
         if (read_top && stack_ptr > 0) begin
             ram_rd_en = 1'b1;
             ram_rd_addr = stack_ptr - 1;  // Top of stack
         end
     end
-    
+
     // Sequential logic for stack pointer management and output valid
     always_ff @(posedge clk) begin
         if (rst) begin
             stack_ptr <= '0;
             out_valid_reg <= 1'b0;
-            
+
         end else begin
             // Handle stack pointer updates
             if (push && !stack_full && !modify_top) begin
                 // Normal push: increment stack pointer
                 stack_ptr <= stack_ptr + 1;
-                
+
             end else if (pop && !stack_empty) begin
                 // Pop: decrement stack pointer
                 stack_ptr <= stack_ptr - 1;
             end
             // modify_top doesn't change stack_ptr
-            
+
             // Handle output valid - becomes valid one cycle after read_top
             if (read_top && stack_ptr > 0) begin
                 out_valid_reg <= 1'b1;
@@ -165,7 +163,7 @@ module simt_stack #(
             end
         end
     end
-    
+
     // Assertions for debugging
     `ifndef SYNTHESIS
     always @(posedge clk) begin
