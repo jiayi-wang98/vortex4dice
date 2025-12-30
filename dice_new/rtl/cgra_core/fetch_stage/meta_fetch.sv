@@ -35,9 +35,9 @@ module meta_fetch #(
     S_REQ_VAL   = 2'b01,
     S_WAIT_RESP = 2'b10,  // waiting for response from cache
     S_HOLD_DATA = 2'b11   //waits for decoder to consume meta
-  } meta_fetch_states;
+  } meta_fetch_state_e;
 
-  meta_fetch_states state_q, state_d;
+  meta_fetch_state_e state_q, state_d;
   logic meta_valid_q;
   logic [EBLOCK_ID_WIDTH-1:0] eblock_id_q;
 

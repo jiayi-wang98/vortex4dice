@@ -118,8 +118,9 @@ module cta_schedule_stage #(
       .init_pc(  /* init to SIMT */),
       .init_reconvergence_pc(  /* init to SIMT */),
       .init_ready(  /* init from SIMT */),
-      .cta_status_entries(cta_status_zero),  // TODO: connect cta_status_table once type aligns
-      .bct_hw_cta_pending(bct_hw_cta_pending_zero)  // TODO: connect BCT pending vector
+      .cta_status_table(),
+      .clear_entry_valid(),
+      .clear_entry_hw_id()
   );
 
   // -------------------------------------------------------------------------
@@ -155,7 +156,7 @@ module cta_schedule_stage #(
   ) cta_scheduler_inst (
       .clk(clk),
       .rst(rst),
-      .enable(1'b1),  // TODO: gate when core enable is available
+      .enable(1'b1),
       .active_cta_entries(active_cta_entries),
       .cta_status_entries(scheduler_cta_status_zero),
       .cta_next_pc(stack_top_next_pc),
@@ -167,7 +168,7 @@ module cta_schedule_stage #(
 
 
   // -------------------------------------------------------------------------
-  // CTA Status Table - NOT FINISHED YET
+  // CTA Status Table
   // -------------------------------------------------------------------------
   cta_status_table cta_status_table_inst (
       .clk(clk),
@@ -183,7 +184,7 @@ module cta_schedule_stage #(
 
 
   // -------------------------------------------------------------------------
-  // SIMT Stack Controller
+  // SIMT Stack Controller - FIX RESET
   // -------------------------------------------------------------------------
   simt_stack_controller #(
       .STACK_DEPTH (STACK_DEPTH),
