@@ -1,10 +1,8 @@
 
-import dice_frontend_pkg::*;
-
 interface cta_sched_if ();
 
     logic       valid;
-    eblock_t   data;
+    dice_frontend_pkg::eblock_t data;
     logic       ready;
 
     modport master (

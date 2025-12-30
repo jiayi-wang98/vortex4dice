@@ -1,9 +1,9 @@
 
-interface fdr_if import dice_frontend_pkg::*; ();
+interface fdr_if ();
 
-    logic  valid;
-    fdr_t data;
-    logic  ready;
+    logic valid;
+    dice_frontend_pkg::fdr_t data;
+    logic ready;
 
     modport master (
         output valid,
