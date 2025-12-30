@@ -76,9 +76,9 @@ package dice_pkg;
   } dice_cta_status_t; // CTA status descriptor
 
   typedef struct packed {
-    logic [DICE_HW_CTA_ID_WIDTH-1:0] hw_cta_id;
-    logic                       unresolved_control_divergence;
-    logic [DICE_ADDR_WIDTH-1:0] predict_pc;
+    logic [DICE_HW_CTA_ID_WIDTH-1:0]  hw_cta_id;
+    logic                             unresolved_control_divergence;
+    logic [DICE_ADDR_WIDTH-1:0]       predict_pc;
     logic is_return;
   } branch_predict_interface_t; // Branch prediction interface descriptor
 
