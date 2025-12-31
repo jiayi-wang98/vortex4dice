@@ -166,6 +166,7 @@ module simt_stack_controller #(
   always_comb begin
     logic all_active_valid;
     int   mask_offset;
+    mask_offset = 0;
     combined_stack_out_valid = 1'b0;
     combined_stack_top_next_pc = '0;
     combined_stack_top_reconvergence_pc = '0;
@@ -376,6 +377,7 @@ module simt_stack_controller #(
   // Distribute signals to individual stacks based on active configuration
   always_comb begin
     int mask_offset;
+    mask_offset = 0;
     // Initialize all stacks to inactive
     for (int j = 0; j < NUM_STACK; j++) begin
       stack_push[j] = 1'b0;
@@ -435,6 +437,7 @@ module simt_stack_controller #(
             stack_push_reconvergence_pc[j] = init_reconvergence_pc_reg;
             stack_push_active_mask[j] = '1;  // All threads active
           end
+          default: ;
         endcase
       end
     end

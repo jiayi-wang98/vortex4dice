@@ -24,6 +24,7 @@ module active_cta_table #(
     // Pop interface
     input logic pop_valid,
     input logic [dice_pkg::DICE_HW_CTA_ID_WIDTH-1:0] pop_hw_cta_id,  //which one to pop
+    output logic pop_ready,  // Backpressure: can accept pop
 
 
     // Output popped CTA interface (table is master)
@@ -50,7 +51,7 @@ module active_cta_table #(
     // entries_needed = ceil(cta_size / THREAD_WIDTH) = (cta_size + THREAD_WIDTH - 1) >> log2(THREAD_WIDTH)
     logic [dice_pkg::DICE_TID_WIDTH-1:0] adjusted_size;
     adjusted_size = cta_size + THREAD_WIDTH - 1;
-    return adjusted_size >> $clog2(THREAD_WIDTH);
+    return adjusted_size >> (dice_pkg::DICE_TID_WIDTH'($clog2(THREAD_WIDTH)));
   endfunction
 
 
@@ -81,16 +82,31 @@ module active_cta_table #(
   // Calculate entries needed for incoming CTA
   assign entries_needed = calc_entries_needed(add_cta_size);
 
-  // Find next empty entry - simplified since we assume requests won't exceed available space
+  // Find next empty entry - Contiguous Block Search
   always_comb begin
     found_empty = 1'b0;
     empty_index = '0;
 
-    // Simple search for first empty slot - no need to check consecutive availability
-    for (int i = 0; i < dice_pkg::DICE_NUM_MAX_CTA_PER_CORE; i++) begin
-      if (!cta_table[i].entry_info.cta_valid && !found_empty) begin
-        empty_index = i[dice_pkg::DICE_HW_CTA_ID_WIDTH-1:0];
-        found_empty = 1'b1;
+    // Search for a contiguous block of 'entries_needed' slots
+    for (int i = 0; i <= dice_pkg::DICE_NUM_MAX_CTA_PER_CORE - 1; i++) begin
+      logic block_valid;
+      block_valid = 1'b1;
+
+      // Check if the block fits within the table bounds
+      if ((i + entries_needed) <= dice_pkg::DICE_NUM_MAX_CTA_PER_CORE) begin
+        // Check if all slots in the block are empty
+        for (int k = 0; k < dice_pkg::DICE_NUM_MAX_CTA_PER_CORE; k++) begin
+           if (k >= i && k < (i + entries_needed)) begin
+              if (cta_table[k].entry_info.cta_valid) begin
+                  block_valid = 1'b0;
+              end
+           end
+        end
+
+        if (block_valid && !found_empty) begin
+          empty_index = (dice_pkg::DICE_HW_CTA_ID_WIDTH)'(i);
+          found_empty = 1'b1;
+        end
       end
     end
   end
@@ -108,6 +124,12 @@ module active_cta_table #(
 
   logic pop_this_cycle;
   logic output_consumed_this_cycle;
+
+  // Pop ready when buffer is empty or being consumed this cycle
+  assign pop_ready = !output_buffer_valid || output_consumed_this_cycle;
+
+  assign pop_this_cycle = pop_valid && pop_ready && cta_table[pop_hw_cta_id].entry_info.cta_valid;
+  assign output_consumed_this_cycle = out_valid && out_ready;
 
   // CTA valid outputs and status information - only from primary entries
   always_comb begin
@@ -136,16 +158,11 @@ module active_cta_table #(
       output_buffer_kernel_id <= '0;
 
     end else begin
-      // Handle simultaneous pop and output buffer operations
-
-      pop_this_cycle = pop_valid && cta_table[pop_hw_cta_id].entry_info.cta_valid;
-      output_consumed_this_cycle = out_valid && out_ready;
-
       if (pop_this_cycle && output_consumed_this_cycle) begin
         // Pop and output in same cycle - directly replace buffer contents
         output_buffer_valid <= 1'b1;
         output_buffer_cta_id <= cta_table[pop_hw_cta_id].entry_info.cta_id;
-        output_buffer_cta_size <= cta_table[pop_hw_cta_id].entry_info.hw_cta_size;
+        output_buffer_cta_size <= (dice_pkg::DICE_TID_WIDTH)'(cta_table[pop_hw_cta_id].entry_info.hw_cta_size);
         output_buffer_kernel_id <= cta_table[pop_hw_cta_id].entry_info.kernel_id;
 
         // Clear all entries used by this CTA
@@ -161,7 +178,7 @@ module active_cta_table #(
         // Pop when buffer is empty - store in buffer
         output_buffer_valid <= 1'b1;
         output_buffer_cta_id <= cta_table[pop_hw_cta_id].entry_info.cta_id;
-        output_buffer_cta_size <= cta_table[pop_hw_cta_id].entry_info.hw_cta_size;
+        output_buffer_cta_size <= (dice_pkg::DICE_TID_WIDTH)'(cta_table[pop_hw_cta_id].entry_info.hw_cta_size);
         output_buffer_kernel_id <= cta_table[pop_hw_cta_id].entry_info.kernel_id;
 
         // Clear all entries used by this CTA
@@ -194,9 +211,8 @@ module active_cta_table #(
               cta_table[j].entry_info.cta_size <= add_cta_info.kernel_desc.cta_size;
               cta_table[j].entry_info.kernel_id <= add_cta_info.kernel_desc.kernel_id;
               cta_table[j].entry_info.smem_per_cta <= add_cta_info.kernel_desc.smem_per_cta;
-              cta_table[j].entry_info.hw_cta_size <= add_cta_size;
+              cta_table[j].entry_info.hw_cta_size <= (dice_pkg::DICE_HW_CTA_SIZE_WIDTH)'(add_cta_size);
             end else begin
-              // Non-primary entries have no meaningful data (but store entries_used for cleanup)
               cta_table[j] <= '0;
             end
             cta_table[j].entry_info.cta_valid <= 1'b1;
@@ -207,5 +223,28 @@ module active_cta_table #(
       end
     end
   end
+
+
+
+  `ifndef SYNTHESIS
+  always_ff @(posedge clk) begin
+    if (!rst) begin
+      if (add_valid && add_ready) begin
+        assert ((empty_index + entries_needed) <= dice_pkg::DICE_NUM_MAX_CTA_PER_CORE)
+        else $error("ContiguousAllocation: Allocated block exceeds table bounds");
+      end
+
+      if (pop_valid) begin
+        assert (cta_table[pop_hw_cta_id].entry_info.cta_valid)
+        else $error("PopValidEntry: Popping invalid entry");
+      end
+
+      if (out_valid) begin
+        assert (!$isunknown(out_cta_id))
+        else $error("OutputKnown: Output ID contains X");
+      end
+    end
+  end
+  `endif
 
 endmodule

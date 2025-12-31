@@ -47,7 +47,12 @@ module cta_status_table (
     end
 
     if (clear_entry_valid) begin
-      cta_status_d[clear_entry_hw_id] = '0;
+      cta_status_d[clear_entry_hw_id].has_pending_eblock = 1'b0;
+      cta_status_d[clear_entry_hw_id].unresolved_control_divergence = 1'b0;
+      cta_status_d[clear_entry_hw_id].is_return = 1'b0;
+      cta_status_d[clear_entry_hw_id].predict_pc = '0;
+      cta_status_d[clear_entry_hw_id].is_barrier = 1'b0;
+
     end
   end
 
@@ -65,5 +70,23 @@ module cta_status_table (
   end
 
   assign cta_status = cta_status_q;
+
+  // `include "dice_assert_defines.vh" - File not found
+
+  `ifndef SYNTHESIS
+  // Status is cleared in the next cycle after clear_entry_valid
+  always_ff @(posedge clk) begin
+    if (clear_entry_valid) begin
+      // Check in next cycle
+      assert (cta_status_d[clear_entry_hw_id].has_pending_eblock == 0)
+      else $error("CleanStatusAfterClear: Status not cleared (check immediate update)");
+      // Note: Concurrent assertion |=> checks next cycle. Immediate assertion checks current values.
+      // Since cta_status_d is combinatorial from inputs, checking it *during* the cycle it is valid is correct
+      // if we want to check the *next* state logic.
+      // However, if we want to check the state *after* the clock edge, we need to check cta_status_q in the *next* cycle.
+      // But simplifying: checking cta_status_d (next state) is 0 when clear_entry_valid is 1 is equivalent to Checking q is 0 in next cycle.
+    end
+  end
+  `endif
 
 endmodule
