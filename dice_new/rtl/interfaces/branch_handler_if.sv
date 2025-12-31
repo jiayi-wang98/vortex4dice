@@ -1,7 +1,7 @@
 interface branch_handler_if import dice_pkg::*; ();
 
     branch_predict_interface_t bh_data;
-    dice_cta_status_t   cta_status_data;
+    dice_cta_status_t [DICE_NUM_MAX_CTA_PER_CORE-1:0] cta_status_data;
     logic              branch_predict_info_write_enable;
 
     //branch handler

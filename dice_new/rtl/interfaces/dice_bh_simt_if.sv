@@ -1,7 +1,7 @@
-interface dice_bh_simt_if import dice_frontend_pkg::simt_stack_update_t; ();
+interface dice_bh_simt_if();
     logic                   update_valid;
     logic                   update_ready;
-    simt_stack_update_t     update_stack_data;
+    dice_frontend_pkg::simt_stack_update_t     update_stack_data;
 
     //branch handler
     modport master (
