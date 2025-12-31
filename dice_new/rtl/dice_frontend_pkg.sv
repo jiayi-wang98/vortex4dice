@@ -48,7 +48,7 @@ package dice_frontend_pkg;
     logic [7:0]                             lat;
     logic [REG_NUM-1:0]                     in_regs_bitmap;
     logic [REG_NUM-1:0]                     out_regs_bitmap;
-    logic [$clog2(REG_NUM)-1:0]             ld_dest_regs[$clog2(`DICE_CGRA_MEM_PORTS-1):0];
+    logic [$clog2(`DICE_CGRA_MEM_PORTS-1):0][$clog2(REG_NUM)-1:0] ld_dest_regs;
     logic [$clog2(`DICE_CGRA_MEM_PORTS-1):0] num_stores;
     branch_meta_t                           branch_meta;
     logic                                   barrier;
@@ -62,7 +62,7 @@ package dice_frontend_pkg;
     logic [BITSTREAM_LENGTH_WIDTH-1:0] bitstream_length;  //may not need
     logic [REG_NUM-1:0] in_regs_bitmap;
     logic [REG_NUM-1:0] out_regs_bitmap;
-    logic [$clog2(REG_NUM)-1:0] ld_dest_regs[$clog2(`DICE_CGRA_MEM_PORTS-1):0];
+    logic [$clog2(`DICE_CGRA_MEM_PORTS-1):0][$clog2(REG_NUM)-1:0] ld_dest_regs;
     logic [$clog2(`DICE_CGRA_MEM_PORTS-1):0] num_stores;
     logic [1:0] unrolling_factor;
     logic [7:0] lat;
