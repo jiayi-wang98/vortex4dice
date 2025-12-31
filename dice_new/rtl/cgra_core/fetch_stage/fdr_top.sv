@@ -39,7 +39,7 @@ module fdr_top #(
 
   // Branching & Masks
   dice_frontend_pkg::thread_mask_t                              branch_mask_internal;
-  logic         [                      31:0] branch_meta_internal;
+  dice_frontend_pkg::branch_meta_t            branch_meta_internal;
   logic                                      branch_mask_valid;
   logic                                      branch_req_valid_internal;
   logic                                      is_barrier_internal;

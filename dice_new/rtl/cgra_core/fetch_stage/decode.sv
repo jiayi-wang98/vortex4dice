@@ -35,8 +35,8 @@ module decode (
 
   always_comb begin
     meta_out.bitstream_length = metadata_in.bitstream_length;
-    meta_out.in_regs          = metadata_in.in_regs;
-    meta_out.out_regs         = metadata_in.out_regs;
+    meta_out.in_regs_bitmap   = metadata_in.in_regs_bitmap;
+    meta_out.out_regs_bitmap  = metadata_in.out_regs_bitmap;
     meta_out.ld_dest_regs     = metadata_in.ld_dest_regs;
     meta_out.num_stores       = metadata_in.num_stores;
     meta_out.unrolling_factor = metadata_in.unrolling_factor;
