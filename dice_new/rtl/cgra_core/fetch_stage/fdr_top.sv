@@ -17,6 +17,12 @@ module fdr_top #(
 
     input logic [dice_pkg::DICE_ADDR_WIDTH-1:0] simt_stack_pc,
 
+    // CTA Status Table interface
+    input dice_pkg::dice_cta_status_t [dice_pkg::DICE_NUM_MAX_CTA_PER_CORE-1:0] cta_status,
+    output logic clear_prefetch_valid,
+    output logic [dice_pkg::DICE_HW_CTA_ID_WIDTH-1:0] clear_prefetch_hw_cta_id,
+    output logic predict_miss_flush,
+
     // CGRA configuration memories
     output logic [VX_gpu_pkg::VX_MEM_DATA_WIDTH-1:0] cm0_data,
     output logic [((BITSTREAM_SIZE + VX_gpu_pkg::VX_MEM_DATA_WIDTH - 1) / VX_gpu_pkg::VX_MEM_DATA_WIDTH) - 1:0] cm0_chunk_en,
@@ -44,14 +50,31 @@ module fdr_top #(
   logic                                      branch_req_valid_internal;
   logic                                      is_barrier_internal;
 
+  // Valid checker outputs
+  logic                                      clear_prefetch_internal;
+  logic                                      predict_miss_internal;
+
   // Scheduler ready handshake
   assign schedule_if.ready              = schedule_ready_internal;
 
-  //PASSTHROUGH STUFF
+  // -------------------------------------------------------------------------
+  // Pass-through assignments (schedule_if → fdr_if)
+  // -------------------------------------------------------------------------
+
+  // IDs
   assign fdr_if.data.schedule_hw_cta_id = schedule_if.data.schedule_hw_cta_id;
   assign fdr_if.data.schedule_eblock_id = schedule_if.data.schedule_eblock_id;
-  // Note: kernel_info not in eblock_t, needs separate interface
-  assign fdr_if.data.schedule_cta_predicted = schedule_if.data.schedule_prefetch_block;
+  assign fdr_if.data.schedule_cta_id    = schedule_if.data.schedule_cta_id;
+  assign fdr_if.data.schedule_kernel_id = schedule_if.data.schedule_kernel_id;
+
+  // Geometry & resources
+  assign fdr_if.data.schedule_grid_size    = schedule_if.data.schedule_grid_size;
+  assign fdr_if.data.schedule_cta_size     = schedule_if.data.schedule_cta_size;
+  assign fdr_if.data.schedule_hw_cta_size  = schedule_if.data.schedule_hw_cta_size;
+  assign fdr_if.data.schedule_smem_per_cta = schedule_if.data.schedule_smem_per_cta;
+
+  // Execution state (from branch handler)
+  assign fdr_if.data.real_active_mask = branch_mask_internal;
 
   // -------------------------------------------------------------------------
   // Meta Fetch
@@ -77,7 +100,7 @@ module fdr_top #(
   decode decode_inst (
       .metadata_in            (meta_internal),
       .meta_in_valid          (meta_valid_internal),
-      .real_active_thread_mask(branch_mask_internal),           //branch handler
+      .real_active_thread_mask(branch_mask_internal),           //may need more ports. Decode has to decide if it needs to get real mask from branch handler or not
       .bitstream_addr         (bitstream_addr),
       .bitstream_addr_valid   (bitstream_addr_valid_internal),
       .bitstream_length       (bitstream_length),
@@ -111,21 +134,45 @@ module fdr_top #(
   // Valid checker
   // -------------------------------------------------------------------------
 
+  // CTA status lookup for current CTA
+  logic [dice_pkg::DICE_HW_CTA_ID_WIDTH-1:0] current_hw_cta_id;
+  assign current_hw_cta_id = schedule_if.data.schedule_hw_cta_id;
+
   valid_check valid_check_inst (
+      // From Decoder
       .barrier_indicator(is_barrier_internal),
-      .mask_valid(branch_mask_valid),  //from branch handler?
+      .mask_valid(branch_mask_valid),
+
+      // From FDR Stage Buffer
       .eblock_pc(schedule_if.data.schedule_next_pc),
       .prefetch_block(schedule_if.data.schedule_prefetch_block),
+      .hw_cta_id(current_hw_cta_id),
+
+      // From SIMT Stack
       .simt_stack_pc(simt_stack_pc),
+
+      // From Bitstream Loader
       .bitstream_loaded(done_streaming_internal),
-      .unresolved_div(1'b0),
-      .barrier(1'b1),  //cta status table? - the may need to be changed so that branch
-      //handler/decoder deal with this. Right now i have a separate signal for the
-      //barrier METAdata to go to this module but once i dive into the branch handler this may be changed
+
+      // From CTA Status Table
+      .unresolved_div(cta_status[current_hw_cta_id].unresolved_control_divergence),
+      .barrier_complete(cta_status[current_hw_cta_id].is_barrier),
+      .prefetch_cleared(cta_status[current_hw_cta_id].prefetch_cleared),
+
+      // To FDR-DE stage buffer
       .fdr_valid(fdr_if.valid),
       .ex_ready(fdr_if.ready),
-      .fire_eblock(fire_eblock_internal)
+
+      // Feedback/Control
+      .fire_eblock(fire_eblock_internal),
+      .clear_prefetch(clear_prefetch_internal),
+      .predict_miss(predict_miss_internal)
   );
+
+  // Output assignments for clear_prefetch and predict_miss
+  assign clear_prefetch_valid = clear_prefetch_internal;
+  assign clear_prefetch_hw_cta_id = current_hw_cta_id;
+  assign predict_miss_flush = predict_miss_internal;
 
 
   // -------------------------------------------------------------------------

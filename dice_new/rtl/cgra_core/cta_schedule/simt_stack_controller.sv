@@ -1,5 +1,3 @@
-
-
 module simt_stack_controller #(
     parameter STACK_DEPTH = 32,
     parameter THREAD_WIDTH = 256,

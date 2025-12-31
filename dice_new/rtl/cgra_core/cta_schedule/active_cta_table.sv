@@ -1,11 +1,3 @@
-
-//NOTE: AS OF NOW THIS ONLY WORKS IF THE CTA ONLY OCCUPIES ONE SLOT IN THE TABLE
-// This is an issue that needs to be addressed.
-// if pop signal is sent, but buffer hasn't been consumed there may be data corruption
-// THERE ARE ISSUES WITH THE POP INTERFACE. IT MAY NEED BACKPRESSURE.
-//NEED to figure out the hw cta id stuff
-//need to return the cta hardware id
-
 module active_cta_table #(
     //should this be changed to max_threads / max_ctas?
     parameter int THREAD_WIDTH = 256  // Base thread width per CTA table entry
@@ -31,7 +23,7 @@ module active_cta_table #(
     output logic                                              out_valid,
     input  logic                                              out_ready,
     output dice_pkg::dice_cta_id_t                            out_cta_id,
-    output logic         [      dice_pkg::DICE_TID_WIDTH-1:0] out_cta_size,  //ensure this is correct
+    output logic         [dice_pkg::DICE_TID_WIDTH-1:0] out_cta_size,  //ensure this is correct
     output logic         [dice_pkg::DICE_KERNEL_ID_WIDTH-1:0] out_kernel_id,
 
 

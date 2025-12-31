@@ -2,7 +2,7 @@
 interface cta_sched_if ();
 
     logic       valid;
-    dice_frontend_pkg::eblock_t data;
+    dice_frontend_pkg::schedule_eblock_t data;
     logic       ready;
 
     modport master (

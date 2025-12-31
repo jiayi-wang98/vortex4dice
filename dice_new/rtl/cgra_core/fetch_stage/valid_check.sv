@@ -1,79 +1,135 @@
-
-/*
-CONDITIONS FOR VALID TO BE ASSERTED:
-1) Bitstream Loaded
-2) E-block prefetch cleared or not prefetch block
-3) Valid mask
-4) Barrier condition met - NEED TO FIGURE OUT WHO UPDATES THIS IN THE STATUS TABLE (says decoder does / decoder keeps track of it
-and gets the info from the retire table. I assume it will be easier to have the decoder just read from the status table
-and have a separate controller for the status table -> will make decoder assuming that)
-*/
-
-
-//TO DO: Ensure that the prefetch and unresolved divergence is correct -> WHAT IS HAPPENING WITH BARRIER
+/**
+ * Valid Checker Module
+ *
+ * Determines when an e-block can be passed from FDR stage to DE stage.
+ * Valid is asserted when ALL conditions are met:
+ *   1) Bitstream is loaded
+ *   2) E-block's prefetch is cleared OR not a prefetch block
+ *   3) Decode/Branch Handler is done (mask_valid from decoder)
+ *   4) Barrier condition met
+ *   5) PC match (only for prefetch blocks after divergence resolved)
+ */
 module valid_check (
-
-    //from decoder (if it is 1 then all prev blocks must finish before ex this p graph)
-    input logic barrier_indicator,
-    input logic mask_valid,
+    // -------------------------------------------------------------------------
+    // From Decoder
+    // -------------------------------------------------------------------------
+    input logic barrier_indicator,  // This p-graph requires barrier (all prev blocks must finish)
+    input logic mask_valid,         // Decode done - mask is valid (from branch handler via decoder)
 
     //from CS, FDR buffer
     input logic [dice_pkg::DICE_ADDR_WIDTH-1:0] eblock_pc,
     input logic prefetch_block,
+    input logic [dice_pkg::DICE_HW_CTA_ID_WIDTH-1:0] hw_cta_id,
 
-    //from SIMT_Stack
-    input logic [dice_pkg::DICE_ADDR_WIDTH-1:0] simt_stack_pc,  // "next pc"
+    // -------------------------------------------------------------------------
+    // From SIMT Stack
+    // -------------------------------------------------------------------------
+    input logic [dice_pkg::DICE_ADDR_WIDTH-1:0] simt_stack_pc,  // next_pc for branch predict check
 
-
+    // -------------------------------------------------------------------------
+    // From Bitstream Loader
+    // -------------------------------------------------------------------------
     input logic bitstream_loaded,
 
-    //from cta status table
-    input logic unresolved_div,
-    input logic barrier,
+    // -------------------------------------------------------------------------
+    // From CTA Status Table
+    // -------------------------------------------------------------------------
+    input logic unresolved_div,     // Unresolved control divergence for this CTA
+    input logic barrier_complete,   // Barrier condition met (prev blocks retired)
+    input logic prefetch_cleared,   // Prefetch has been resolved for this CTA
 
-
-    //to FDR DE buffer
+    // -------------------------------------------------------------------------
+    // To FDR-DE Stage Buffer
+    // -------------------------------------------------------------------------
     output logic fdr_valid,
     input  logic ex_ready,
 
-    // Feedback to Fetch Stage
-    output logic fire_eblock
+    // -------------------------------------------------------------------------
+    // Feedback/Control Signals
+    // -------------------------------------------------------------------------
+    output logic fire_eblock,       // Valid handshake complete (valid && ready)
+    output logic clear_prefetch,    // Signal to clear prefetch in status table (predict hit)
+    output logic predict_miss       // Signal predict miss (flush FDR stage)
 );
 
-  //intermediate signals
-  logic pc_match;  //if the pc from the simt stack and the pc from schedule match
-  logic prefetch_ok; // if it is either not a prefetch block, or the prefetch condition has been cleared
-  logic bitstream_ok;  //if bitstream is loaded
-  logic mask_ok;  //if mask is valid
-  logic barrier_ok;  //if barrier condition is met
-  logic no_divergence;  //MAY NEED TO MODIFY
+  // ===========================================================================
+  // Condition Signals
+  // ===========================================================================
+  logic pc_match;
+  logic pc_match_required;
+  logic pc_check_pass;
+  logic prefetch_ok;
+  logic bitstream_ok;
+  logic mask_ok;
+  logic barrier_ok;
+  logic no_divergence;
+  logic can_issue;
 
-
-  logic can_issue;  // true if all conditions are valid
-
-  assign pc_match = eblock_pc == simt_stack_pc;
-  assign prefetch_ok = !prefetch_block;  //NEED TO MODIFY
+  // ===========================================================================
+  // Condition 1: Bitstream Loaded
+  // ===========================================================================
   assign bitstream_ok = bitstream_loaded;
+
+  // ===========================================================================
+  // Condition 2: Prefetch OK (not prefetch OR prefetch cleared)
+  // ===========================================================================
+  assign prefetch_ok = !prefetch_block || prefetch_cleared;
+
+  // ===========================================================================
+  // Condition 3: Decode Done (mask_valid from decoder/branch handler)
+  // ===========================================================================
   assign mask_ok = mask_valid;
-  assign barrier_ok = barrier || (!barrier_indicator); // Assuming barrier input means "barrier done"
+
+  // ===========================================================================
+  // Condition 4: Barrier OK (no barrier required OR barrier complete)
+  // ===========================================================================
+  assign barrier_ok = !barrier_indicator || barrier_complete;
+
+  // ===========================================================================
+  // Condition 5: No Unresolved Divergence
+  // ===========================================================================
   assign no_divergence = !unresolved_div;
 
-  //checks if all conditions are true
-  assign can_issue = pc_match         &&
-                       prefetch_ok      &&
-                       bitstream_ok     &&
-                       barrier_ok       &&
-                       mask_ok          &&
-                       no_divergence;
+  // ===========================================================================
+  // PC Match Check (only for prefetch blocks after divergence resolved)
+  // After unresolved divergence is cleared, check if e-block PC matches
+  // the SIMT stack next_pc. This confirms the branch prediction was correct.
+  // ===========================================================================
+  assign pc_match = (eblock_pc == simt_stack_pc);
 
-  // Output to DE Stage
+  // PC match is only required for prefetch blocks after divergence is resolved
+  // but before prefetch is cleared
+  assign pc_match_required = prefetch_block && !unresolved_div && !prefetch_cleared;
+
+  // Pass if PC match not required, or if it matches
+  assign pc_check_pass = !pc_match_required || pc_match;
+
+  // ===========================================================================
+  // Final Valid Condition
+  // ===========================================================================
+  assign can_issue = bitstream_ok     &&
+                     prefetch_ok      &&
+                     mask_ok          &&
+                     barrier_ok       &&
+                     no_divergence    &&
+                     pc_check_pass;
+
+  // ===========================================================================
+  // Outputs
+  // ===========================================================================
+
+  // Valid to DE Stage
   assign fdr_valid = can_issue;
 
-  // Feedback to Fetch Stage (Fire when valid AND accepted by next stage)
+  // Fire when valid AND DE stage ready (handshake complete)
   assign fire_eblock = can_issue && ex_ready;
 
-  // Ready signal (Pass through backpressure/completion)
-  logic valid_ready;
-  assign valid_ready = fire_eblock;
+  // Clear prefetch on branch predict hit:
+  // When PC match was required and we matched, signal to clear prefetch state
+  assign clear_prefetch = pc_match_required && pc_match && can_issue;
+
+  // Predict miss: prefetch block, divergence resolved, but PC mismatch
+  // This should trigger a flush of the FDR stage
+  assign predict_miss = pc_match_required && !pc_match;
 
 endmodule

@@ -59,7 +59,7 @@ package dice_frontend_pkg;
   typedef logic [`DICE_NUM_MAX_THREADS_PER_CORE-1:0] thread_mask_t;
 
   typedef struct packed {
-    logic [BITSTREAM_LENGTH_WIDTH-1:0] bitstream_length;  //may not need
+    logic [BITSTREAM_LENGTH_WIDTH-1:0] bitstream_length;
     logic [REG_NUM-1:0] in_regs_bitmap;
     logic [REG_NUM-1:0] out_regs_bitmap;
     logic [$clog2(`DICE_CGRA_MEM_PORTS-1):0][$clog2(REG_NUM)-1:0] ld_dest_regs;
@@ -67,7 +67,6 @@ package dice_frontend_pkg;
     logic [1:0] unrolling_factor;
     logic [7:0] lat;
     logic parameter_load;
-    thread_mask_t active_mask;
   } fdr_meta_t;
 
   //stage borders
@@ -83,15 +82,26 @@ package dice_frontend_pkg;
     logic [DICE_KERNEL_ID_WIDTH-1:0]        schedule_kernel_id;
     logic [DICE_SMEM_SIZE_WIDTH-1:0]        schedule_smem_per_cta;
     logic [DICE_NUM_MAX_THREADS_PER_CORE:0] schedule_hw_cta_size;
-  } eblock_t;
+  } schedule_eblock_t;
 
 
   typedef struct packed {
+    // IDs
     logic [DICE_HW_CTA_ID_WIDTH-1:0]          schedule_hw_cta_id;
     logic [EBLOCK_ID_WIDTH-1:0]               schedule_eblock_id;
-    logic                                     schedule_cta_predicted;
+    dice_cta_id_t                             schedule_cta_id;
+    logic [DICE_KERNEL_ID_WIDTH-1:0]          schedule_kernel_id;
+
+    // Geometry & resources
+    dice_grid_size_t                          schedule_grid_size;
+    dice_cta_size_t                           schedule_cta_size;
+    logic [DICE_NUM_MAX_THREADS_PER_CORE:0]   schedule_hw_cta_size;
+    logic [DICE_SMEM_SIZE_WIDTH-1:0]          schedule_smem_per_cta;
+
+    // Execution state
     logic [DICE_NUM_MAX_THREADS_PER_CORE-1:0] real_active_mask;
-    dice_kernel_desc_t                        kernel_info;
+
+    // Metadata
     fdr_meta_t                                metadata;
     logic                                     loaded_buffer;
   } fdr_t;

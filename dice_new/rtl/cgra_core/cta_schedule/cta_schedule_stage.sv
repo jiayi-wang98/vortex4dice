@@ -168,7 +168,6 @@ module cta_schedule_stage #(
       .out_valid           (active_table_out_valid),
       .out_ready           (active_table_out_ready),
       .out_cta_id          (active_table_out_cta_id),
-      .out_cta_size        (),
       .out_kernel_id       (),
       .active_cta_entries  (active_cta_entries),
       .full                (),
