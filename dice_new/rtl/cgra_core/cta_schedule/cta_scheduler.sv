@@ -6,7 +6,8 @@
 
 
 module cta_scheduler #(
-    parameter MAX_EBLOCK = dice_pkg::DICE_NUM_MAX_CTA_PER_CORE + 4  //localparam?
+    parameter MAX_EBLOCK = dice_pkg::DICE_NUM_MAX_CTA_PER_CORE + 4,  //localparam?
+    parameter int THREAD_WIDTH = 256
 ) (
     input logic clk,
     input logic rst,
@@ -21,7 +22,7 @@ module cta_scheduler #(
     //SIMT STACK
     //do i need this: stack_top_valid
     input logic [dice_pkg::DICE_NUM_MAX_CTA_PER_CORE-1:0][dice_pkg::DICE_ADDR_WIDTH-1:0] cta_next_pc,
-    input logic [dice_pkg::DICE_NUM_MAX_CTA_PER_CORE-1:0][dice_pkg::DICE_NUM_MAX_THREADS_PER_CORE-1:0] stack_top_active_mask,
+    input logic [dice_pkg::DICE_NUM_MAX_CTA_PER_CORE-1:0][THREAD_WIDTH-1:0] stack_top_active_mask,
 
 
     // External interface to invalidate committed e-blocks
@@ -113,7 +114,7 @@ module cta_scheduler #(
 
       for (int i = 0; i < dice_pkg::DICE_NUM_MAX_CTA_PER_CORE; i++) begin
         automatic logic [dice_pkg::DICE_CTA_ID_WIDTH-1:0] check_idx;
-        check_idx = (last_dispatched_cta + 1 + i) & (dice_pkg::DICE_NUM_MAX_CTA_PER_CORE - 1);
+        check_idx = (dice_pkg::DICE_CTA_ID_WIDTH)'((last_dispatched_cta + 1 + i) & (dice_pkg::DICE_NUM_MAX_CTA_PER_CORE - 1));
 
         if (priority_match[check_idx]) begin
           selected_cta_id = check_idx;
@@ -131,7 +132,7 @@ module cta_scheduler #(
       // Start from next CTA after last dispatched
       for (int i = 0; i < dice_pkg::DICE_NUM_MAX_CTA_PER_CORE; i++) begin
         automatic logic [dice_pkg::DICE_CTA_ID_WIDTH-1:0] check_idx;
-        check_idx = (last_dispatched_cta + 1 + i) & (dice_pkg::DICE_NUM_MAX_CTA_PER_CORE - 1);
+        check_idx = (dice_pkg::DICE_CTA_ID_WIDTH)'((last_dispatched_cta + 1 + i) & (dice_pkg::DICE_NUM_MAX_CTA_PER_CORE - 1));
         if (non_branch_candidates[check_idx]) begin
           selected_cta_id = check_idx;
           break;
@@ -145,7 +146,7 @@ module cta_scheduler #(
       // Start from next CTA after last dispatched
       for (int i = 0; i < dice_pkg::DICE_NUM_MAX_CTA_PER_CORE; i++) begin
         automatic logic [dice_pkg::DICE_CTA_ID_WIDTH-1:0] check_idx;
-        check_idx = (last_dispatched_cta + 1 + i) & (dice_pkg::DICE_NUM_MAX_CTA_PER_CORE - 1);
+        check_idx = (dice_pkg::DICE_CTA_ID_WIDTH)'((last_dispatched_cta + 1 + i) & (dice_pkg::DICE_NUM_MAX_CTA_PER_CORE - 1));
         if (any_valid_candidates[check_idx]) begin
           selected_cta_id = check_idx;
           selected_from_branch_resolving = cta_branch_resolving[check_idx];
@@ -158,9 +159,9 @@ module cta_scheduler #(
   // Output assignments
   always_comb begin
     scheduled_eblock.valid = enable && selection_valid && !eblock_live[eblock_ptr];
-    scheduled_eblock.data.schedule_hw_cta_id = selected_cta_id;
+    scheduled_eblock.data.schedule_hw_cta_id = (dice_pkg::DICE_HW_CTA_ID_WIDTH)'(selected_cta_id);
     scheduled_eblock.data.schedule_next_pc        = selected_from_branch_resolving ? cta_status_entries[selected_cta_id].predict_pc : cta_next_pc[selected_cta_id];
-    scheduled_eblock.data.schedule_eblock_id = eblock_ptr;
+    scheduled_eblock.data.schedule_eblock_id = (dice_pkg::DICE_EBLOCK_ID_WIDTH)'(eblock_ptr);
     scheduled_eblock.data.schedule_active_mask = stack_top_active_mask[selected_cta_id];
     scheduled_eblock.data.schedule_prefetch_block = selected_from_branch_resolving;
     scheduled_eblock.data.schedule_cta_id = active_cta_entries[selected_cta_id].cta_id;
@@ -209,48 +210,5 @@ module cta_scheduler #(
       end
     end
   end
-
-  // Debug and assertions
-  // `ifndef SYNTHESIS
-  // always @(posedge clk) begin
-  //     if (rst_n) begin
-  //         // Check for e-block exhaustion
-  //         if (schedule_valid && schedule_ready && eblock_live[eblock_ptr]) begin
-  //             $warning("CTA Scheduler: E-block %d already live, allocation conflict", eblock_ptr);
-  //         end
-
-  //         // Verify selection logic
-  //         if (schedule_valid && !cta_valid[selected_cta_id]) begin
-  //             $error("CTA Scheduler: Selected invalid CTA %d", selected_cta_id);
-  //         end
-
-  //         // Check commit bounds
-  //         if (eblock_commit_valid && eblock_commit_id >= MAX_EBLOCK) begin
-  //             $error("CTA Scheduler: Invalid e-block commit ID %d", eblock_commit_id);
-  //         end
-  //     end
-  // end
-
-  // // Performance monitoring
-  // logic [31:0] priority_schedule_count;
-  // logic [31:0] non_branch_schedule_count;
-  // logic [31:0] any_valid_schedule_count;
-
-  // always_ff @(posedge clk or negedge rst_n) begin
-  //     if (!rst_n) begin
-  //         priority_schedule_count <= '0;
-  //         non_branch_schedule_count <= '0;
-  //         any_valid_schedule_count <= '0;
-  //     end else if (enable && schedule_valid && schedule_ready) begin
-  //         if (priority_found) begin
-  //             priority_schedule_count <= priority_schedule_count + 1;
-  //         end else if (non_branch_found) begin
-  //             non_branch_schedule_count <= non_branch_schedule_count + 1;
-  //         end else if (any_valid_found) begin
-  //             any_valid_schedule_count <= any_valid_schedule_count + 1;
-  //         end
-  //     end
-  // end
-  // `endif
 
 endmodule

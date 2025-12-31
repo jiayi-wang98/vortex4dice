@@ -1,8 +1,4 @@
-//FIGURE OUT WHAT THE INITIAL RECONVERGENCE PC SHOULD BE
-//ADD interaction with status table and ability to pop
-
 `include "dice_define.vh"
-
 
 module cta_controller #(
     parameter int MAX_NUM_CTA = 4,
@@ -26,6 +22,7 @@ module cta_controller #(
     //active cta table
     output logic                       pop_valid,
     output logic [CTA_INDEX_WIDTH-1:0] pop_hw_cta_id,
+    input  logic                       pop_ready,  // Backpressure from active_cta_table
 
     input  logic                                add_ready,
     output logic                                add_valid,
@@ -43,11 +40,16 @@ module cta_controller #(
 
     //cta status table
     input dice_pkg::dice_cta_status_t [dice_pkg::DICE_NUM_MAX_CTA_PER_CORE-1:0] cta_status_table,
-    input logic clear_entry_valid,
-    input logic [dice_pkg::DICE_HW_CTA_ID_WIDTH:0] clear_entry_hw_id,
+    output logic clear_entry_valid,
+    output logic [dice_pkg::DICE_HW_CTA_ID_WIDTH-1:0] clear_entry_hw_id,
 
     // Active CTA Table Status
-    input logic [dice_pkg::DICE_HW_CTA_ID_WIDTH-1:0] next_empty_cta_index
+    input logic [dice_pkg::DICE_HW_CTA_ID_WIDTH-1:0] next_empty_cta_index,
+    input logic [dice_pkg::DICE_NUM_MAX_CTA_PER_CORE-1:0] active_cta_status, // Validity bitmap
+
+    // Active CTA Table Pop Return Interface
+    input logic pop_out_valid,
+    input dice_pkg::dice_cta_id_t pop_out_cta_id
 );
 
 
@@ -99,11 +101,73 @@ module cta_controller #(
   assign init_hw_cta_size      = encode_hw_cta_size(add_cta_size);
   // initial pc
   assign init_pc               = in_cta_desc.kernel_desc.start_pc;
-  assign init_reconvergence_pc = '0;  //THIS NEEDS TO BE SORTED OUT
+  assign init_reconvergence_pc = '1;  // Set to all 1s to avoid matching valid PC 0
 
 
 
-  // CTA Status Table
 
+  // ------------------------------------------------------------
+  // Completion Logic
+  // ------------------------------------------------------------
+
+  // Round-robin pointer for fairness
+  logic [dice_pkg::DICE_HW_CTA_ID_WIDTH-1:0] completion_ptr;
+  logic [dice_pkg::DICE_HW_CTA_ID_WIDTH-1:0] victim_id;
+  logic victim_found;
+
+  // Round-robin arbiter to find a completed CTA
+  always_ff @(posedge clk) begin
+      if (rst) completion_ptr <= '0;
+      else completion_ptr <= completion_ptr + 1'b1;
+  end
+
+  // Combinational search starting from completion_ptr to find a retirement candidate
+  always_comb begin
+      victim_found = 1'b0;
+      victim_id = '0;
+
+      // We need to check all slots
+      for (int i = 0; i < dice_pkg::DICE_NUM_MAX_CTA_PER_CORE; i++) begin
+          // Calculate index wrapping around based on ptr
+          logic [dice_pkg::DICE_HW_CTA_ID_WIDTH-1:0] idx;
+          idx = completion_ptr + i[dice_pkg::DICE_HW_CTA_ID_WIDTH-1:0];
+
+          // Check if this CTA is valid AND has NO pending eblocks
+          // We assume input 'active_cta_status' tells us validity (see added IO)
+          if (active_cta_status[idx] && !cta_status_table[idx].has_pending_eblock && !victim_found) begin
+              victim_found = 1'b1;
+              victim_id = idx;
+          end
+      end
+  end
+
+  // Flow control: Only pop if we are not currently waiting for a previous pop to clear
+  // (pop_out_valid indicates a previous pop is still in the output buffer/handshake)
+  assign pop_valid = victim_found && !pop_out_valid;
+  assign pop_hw_cta_id = victim_id;
+
+  assign clear_entry_valid = pop_valid; // Clear status same cycle we pop
+  assign clear_entry_hw_id = victim_id;
+
+  // Pass through the Active Table output to the Dispatcher
+  assign comp_cta_valid = pop_out_valid;
+  assign comp_cta_id = pop_out_cta_id;
+
+
+
+  `ifndef SYNTHESIS
+  always_ff @(posedge clk) begin
+      if (!rst) begin
+          if (pop_valid) begin
+              assert (!cta_status_table[pop_hw_cta_id].has_pending_eblock)
+              else $error("PopOnlyCompleted: Popping CTA with pending eblocks");
+          end
+
+          assert (!$isunknown(pop_valid)) else $error("ControlOutputs: pop_valid is X");
+          assert (!$isunknown(clear_entry_valid)) else $error("ControlOutputs: clear_entry_valid is X");
+          assert (!$isunknown(init_valid)) else $error("ControlOutputs: init_valid is X");
+      end
+  end
+  `endif
 
 endmodule
