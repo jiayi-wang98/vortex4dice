@@ -96,6 +96,7 @@ module dispatcher_basic_testbench;
         // Wait for dispatcher to become busy
         while (!dispatcher_busy) @(negedge clk);
         $display("Dispatcher is now busy");
+        repeat (10) @(negedge clk);
     endtask
     
     // Task to pop from dispatch FIFOs and count

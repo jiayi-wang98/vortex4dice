@@ -309,6 +309,36 @@ module dispatcher(
     assign dispatch_tid_3 = ready_fifo_pop_data[3][9:0];
     assign dispatch_valid_3 = ready_fifo_pop_data_valid[3] && ready_fifo_pop_data[3][10];
     
-    assign dispatch_fifo_empty = ready_fifo_empty[0] && ready_fifo_empty[1] && 
-                                  ready_fifo_empty[2] && ready_fifo_empty[3];
+    // OLD: does not take into account unrolling differences
+    // assign dispatch_fifo_empty = ready_fifo_empty[0] && ready_fifo_empty[1] && 
+    //                              ready_fifo_empty[2] && ready_fifo_empty[3];
+
+    // NEW: Unrolling-aware logic
+    logic dispatch_fifo_empty_comb;
+    always_comb begin
+        case (latched_unrolling_factor)
+            2'b00: begin // 1-way unrolling
+                // Only FIFO 0 matters
+                dispatch_fifo_empty_comb = ready_fifo_empty[0];
+            end
+            
+            2'b01: begin // 2-way unrolling
+                // FIFOs 0 and 1 matter
+                dispatch_fifo_empty_comb = ready_fifo_empty[0] && ready_fifo_empty[1];
+            end
+            
+            2'b10: begin // 4-way unrolling
+                // All 4 FIFOs matter
+                dispatch_fifo_empty_comb = ready_fifo_empty[0] && ready_fifo_empty[1] && 
+                                        ready_fifo_empty[2] && ready_fifo_empty[3];
+            end
+            
+            default: begin
+                // Shouldn't happen, but default to all empty
+                dispatch_fifo_empty_comb = 1'b1;
+            end
+        endcase
+    end
+
+    assign dispatch_fifo_empty = dispatch_fifo_empty_comb;
 endmodule
