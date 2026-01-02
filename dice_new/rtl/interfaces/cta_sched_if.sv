@@ -1,5 +1,5 @@
 
-interface cta_sched_if ();
+interface cta_sched_if import dice_frontend_pkg::*; ();
 
     logic       valid;
     dice_frontend_pkg::schedule_eblock_t data;
