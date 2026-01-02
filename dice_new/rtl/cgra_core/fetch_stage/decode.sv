@@ -1,50 +1,49 @@
 
 //AS OF NOW THIS MODULE IS JUST A ROUTER
 module decode (
-    input dice_frontend_pkg::pgraph_meta_t metadata_in,
-    input logic         meta_in_valid, //keeping
+    input dice_frontend_pkg::pgraph_meta_t metadata_i,
+    input logic                            meta_in_valid_i,
 
-    input dice_frontend_pkg::thread_mask_t real_active_thread_mask,  //branch handler - to be packed
+    input dice_frontend_pkg::thread_mask_t real_active_thread_mask_i,
+
     //To bitstream Fetcher
-    output logic [dice_pkg::DICE_ADDR_WIDTH-1:0] bitstream_addr,
-    output logic bitstream_addr_valid,
-    output logic [dice_frontend_pkg::BITSTREAM_LENGTH_WIDTH-1:0] bitstream_length,
+    output logic [dice_pkg::DICE_ADDR_WIDTH-1:0]            bitstream_addr_o,
+    output logic                                            bitstream_addr_valid_o,
+    output logic [dice_frontend_pkg::BITSTREAM_LENGTH_WIDTH-1:0] bitstream_length_o,
 
     //To branch handler
-    output dice_frontend_pkg::branch_meta_t branch_metadata,  //contains divergence info/jmp info
-    output logic         branch_req_valid,
+    output dice_frontend_pkg::branch_meta_t branch_metadata_o,
+    output logic                            branch_req_valid_o,
 
     //To valid checker
-    output logic      is_barrier,  // may remove
-    output dice_frontend_pkg::fdr_meta_t meta_out
+    output logic                       is_barrier_o,
+    output dice_frontend_pkg::fdr_meta_t meta_o
 );
 
   // Bitstream Fetch
-  assign bitstream_addr       = metadata_in.bitstream_addr;
-  assign bitstream_length     = metadata_in.bitstream_length;
-  assign bitstream_addr_valid = meta_in_valid;
+  assign bitstream_addr_o       = metadata_i.bitstream_addr;
+  assign bitstream_length_o     = metadata_i.bitstream_length;
+  assign bitstream_addr_valid_o = meta_in_valid_i;
 
   // Branch Handler
-  assign branch_metadata      = metadata_in.branch_meta;
-  assign branch_req_valid     = meta_in_valid;
+  assign branch_metadata_o      = metadata_i.branch_meta;
+  assign branch_req_valid_o     = meta_in_valid_i;
 
 
   // valid checker
-  assign is_barrier           = metadata_in.barrier;
+  assign is_barrier_o           = metadata_i.barrier;
 
 
   always_comb begin
-    meta_out.bitstream_length = metadata_in.bitstream_length;
-    meta_out.in_regs_bitmap   = metadata_in.in_regs_bitmap;
-    meta_out.out_regs_bitmap  = metadata_in.out_regs_bitmap;
-    meta_out.ld_dest_regs     = metadata_in.ld_dest_regs;
-    meta_out.num_stores       = metadata_in.num_stores;
-    meta_out.unrolling_factor = metadata_in.unrolling_factor;
-    meta_out.lat              = metadata_in.lat;
-    meta_out.parameter_load   = metadata_in.parameter_load;
-    meta_out.active_mask      = real_active_thread_mask;
+    meta_o.bitstream_length = metadata_i.bitstream_length;
+    meta_o.in_regs_bitmap   = metadata_i.in_regs_bitmap;
+    meta_o.out_regs_bitmap  = metadata_i.out_regs_bitmap;
+    meta_o.ld_dest_regs     = metadata_i.ld_dest_regs;
+    meta_o.num_stores       = metadata_i.num_stores;
+    meta_o.unrolling_factor = metadata_i.unrolling_factor;
+    meta_o.lat              = metadata_i.lat;
+    meta_o.parameter_load   = metadata_i.parameter_load;
+    meta_o.active_mask      = real_active_thread_mask_i;
   end
 
 endmodule
-
-

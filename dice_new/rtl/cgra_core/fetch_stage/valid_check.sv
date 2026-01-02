@@ -13,43 +13,43 @@ module valid_check (
     // -------------------------------------------------------------------------
     // From Decoder
     // -------------------------------------------------------------------------
-    input logic barrier_indicator,  // This p-graph requires barrier (all prev blocks must finish)
-    input logic mask_valid,         // Decode done - mask is valid (from branch handler via decoder)
+    input logic barrier_indicator_i,  // This p-graph requires barrier (all prev blocks must finish)
+    input logic mask_valid_i,         // Decode done - mask is valid (from branch handler via decoder)
 
     //from CS, FDR buffer
-    input logic [dice_pkg::DICE_ADDR_WIDTH-1:0] eblock_pc,
-    input logic prefetch_block,
-    input logic [dice_pkg::DICE_HW_CTA_ID_WIDTH-1:0] hw_cta_id,
+    input logic [dice_pkg::DICE_ADDR_WIDTH-1:0]    eblock_pc_i,
+    input logic                                    prefetch_block_i,
+    input logic [dice_pkg::DICE_HW_CTA_ID_WIDTH-1:0] hw_cta_id_i,
 
     // -------------------------------------------------------------------------
     // From SIMT Stack
     // -------------------------------------------------------------------------
-    input logic [dice_pkg::DICE_ADDR_WIDTH-1:0] simt_stack_pc,  // next_pc for branch predict check
+    input logic [dice_pkg::DICE_ADDR_WIDTH-1:0] simt_stack_pc_i,  // next_pc for branch predict check
 
     // -------------------------------------------------------------------------
     // From Bitstream Loader
     // -------------------------------------------------------------------------
-    input logic bitstream_loaded,
+    input logic bitstream_loaded_i,
 
     // -------------------------------------------------------------------------
     // From CTA Status Table
     // -------------------------------------------------------------------------
-    input logic unresolved_div,     // Unresolved control divergence for this CTA
-    input logic barrier_complete,   // Barrier condition met (prev blocks retired)
-    input logic prefetch_cleared,   // Prefetch has been resolved for this CTA
+    input logic unresolved_div_i,     // Unresolved control divergence for this CTA
+    input logic barrier_complete_i,   // Barrier condition met (prev blocks retired)
+    input logic prefetch_cleared_i,   // Prefetch has been resolved for this CTA
 
     // -------------------------------------------------------------------------
     // To FDR-DE Stage Buffer
     // -------------------------------------------------------------------------
-    output logic fdr_valid,
-    input  logic ex_ready,
+    output logic fdr_valid_o,
+    input  logic ex_ready_i,
 
     // -------------------------------------------------------------------------
     // Feedback/Control Signals
     // -------------------------------------------------------------------------
-    output logic fire_eblock,       // Valid handshake complete (valid && ready)
-    output logic clear_prefetch,    // Signal to clear prefetch in status table (predict hit)
-    output logic predict_miss       // Signal predict miss (flush FDR stage)
+    output logic fire_eblock_o,       // Valid handshake complete (valid && ready)
+    output logic clear_prefetch_o,    // Signal to clear prefetch in status table (predict hit)
+    output logic predict_miss_o       // Signal predict miss (flush FDR stage)
 );
 
   // ===========================================================================
@@ -68,38 +68,38 @@ module valid_check (
   // ===========================================================================
   // Condition 1: Bitstream Loaded
   // ===========================================================================
-  assign bitstream_ok = bitstream_loaded;
+  assign bitstream_ok = bitstream_loaded_i;
 
   // ===========================================================================
   // Condition 2: Prefetch OK (not prefetch OR prefetch cleared)
   // ===========================================================================
-  assign prefetch_ok = !prefetch_block || prefetch_cleared;
+  assign prefetch_ok = !prefetch_block_i || prefetch_cleared_i;
 
   // ===========================================================================
   // Condition 3: Decode Done (mask_valid from decoder/branch handler)
   // ===========================================================================
-  assign mask_ok = mask_valid;
+  assign mask_ok = mask_valid_i;
 
   // ===========================================================================
   // Condition 4: Barrier OK (no barrier required OR barrier complete)
   // ===========================================================================
-  assign barrier_ok = !barrier_indicator || barrier_complete;
+  assign barrier_ok = !barrier_indicator_i || barrier_complete_i;
 
   // ===========================================================================
   // Condition 5: No Unresolved Divergence
   // ===========================================================================
-  assign no_divergence = !unresolved_div;
+  assign no_divergence = !unresolved_div_i;
 
   // ===========================================================================
   // PC Match Check (only for prefetch blocks after divergence resolved)
   // After unresolved divergence is cleared, check if e-block PC matches
   // the SIMT stack next_pc. This confirms the branch prediction was correct.
   // ===========================================================================
-  assign pc_match = (eblock_pc == simt_stack_pc);
+  assign pc_match = (eblock_pc_i == simt_stack_pc_i);
 
   // PC match is only required for prefetch blocks after divergence is resolved
   // but before prefetch is cleared
-  assign pc_match_required = prefetch_block && !unresolved_div && !prefetch_cleared;
+  assign pc_match_required = prefetch_block_i && !unresolved_div_i && !prefetch_cleared_i;
 
   // Pass if PC match not required, or if it matches
   assign pc_check_pass = !pc_match_required || pc_match;
@@ -119,17 +119,17 @@ module valid_check (
   // ===========================================================================
 
   // Valid to DE Stage
-  assign fdr_valid = can_issue;
+  assign fdr_valid_o = can_issue;
 
   // Fire when valid AND DE stage ready (handshake complete)
-  assign fire_eblock = can_issue && ex_ready;
+  assign fire_eblock_o = can_issue && ex_ready_i;
 
   // Clear prefetch on branch predict hit:
   // When PC match was required and we matched, signal to clear prefetch state
-  assign clear_prefetch = pc_match_required && pc_match && can_issue;
+  assign clear_prefetch_o = pc_match_required && pc_match && can_issue;
 
   // Predict miss: prefetch block, divergence resolved, but PC mismatch
   // This should trigger a flush of the FDR stage
-  assign predict_miss = pc_match_required && !pc_match;
+  assign predict_miss_o = pc_match_required && !pc_match;
 
 endmodule
