@@ -1,5 +1,5 @@
 module active_cta_table #(
-    parameter int THREAD_WIDTH = 256  // Base thread width per CTA table entry
+    parameter int THREAD_WIDTH = dice_pkg::DICE_NUM_MAX_THREADS_PER_CORE / dice_pkg::DICE_NUM_MAX_CTA_PER_CORE  // Base thread width per CTA table entry
 ) (
     input logic clk_i,
     input logic rst_i,
@@ -36,9 +36,9 @@ module active_cta_table #(
       input logic [dice_pkg::DICE_TID_WIDTH-1:0] cta_size);
     // For power-of-2 THREAD_WIDTH, we can use bit shifts
     // entries_needed = ceil(cta_size / THREAD_WIDTH) = (cta_size + THREAD_WIDTH - 1) >> log2(THREAD_WIDTH)
-    logic [dice_pkg::DICE_TID_WIDTH-1:0] adjusted_size;
-    adjusted_size = cta_size + THREAD_WIDTH - 1;
-    return adjusted_size >> (dice_pkg::DICE_TID_WIDTH'($clog2(THREAD_WIDTH)));
+    logic [dice_pkg::DICE_TID_WIDTH:0] adjusted_size;
+    adjusted_size = (dice_pkg::DICE_TID_WIDTH + 1)'(cta_size) + (dice_pkg::DICE_TID_WIDTH + 1)'(THREAD_WIDTH - 1);
+    return (dice_pkg::DICE_HW_CTA_ID_WIDTH + 1)'(adjusted_size >> (dice_pkg::DICE_TID_WIDTH'($clog2(THREAD_WIDTH))));
   endfunction
 
 
@@ -79,10 +79,10 @@ module active_cta_table #(
       block_valid = 1'b1;
 
       // Check if the block fits within the table bounds
-      if ((i + entries_needed) <= dice_pkg::DICE_NUM_MAX_CTA_PER_CORE) begin
+      if ((i + 32'(entries_needed)) <= dice_pkg::DICE_NUM_MAX_CTA_PER_CORE) begin
         // Check if all slots in the block are empty
         for (int k = 0; k < dice_pkg::DICE_NUM_MAX_CTA_PER_CORE; k++) begin
-           if (k >= i && k < (i + entries_needed)) begin
+           if (k >= i && k < (i + 32'(entries_needed))) begin
               if (cta_table_q[k].entry_info.cta_valid == 1'b1) begin
                   block_valid = 1'b0;
               end
@@ -156,7 +156,7 @@ module active_cta_table #(
 
         // Clear all entries used by this CTA
         for (int j = 0; j < dice_pkg::DICE_NUM_MAX_CTA_PER_CORE; j++) begin
-          if (j >= pop_hw_cta_id_i && j < (pop_hw_cta_id_i + entries_to_clear)) begin
+          if (j >= 32'(pop_hw_cta_id_i) && j < (32'(pop_hw_cta_id_i) + 32'(entries_to_clear))) begin
             cta_table_q[j] <= '0;
           end
         end
@@ -170,7 +170,7 @@ module active_cta_table #(
 
         // Clear all entries used by this CTA
         for (int j = 0; j < dice_pkg::DICE_NUM_MAX_CTA_PER_CORE; j++) begin
-          if (j >= pop_hw_cta_id_i && j < (pop_hw_cta_id_i + entries_to_clear)) begin
+          if (j >= 32'(pop_hw_cta_id_i) && j < (32'(pop_hw_cta_id_i) + 32'(entries_to_clear))) begin
             cta_table_q[j] <= '0;
           end
         end
@@ -189,8 +189,8 @@ module active_cta_table #(
       if ((add_valid_i == 1'b1) && (add_ready_o == 1'b1)) begin
         // Allocate consecutive entries for this CTA
         for (int j = 0; j < dice_pkg::DICE_NUM_MAX_CTA_PER_CORE; j++) begin
-          if (j >= empty_index && j < (empty_index + entries_needed)) begin
-            if (j == empty_index) begin
+          if (j >= 32'(empty_index) && j < (32'(empty_index) + 32'(entries_needed))) begin
+            if (j == 32'(empty_index)) begin
               cta_table_q[j].entry_info.cta_id <= add_cta_info_i.cta_id;
               cta_table_q[j].entry_info.grid_size <= add_cta_info_i.kernel_desc.grid_size;
               cta_table_q[j].entry_info.cta_size <= add_cta_info_i.kernel_desc.cta_size;
@@ -201,7 +201,7 @@ module active_cta_table #(
               cta_table_q[j] <= '0;
             end
             cta_table_q[j].entry_info.cta_valid <= 1'b1;
-            cta_table_q[j].is_primary <= (j == empty_index);
+            cta_table_q[j].is_primary <= (j == 32'(empty_index));
             cta_table_q[j].entries_used <= entries_needed;
           end
         end
@@ -215,7 +215,7 @@ module active_cta_table #(
   always_ff @(posedge clk_i) begin
     if (rst_i == 1'b0) begin
       if ((add_valid_i == 1'b1) && (add_ready_o == 1'b1)) begin
-        assert ((empty_index + entries_needed) <= dice_pkg::DICE_NUM_MAX_CTA_PER_CORE)
+        assert ((32'(empty_index) + 32'(entries_needed)) <= dice_pkg::DICE_NUM_MAX_CTA_PER_CORE)
         else $error("ContiguousAllocation: Allocated block exceeds table bounds");
       end
 

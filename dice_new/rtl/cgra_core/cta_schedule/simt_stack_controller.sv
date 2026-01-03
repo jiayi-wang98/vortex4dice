@@ -1,8 +1,8 @@
 module simt_stack_controller #(
     parameter int STACK_DEPTH = 32,
-    parameter int THREAD_WIDTH = 256,
+    localparam int THREAD_WIDTH = dice_pkg::DICE_NUM_MAX_THREADS_PER_CORE / dice_pkg::DICE_NUM_MAX_CTA_PER_CORE,
     parameter int METADATA_LENGTH_WIDTH = 8,
-    parameter int NUM_STACK = 4
+    localparam int NUM_STACK = dice_pkg::DICE_NUM_MAX_CTA_PER_CORE
 ) (
     input logic clk_i,
     input logic rst_i,
@@ -17,7 +17,7 @@ module simt_stack_controller #(
     input logic [dice_pkg::DICE_ADDR_WIDTH-1:0] update_next_pc_i,  // No divergence: next PC, With divergence: branch taken PC
 
     // Divergence case inputs (only used when update_with_divergence = 1)
-    input logic [NUM_STACK*THREAD_WIDTH-1:0] predicate_regs_value_i,
+    input dice_frontend_pkg::thread_mask_t predicate_regs_value_i,
     input logic [dice_pkg::DICE_ADDR_WIDTH-1:0] branch_not_taken_pc_i,
     input logic [dice_pkg::DICE_ADDR_WIDTH-1:0] branch_reconvergence_pc_i,
 
@@ -85,7 +85,7 @@ module simt_stack_controller #(
   // Internal registers for multi-cycle operations
   logic update_with_divergence_q;
   logic [dice_pkg::DICE_ADDR_WIDTH-1:0] update_next_pc_q;
-  logic [NUM_STACK*THREAD_WIDTH-1:0] predicate_regs_value_q;
+  dice_frontend_pkg::thread_mask_t predicate_regs_value_q;
   logic [dice_pkg::DICE_ADDR_WIDTH-1:0] branch_not_taken_pc_q;
   logic [dice_pkg::DICE_ADDR_WIDTH-1:0] branch_reconvergence_pc_q;
 
@@ -113,12 +113,12 @@ module simt_stack_controller #(
   logic combined_stack_out_valid;
   logic [dice_pkg::DICE_ADDR_WIDTH-1:0] combined_stack_top_next_pc;
   logic [dice_pkg::DICE_ADDR_WIDTH-1:0] combined_stack_top_reconvergence_pc;
-  logic [NUM_STACK*THREAD_WIDTH-1:0] combined_stack_top_active_mask;
+  dice_frontend_pkg::thread_mask_t combined_stack_top_active_mask;
 
   // Computed values for divergence analysis
-  logic [NUM_STACK*THREAD_WIDTH-1:0] taken_active_mask;
-  logic [NUM_STACK*THREAD_WIDTH-1:0] not_taken_active_mask;
-  logic [NUM_STACK*THREAD_WIDTH-1:0] effective_active_mask;
+  dice_frontend_pkg::thread_mask_t taken_active_mask;
+  dice_frontend_pkg::thread_mask_t not_taken_active_mask;
+  dice_frontend_pkg::thread_mask_t effective_active_mask;
   logic all_taken, all_not_taken, has_divergence;
 
   // Operation control signals - combinational _next signals
@@ -128,10 +128,10 @@ module simt_stack_controller #(
   logic need_pop_q, need_modify_top_q, need_push_first_q, need_push_second_q;
   logic [dice_pkg::DICE_ADDR_WIDTH-1:0] new_top_pc_q;
   logic [dice_pkg::DICE_ADDR_WIDTH-1:0] new_top_reconvergence_pc_q;
-  logic [NUM_STACK*THREAD_WIDTH-1:0] new_top_active_mask_q;
+  dice_frontend_pkg::thread_mask_t new_top_active_mask_q;
   logic [dice_pkg::DICE_ADDR_WIDTH-1:0] push_pc_1_q, push_pc_2_q;
   logic [dice_pkg::DICE_ADDR_WIDTH-1:0] push_reconvergence_pc_1_q, push_reconvergence_pc_2_q;
-  logic [NUM_STACK*THREAD_WIDTH-1:0] push_active_mask_1_q, push_active_mask_2_q;
+  dice_frontend_pkg::thread_mask_t push_active_mask_1_q, push_active_mask_2_q;
 
   // Generate individual SIMT stacks
   genvar i;
@@ -200,14 +200,13 @@ module simt_stack_controller #(
   // Output individual stack status directly
   assign stack_empty_o = stack_empty_individual;
   assign stack_full_o  = stack_full_individual;
-
   // Extract effective active mask based on CTA size
   always_comb begin
     case (hw_cta_size_q)
-      2'b00:   effective_active_mask = combined_stack_top_active_mask[THREAD_WIDTH-1:0];
-      2'b01:   effective_active_mask = combined_stack_top_active_mask[2*THREAD_WIDTH-1:0];
-      2'b11:   effective_active_mask = combined_stack_top_active_mask;
-      default: effective_active_mask = combined_stack_top_active_mask[THREAD_WIDTH-1:0];
+      2'b00:   effective_active_mask = (dice_frontend_pkg::thread_mask_t)'(combined_stack_top_active_mask[THREAD_WIDTH-1:0]);
+      2'b01:   effective_active_mask = (dice_frontend_pkg::thread_mask_t)'(combined_stack_top_active_mask[2*THREAD_WIDTH-1:0]);
+      2'b11:   effective_active_mask = (dice_frontend_pkg::thread_mask_t)'(combined_stack_top_active_mask);
+      default: effective_active_mask = (dice_frontend_pkg::thread_mask_t)'(combined_stack_top_active_mask[THREAD_WIDTH-1:0]);
     endcase
   end
 
@@ -280,7 +279,7 @@ module simt_stack_controller #(
 
   // Divergence analysis logic - operates on effective thread width
   always_comb begin
-    logic [NUM_STACK*THREAD_WIDTH-1:0] effective_predicate;
+    dice_frontend_pkg::thread_mask_t effective_predicate;
 
     // Extract effective predicate based on CTA size
     case (hw_cta_size_q)

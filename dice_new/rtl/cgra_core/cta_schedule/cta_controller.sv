@@ -27,7 +27,7 @@ module cta_controller #(
     input  logic                                add_ready_i,
     output logic                                add_valid_o,
     output dice_pkg::dice_cta_desc_t            add_cta_info_o,
-    output logic           [dice_pkg::DICE_TID_WIDTH-1:0] add_cta_size_o,  //ensure this is correct
+    output logic           [dice_pkg::DICE_TID_WIDTH:0] add_cta_size_o,  //ensure this is correct
 
 
     //SIMT Stack Controller

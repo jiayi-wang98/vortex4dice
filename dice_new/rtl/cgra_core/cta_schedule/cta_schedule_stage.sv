@@ -3,11 +3,11 @@
 module cta_schedule_stage #(
     parameter int MAX_NUM_CTA = 4,
     parameter int PC_WIDTH = 32,
-    parameter int THREAD_WIDTH = 256,
+    localparam int THREAD_WIDTH = dice_pkg::DICE_NUM_MAX_THREADS_PER_CORE / dice_pkg::DICE_NUM_MAX_CTA_PER_CORE,
     parameter int STACK_DEPTH = 32,
     parameter int NUM_STACK = 4,
-    parameter int CTA_ID_WIDTH = $clog2(MAX_NUM_CTA),
-    parameter int EBLOCK_ID_WIDTH = $clog2(MAX_NUM_CTA + 4)
+    localparam int CTA_ID_WIDTH = $clog2(MAX_NUM_CTA),
+    localparam int EBLOCK_ID_WIDTH = $clog2(MAX_NUM_CTA + 4)
 ) (
     input logic clk_i,
     input logic rst_i,

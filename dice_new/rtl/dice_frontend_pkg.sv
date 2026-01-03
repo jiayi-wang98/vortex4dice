@@ -81,7 +81,7 @@ package dice_frontend_pkg;
     dice_cta_size_t                         schedule_cta_size;
     logic [DICE_KERNEL_ID_WIDTH-1:0]        schedule_kernel_id;
     logic [DICE_SMEM_SIZE_WIDTH-1:0]        schedule_smem_per_cta;
-    logic [DICE_NUM_MAX_THREADS_PER_CORE:0] schedule_hw_cta_size;
+    logic [dice_pkg::DICE_HW_CTA_SIZE_WIDTH-1:0] schedule_hw_cta_size;
   } schedule_eblock_t;
 
 
@@ -95,7 +95,7 @@ package dice_frontend_pkg;
     // Geometry & resources
     dice_grid_size_t                          schedule_grid_size;
     dice_cta_size_t                           schedule_cta_size;
-    logic [DICE_NUM_MAX_THREADS_PER_CORE:0]   schedule_hw_cta_size;
+    logic [dice_pkg::DICE_HW_CTA_SIZE_WIDTH-1:0]   schedule_hw_cta_size;
     logic [DICE_SMEM_SIZE_WIDTH-1:0]          schedule_smem_per_cta;
 
     // Execution state
@@ -117,7 +117,7 @@ package dice_frontend_pkg;
     dice_cta_size_t                         cta_size;
     logic [DICE_KERNEL_ID_WIDTH-1:0]        kernel_id;
     logic [DICE_SMEM_SIZE_WIDTH-1:0]        smem_per_cta;
-    logic [DICE_NUM_MAX_THREADS_PER_CORE:0] hw_cta_size;
+    logic [dice_pkg::DICE_HW_CTA_SIZE_WIDTH-1:0] hw_cta_size;
   } active_cta_t;
 
 

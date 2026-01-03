@@ -1,7 +1,7 @@
 module simt_stack #(
     parameter STACK_DEPTH = 32,
-    parameter THREAD_WIDTH = 256,
-    parameter STACK_INDEX_WIDTH = $clog2(STACK_DEPTH)
+    localparam THREAD_WIDTH = dice_pkg::DICE_NUM_MAX_THREADS_PER_CORE / dice_pkg::DICE_NUM_MAX_CTA_PER_CORE,
+    localparam STACK_INDEX_WIDTH = $clog2(STACK_DEPTH)
 )(
     input logic clk_i,
     input logic rst_i,
@@ -115,12 +115,12 @@ module simt_stack #(
             if ((modify_top_i == 1'b1) && (stack_ptr_q > '0)) begin
                 // Modify top: write to current top location
                 ram_wr_en = 1'b1;
-                ram_wr_addr = stack_ptr_q - 1;
+                ram_wr_addr = (STACK_INDEX_WIDTH)'(stack_ptr_q - 1);
                 ram_wr_data = pack_entry(push_next_pc_i, push_reconvergence_pc_i, push_active_mask_i);
             end else if (modify_top_i == 1'b0) begin
                 // Normal push: write to next location
                 ram_wr_en = 1'b1;
-                ram_wr_addr = stack_ptr_q;
+                ram_wr_addr = (STACK_INDEX_WIDTH)'(stack_ptr_q);
                 ram_wr_data = pack_entry(push_next_pc_i, push_reconvergence_pc_i, push_active_mask_i);
             end
         end
@@ -128,7 +128,7 @@ module simt_stack #(
         // Read top of stack when requested
         if ((read_top_i == 1'b1) && (stack_ptr_q > '0)) begin
             ram_rd_en = 1'b1;
-            ram_rd_addr = stack_ptr_q - 1;  // Top of stack
+            ram_rd_addr = (STACK_INDEX_WIDTH)'(stack_ptr_q - 1);  // Top of stack
         end
     end
 

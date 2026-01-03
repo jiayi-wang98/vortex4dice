@@ -6,8 +6,8 @@
 
 
 module cta_scheduler #(
-    parameter int MAX_EBLOCK = dice_pkg::DICE_NUM_MAX_CTA_PER_CORE + 4,  //localparam?
-    parameter int THREAD_WIDTH = 256
+    localparam int MAX_EBLOCK = dice_pkg::DICE_NUM_MAX_CTA_PER_CORE + 4,  //localparam?
+    localparam int THREAD_WIDTH = dice_pkg::DICE_NUM_MAX_THREADS_PER_CORE / dice_pkg::DICE_NUM_MAX_CTA_PER_CORE
 ) (
     input logic clk_i,
     input logic rst_i,
@@ -42,7 +42,7 @@ module cta_scheduler #(
   logic                                 pc_history_valid_q;
 
   // Round-robin tracking
-  logic [        dice_pkg::DICE_CTA_ID_WIDTH-1:0] last_dispatched_cta_q;
+  logic [        dice_pkg::DICE_HW_CTA_ID_WIDTH-1:0] last_dispatched_cta_q;
 
   // Internal scheduling signals
   logic [dice_pkg::DICE_NUM_MAX_CTA_PER_CORE-1:0] priority_match;
@@ -53,7 +53,7 @@ module cta_scheduler #(
   logic                                 non_branch_found;
   logic                                 any_valid_found;
 
-  logic [        dice_pkg::DICE_CTA_ID_WIDTH-1:0] selected_cta_id;
+  logic [        dice_pkg::DICE_HW_CTA_ID_WIDTH-1:0] selected_cta_id;
   logic                                 selection_valid;
   logic                                 selected_from_branch_resolving;
 
@@ -155,8 +155,8 @@ module cta_scheduler #(
     scheduled_eblock.data.schedule_hw_cta_id = (dice_pkg::DICE_HW_CTA_ID_WIDTH)'(selected_cta_id);
     scheduled_eblock.data.schedule_next_pc = (selected_from_branch_resolving == 1'b1) ?
         cta_status_entries_i[selected_cta_id].predict_pc : cta_next_pc_i[selected_cta_id];
-    scheduled_eblock.data.schedule_eblock_id = (dice_pkg::DICE_EBLOCK_ID_WIDTH)'(eblock_ptr_q);
-    scheduled_eblock.data.schedule_active_mask = stack_top_active_mask_i[selected_cta_id];
+    scheduled_eblock.data.schedule_eblock_id = (dice_frontend_pkg::EBLOCK_ID_WIDTH)'(eblock_ptr_q);
+    scheduled_eblock.data.schedule_active_mask = (dice_frontend_pkg::thread_mask_t)'(stack_top_active_mask_i[selected_cta_id]);
     scheduled_eblock.data.schedule_prefetch_block = selected_from_branch_resolving;
     scheduled_eblock.data.schedule_cta_id = active_cta_entries_i[selected_cta_id].cta_id;
     scheduled_eblock.data.schedule_grid_size = active_cta_entries_i[selected_cta_id].grid_size;
