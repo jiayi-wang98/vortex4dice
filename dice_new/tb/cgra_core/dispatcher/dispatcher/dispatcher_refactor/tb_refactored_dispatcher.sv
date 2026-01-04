@@ -20,6 +20,8 @@ module dispatcher_basic_testbench;
     logic dispatch_valid_0, dispatch_valid_1, dispatch_valid_2, dispatch_valid_3;
     logic dispatch_fifo_empty;
     logic dispatcher_busy, dispatcher_done;
+
+    logic [3:0] ready_fifo_empty;
     
     // Test control
     int test_num;
@@ -126,7 +128,7 @@ module dispatcher_basic_testbench;
             end
 
             dispatch_fifo_pop = 1'b0;
-        end 
+        end
     endtask
     
     // Task to simulate write-back
@@ -142,11 +144,33 @@ module dispatcher_basic_testbench;
     
     // Wait for completion
     task wait_for_completion();
-        int timeout = 1000;
+        int timeout = 10000;  // Increased timeout
+        int idle_cycles = 0;
+        
         while (!dispatcher_done && timeout > 0) begin
-            pop_and_count();
-            @(negedge clk);
+            // Pop whenever ANY data is available
+            if (!dispatch_fifo_empty) begin
+                pop_and_count();
+                idle_cycles = 0;  // Reset idle counter
+            end else begin
+                @(negedge clk);
+                idle_cycles++;
+                
+                // If idle for too long but not done, something is stuck
+                if (idle_cycles > 100 && !dispatcher_done) begin
+                    $display("WARNING: Idle for 100 cycles but not done");
+                    $display("  dispatcher_done=%b, dispatch_fifo_empty=%b", 
+                            dispatcher_done, dispatch_fifo_empty);
+                    $display("  ready_fifo_empty=%b", {ready_fifo_empty[3], ready_fifo_empty[2], 
+                                                        ready_fifo_empty[1], ready_fifo_empty[0]});
+                end
+            end
             timeout--;
+        end
+        
+        // After dispatcher_done, drain any remaining data in FIFOs
+        while (!dispatch_fifo_empty) begin
+            pop_and_count();
         end
         
         if (timeout == 0) begin

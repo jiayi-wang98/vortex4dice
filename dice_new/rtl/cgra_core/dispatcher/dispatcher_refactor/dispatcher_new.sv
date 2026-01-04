@@ -263,7 +263,7 @@ module dispatcher(
     always_comb begin
         // NEW: Calculating per-lane push enable
         for (int i = 0; i < 4; i++) begin
-            ready_fifo_push_en[i] = thread_fifo_data_valid && 
+            ready_fifo_push_en[i] = thread_fifo_pop && 
                                 (i == 0 ? thread_valid_0 :
                                  i == 1 ? thread_valid_1 :
                                  i == 2 ? thread_valid_2 : thread_valid_3) &&
@@ -283,7 +283,7 @@ module dispatcher(
         for (i = 0; i < 4; i++) begin : gen_ready_fifos
             sync_fifo #(
                 .DATA_WIDTH(11),        // 11 bits: {valid, tid[9:0]}
-                .DEPTH(4)               // 4 entries deep
+                .DEPTH(16)               // 4 entries deep
             ) ready_fifo (
                 .clk(clk),
                 .rst_n(rst_n),
