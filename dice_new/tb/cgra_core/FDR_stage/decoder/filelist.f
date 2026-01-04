@@ -1,2 +1,7 @@
-../../../../cgra_core/fetch_stage/decode.sv
-./tb_decode.sv
++incdir+${DICE_HOME}/rtl
+${DICE_HOME}/rtl/dice_config.vh
+${DICE_HOME}/rtl/dice_define.vh
+${DICE_HOME}/rtl/dice_pkg.sv
+${DICE_HOME}/rtl/dice_frontend_pkg.sv
+${DICE_HOME}/rtl/cgra_core/fetch_stage/decode.sv
+${DICE_HOME}/tb/cgra_core/FDR_stage/decoder/decode_tb.sv

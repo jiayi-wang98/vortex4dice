@@ -1,0 +1,13 @@
++incdir+${DICE_HOME}/rtl
+${DICE_HOME}/rtl/dice_config.vh
+${DICE_HOME}/rtl/dice_define.vh
+${DICE_HOME}/rtl/dice_pkg.sv
+${DICE_HOME}/rtl/dice_frontend_pkg.sv
+${DICE_HOME}/rtl/cgra_core/cta_schedule/active_cta_table.sv
+${DICE_HOME}/rtl/cgra_core/cta_schedule/cta_controller.sv
+${DICE_HOME}/rtl/cgra_core/cta_schedule/cta_scheduler.sv
+${DICE_HOME}/rtl/cgra_core/cta_schedule/cta_status_table.sv
+${DICE_HOME}/rtl/cgra_core/cta_schedule/simt_stack.sv
+${DICE_HOME}/rtl/cgra_core/cta_schedule/simt_stack_controller.sv
+${DICE_HOME}/rtl/cgra_core/cta_schedule/cta_schedule_stage.sv
+${DICE_HOME}/tb/cgra_core/CS_stage/cta_schedule_stage/cta_schedule_stage_tb.sv

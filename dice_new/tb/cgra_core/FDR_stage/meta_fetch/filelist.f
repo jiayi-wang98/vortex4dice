@@ -1,4 +1,10 @@
-
-$DICE_HOME/rtl/frontend_pkg.sv
-$DICE_HOME/rtl/cgra_core/fetch_stage/meta_fetch.sv
-$DICE_HOME/tb/cgra_core/FDR_stage/meta_fetch/tb_meta_fetch.sv
++incdir+${DICE_HOME}/rtl
++incdir+${DICE_HOME}/hw/rtl
+${DICE_HOME}/rtl/dice_config.vh
+${DICE_HOME}/rtl/dice_define.vh
+${DICE_HOME}/rtl/dice_pkg.sv
+${DICE_HOME}/rtl/dice_frontend_pkg.sv
+${DICE_HOME}/hw/rtl/VX_define.vh
+${DICE_HOME}/hw/rtl/VX_gpu_pkg.sv
+${DICE_HOME}/rtl/cgra_core/fetch_stage/meta_fetch.sv
+${DICE_HOME}/tb/cgra_core/FDR_stage/meta_fetch/meta_fetch_tb.sv
