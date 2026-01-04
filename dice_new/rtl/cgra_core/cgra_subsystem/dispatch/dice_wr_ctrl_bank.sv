@@ -1,9 +1,8 @@
-`include "bsg_fifo_1r1w_small.sv"
 `include "DE_pkg.sv"
 
 import DE_pkg::*;
 
-// This is per bank, we_o already know which bank this will write to, so we_o only 
+// This is per bank, we_o already know which bank this will write to, so we_o only
 //care about the tid. Address conversion has already happened, but we_o are keeping the !!
 module dice_wr_ctrl_bank #
 (
@@ -11,7 +10,7 @@ module dice_wr_ctrl_bank #
     , parameter DEPTH = 512
     , parameter ADDR_WIDTH = $clog2(DEPTH)
     , parameter BUF_ELS = 8
-) 
+)
 (
       input logic         clk_i
     , input logic         reset_i
@@ -24,7 +23,7 @@ module dice_wr_ctrl_bank #
 
     // forwarding for read
     , input reg_rd_cmd fw_req_i
-    
+
     // stall from either buffer
     , output logic       stall_o
     // forwarding flags for each entry in buffer
@@ -78,15 +77,15 @@ module dice_wr_ctrl_bank #
         , .fw_data_o_valid_o(cgra_fw_valid)
     );
  `else
-  
+
   //TODO: implement single value write aribtration, a flip flop and a fw check maybe
   //
-  
+
   reg_wr_single #(
         .WIDTH     (WIDTH)
       , .ADDR_WIDTH(ADDR_WIDTH)
   ) u_cgra_buf (
-          .clk_i             (clk)
+          .clk_i             (clk_i)
         , .reset_i           (reset_i)
         , .cgra_valid_i      (cgra_valid_i)
         , .cgra_ready_o      (cgra_full)
@@ -98,8 +97,8 @@ module dice_wr_ctrl_bank #
         , .fw_data_o_o       (cgra_fw_data_o)
         , .fw_data_o_valid_o (cgra_fw_valid)
   );
-  `endif //BUF_REG_CGRA 
-  
+  `endif //BUF_REG_CGRA
+
   // ---------------- LDST buffer ----------------
   logic                 ldst_full,  ldst_empty;
   reg_wr_cmd             ldst_wb;
@@ -129,7 +128,7 @@ module dice_wr_ctrl_bank #
         , .fw_data_o_valid_o(ldst_fw_valid)
     );
 
-  assign stall_o = cgra_full || ldst_full;
+  assign stall_o = ldst_full;
 
   assign fw_hit_ldst_o = ldst_fw_hit;
   assign fw_hit_cgra_o = cgra_fw_hit;
@@ -145,18 +144,17 @@ module dice_wr_ctrl_bank #
       fw_data_o = '0;
     end
   end
-  
+
   // wb arbitration
 
   always_comb begin
     cmd_lo = cgra_wb_valid ? cgra_wb : ldst_wb;
     pop_ldst = !cgra_wb_valid;
 
-    data_o = cmd.data;
-    we_o = cmd.we;
-    ws_o = cmd.tid;
-  end    
+    data_o = cmd_lo.data;
+    we_o = cmd_lo.we;
+    ws_o = cmd_lo.tid;
+  end
 
 
 endmodule
-
