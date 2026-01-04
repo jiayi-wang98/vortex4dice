@@ -1,5 +1,5 @@
 
-//AS OF NOW THIS MODULE IS JUST A ROUTER
+//need to figure out how the active mask will be packaged
 module decode (
     input dice_frontend_pkg::pgraph_meta_t metadata_i,
     input logic                            meta_in_valid_i,
@@ -43,7 +43,6 @@ module decode (
     meta_o.unrolling_factor = metadata_i.unrolling_factor;
     meta_o.lat              = metadata_i.lat;
     meta_o.parameter_load   = metadata_i.parameter_load;
-    meta_o.active_mask      = real_active_thread_mask_i;
   end
 
 endmodule

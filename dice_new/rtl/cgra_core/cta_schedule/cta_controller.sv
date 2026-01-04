@@ -79,7 +79,8 @@ module cta_controller #(
   //     2'b01 -> 2 stacks (512 threads)
   //     2'b11 -> 4 stacks (1024 threads)
   // ------------------------------------------------------------
-  function automatic logic [1:0] encode_hw_cta_size(input logic [dice_pkg::DICE_TID_WIDTH:0] cta_size);
+  function automatic logic [1:0] encode_hw_cta_size(
+      input logic [dice_pkg::DICE_TID_WIDTH:0] cta_size);
     // Thresholds sized to match cta_size exactly
     logic [dice_pkg::DICE_TID_WIDTH:0] thr1;
     logic [dice_pkg::DICE_TID_WIDTH:0] thr2;
@@ -166,7 +167,8 @@ module cta_controller #(
           end
 
           assert (!$isunknown(pop_valid_o)) else $error("ControlOutputs: pop_valid_o is X");
-          assert (!$isunknown(clear_entry_valid_o)) else $error("ControlOutputs: clear_entry_valid_o is X");
+          assert (!$isunknown(clear_entry_valid_o))
+              else $error("ControlOutputs: clear_entry_valid_o is X");
           assert (!$isunknown(init_valid_o)) else $error("ControlOutputs: init_valid_o is X");
       end
   end

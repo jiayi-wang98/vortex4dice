@@ -1,8 +1,9 @@
 module simt_stack_controller #(
     parameter int STACK_DEPTH = 32,
-    localparam int THREAD_WIDTH = dice_pkg::DICE_NUM_MAX_THREADS_PER_CORE / dice_pkg::DICE_NUM_MAX_CTA_PER_CORE,
+    parameter int THREAD_WIDTH = dice_pkg::DICE_NUM_MAX_THREADS_PER_CORE /
+                                 dice_pkg::DICE_NUM_MAX_CTA_PER_CORE,
     parameter int METADATA_LENGTH_WIDTH = 8,
-    localparam int NUM_STACK = dice_pkg::DICE_NUM_MAX_CTA_PER_CORE
+    parameter int NUM_STACK = dice_pkg::DICE_NUM_MAX_CTA_PER_CORE
 ) (
     input logic clk_i,
     input logic rst_i,
@@ -11,10 +12,10 @@ module simt_stack_controller #(
     input logic [$clog2(NUM_STACK)-1:0] hw_cta_id_i,
     input logic [1:0] hw_cta_size_i,  // 00=1 stack, 01=2 stacks, 11=4 stacks
 
-    // Update request interface (valid/ready handshake)
+    // Update request interface (valid/ready handshake) - BRANCH HANDLER
     input logic update_valid_i,
     input logic update_with_divergence_i,  // 0 = no divergence, 1 = with divergence
-    input logic [dice_pkg::DICE_ADDR_WIDTH-1:0] update_next_pc_i,  // No divergence: next PC, With divergence: branch taken PC
+    input logic [dice_pkg::DICE_ADDR_WIDTH-1:0] update_next_pc_i,  // No divergence: next PC
 
     // Divergence case inputs (only used when update_with_divergence = 1)
     input dice_frontend_pkg::thread_mask_t predicate_regs_value_i,
@@ -23,7 +24,7 @@ module simt_stack_controller #(
 
     output logic update_ready_o,
 
-    // Initialization interface (higher priority)
+    // Initialization interface (higher priority) - CTA CONTROLLER
     input logic init_valid_i,
     input logic [$clog2(NUM_STACK)-1:0] init_hw_cta_id_i,
     input logic [1:0] init_hw_cta_size_i,
@@ -203,10 +204,14 @@ module simt_stack_controller #(
   // Extract effective active mask based on CTA size
   always_comb begin
     case (hw_cta_size_q)
-      2'b00:   effective_active_mask = (dice_frontend_pkg::thread_mask_t)'(combined_stack_top_active_mask[THREAD_WIDTH-1:0]);
-      2'b01:   effective_active_mask = (dice_frontend_pkg::thread_mask_t)'(combined_stack_top_active_mask[2*THREAD_WIDTH-1:0]);
-      2'b11:   effective_active_mask = (dice_frontend_pkg::thread_mask_t)'(combined_stack_top_active_mask);
-      default: effective_active_mask = (dice_frontend_pkg::thread_mask_t)'(combined_stack_top_active_mask[THREAD_WIDTH-1:0]);
+      2'b00:   effective_active_mask = (dice_frontend_pkg::thread_mask_t)'(
+          combined_stack_top_active_mask[THREAD_WIDTH-1:0]);
+      2'b01:   effective_active_mask = (dice_frontend_pkg::thread_mask_t)'(
+          combined_stack_top_active_mask[2*THREAD_WIDTH-1:0]);
+      2'b11:   effective_active_mask = (dice_frontend_pkg::thread_mask_t)'(
+          combined_stack_top_active_mask);
+      default: effective_active_mask = (dice_frontend_pkg::thread_mask_t)'(
+          combined_stack_top_active_mask[THREAD_WIDTH-1:0]);
     endcase
   end
 
@@ -301,8 +306,10 @@ module simt_stack_controller #(
     taken_active_mask = effective_active_mask & effective_predicate;
     not_taken_active_mask = effective_active_mask & ~effective_predicate;
     all_taken = (taken_active_mask == effective_active_mask) && (effective_active_mask != '0);
-    all_not_taken = (not_taken_active_mask == effective_active_mask) && (effective_active_mask != '0);
-    has_divergence = (all_taken == 1'b0) && (all_not_taken == 1'b0) && (effective_active_mask != '0);
+    all_not_taken = (not_taken_active_mask == effective_active_mask) &&
+                    (effective_active_mask != '0);
+    has_divergence = (all_taken == 1'b0) && (all_not_taken == 1'b0) &&
+                     (effective_active_mask != '0);
   end
 
   // Operation decision logic - combinational for immediate state decisions using _next signals
@@ -343,26 +350,26 @@ module simt_stack_controller #(
         end else if (has_divergence == 1'b1) begin
           // Real divergence cases
           if ((update_next_pc_q != branch_reconvergence_pc_q) &&
-                        (branch_not_taken_pc_q != branch_reconvergence_pc_q) &&
-                        (branch_reconvergence_pc_q != combined_stack_top_reconvergence_pc)) begin
+              (branch_not_taken_pc_q != branch_reconvergence_pc_q) &&
+              (branch_reconvergence_pc_q != combined_stack_top_reconvergence_pc)) begin
             // Case 2: Push two new entries
             need_modify_top_next  = 1'b1;
             need_push_first_next  = 1'b1;
             need_push_second_next = 1'b1;
 
           end else if ((update_next_pc_q == branch_reconvergence_pc_q) &&
-                               (branch_reconvergence_pc_q != combined_stack_top_reconvergence_pc)) begin
+                       (branch_reconvergence_pc_q != combined_stack_top_reconvergence_pc)) begin
             // Case 3: Push one entry for not taken
             need_modify_top_next = 1'b1;
             need_push_first_next = 1'b1;
 
           end else if ((branch_not_taken_pc_q == branch_reconvergence_pc_q) &&
-                               (branch_reconvergence_pc_q == combined_stack_top_reconvergence_pc)) begin
+                       (branch_reconvergence_pc_q == combined_stack_top_reconvergence_pc)) begin
             // Case 4: Update top to taken branch
             need_modify_top_next = 1'b1;
 
           end else if ((update_next_pc_q == branch_reconvergence_pc_q) &&
-                               (branch_reconvergence_pc_q == combined_stack_top_reconvergence_pc)) begin
+                       (branch_reconvergence_pc_q == combined_stack_top_reconvergence_pc)) begin
             // Case 1: Update top to not taken branch
             need_modify_top_next = 1'b1;
           end
@@ -539,7 +546,8 @@ module simt_stack_controller #(
           end else if (has_divergence == 1'b1) begin
             if ((update_next_pc_q != branch_reconvergence_pc_q) &&
                             (branch_not_taken_pc_q != branch_reconvergence_pc_q) &&
-                            (branch_reconvergence_pc_q != combined_stack_top_reconvergence_pc)) begin
+                            (branch_reconvergence_pc_q !=
+                             combined_stack_top_reconvergence_pc)) begin
               // Case 2: Push two new entries
               new_top_pc_q <= branch_reconvergence_pc_q;
               new_top_reconvergence_pc_q <= combined_stack_top_reconvergence_pc;
@@ -552,7 +560,8 @@ module simt_stack_controller #(
               push_active_mask_2_q <= not_taken_active_mask;
 
             end else if ((update_next_pc_q == branch_reconvergence_pc_q) &&
-                                   (branch_reconvergence_pc_q != combined_stack_top_reconvergence_pc)) begin
+                             (branch_reconvergence_pc_q !=
+                              combined_stack_top_reconvergence_pc)) begin
               // Case 3: Push one entry for not taken
               new_top_pc_q <= branch_reconvergence_pc_q;
               new_top_reconvergence_pc_q <= combined_stack_top_reconvergence_pc;
@@ -566,14 +575,12 @@ module simt_stack_controller #(
               // Case 4: Update top to taken branch
               new_top_pc_q <= update_next_pc_q;  // taken target
               new_top_reconvergence_pc_q <= combined_stack_top_reconvergence_pc;
-              new_top_active_mask_q <= taken_active_mask;
 
             end else if ((update_next_pc_q == branch_reconvergence_pc_q) &&
                                    (branch_reconvergence_pc_q == combined_stack_top_reconvergence_pc)) begin
               // Case 1: Update top to not taken branch
               new_top_pc_q <= branch_not_taken_pc_q;
               new_top_reconvergence_pc_q <= combined_stack_top_reconvergence_pc;
-              new_top_active_mask_q <= not_taken_active_mask;
             end
           end
         end
@@ -587,15 +594,15 @@ module simt_stack_controller #(
     if (rst_i == 1'b0) begin
       if ((update_valid_i == 1'b1) && (update_ready_o == 1'b1) &&
           (hw_cta_id_i + hw_cta_size_i >= NUM_STACK)) begin
-        $error(
-            "SIMT Stack Controller: CTA configuration exceeds available stacks (hw_cta_id=%0d, hw_cta_size=%0d, max=%0d)",
+        $error("SIMT Stack Controller: CTA configuration exceeds available stacks " +
+               "(hw_cta_id=%0d, hw_cta_size=%0d, max=%0d)",
             hw_cta_id_i, hw_cta_size_i, NUM_STACK);
       end
 
       if ((init_valid_i == 1'b1) && (init_ready_o == 1'b1) &&
           (init_hw_cta_id_i + init_hw_cta_size_i >= NUM_STACK)) begin
-        $error(
-            "SIMT Stack Controller: Init CTA configuration exceeds available stacks (init_hw_cta_id=%0d, init_hw_cta_size=%0d, max=%0d)",
+        $error("SIMT Stack Controller: Init CTA configuration exceeds available stacks " +
+               "(init_hw_cta_id=%0d, init_hw_cta_size=%0d, max=%0d)",
             init_hw_cta_id_i, init_hw_cta_size_i, NUM_STACK);
       end
 

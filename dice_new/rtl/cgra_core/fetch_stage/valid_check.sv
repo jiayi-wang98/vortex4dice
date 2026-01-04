@@ -14,7 +14,7 @@ module valid_check (
     // From Decoder
     // -------------------------------------------------------------------------
     input logic barrier_indicator_i,  // This p-graph requires barrier (all prev blocks must finish)
-    input logic mask_valid_i,         // Decode done - mask is valid (from branch handler via decoder)
+    input logic mask_valid_i,         // Decode done (mask valid)
 
     //from CS, FDR buffer
     input logic [dice_pkg::DICE_ADDR_WIDTH-1:0]    eblock_pc_i,
@@ -24,7 +24,7 @@ module valid_check (
     // -------------------------------------------------------------------------
     // From SIMT Stack
     // -------------------------------------------------------------------------
-    input logic [dice_pkg::DICE_ADDR_WIDTH-1:0] simt_stack_pc_i,  // next_pc for branch predict check
+    input logic [dice_pkg::DICE_ADDR_WIDTH-1:0] simt_stack_pc_i,  // next_pc for branch predict
 
     // -------------------------------------------------------------------------
     // From Bitstream Loader

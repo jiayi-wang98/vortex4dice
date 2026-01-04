@@ -31,13 +31,7 @@ module branch_handler #(
     // ===================================
     // CTA Status Table Interface
     // ===================================
-    output logic [dice_pkg::DICE_HW_CTA_ID_WIDTH-1:0] hw_cta_id_bh_o,
-
-    output logic                                unresolved_control_divergence_bh_o,
-    output logic [dice_pkg::DICE_ADDR_WIDTH-1:0] predict_pc_bh_o,
-    output logic                                is_return_bh_o,
-
-    // Input status from table
+    output dice_pkg::branch_predict_interface_t branch_predict_interface_o,
     input dice_pkg::dice_cta_status_t [dice_pkg::DICE_NUM_MAX_CTA_PER_CORE-1:0] cta_status_table_i,
 
     // ===================================
@@ -47,6 +41,7 @@ module branch_handler #(
     input logic                                    ret_i,
     input logic                                    branch_req_valid_i,
     input logic [dice_pkg::DICE_ADDR_WIDTH-1:0]    current_pc_i,
+    output dice_frontend_pkg::thread_mask_t real_active_thread_mask_o,
 
     // ===================================
     // Predicate Register File Interface
@@ -57,15 +52,14 @@ module branch_handler #(
     // ===================================
     // Valid Check Interface
     // ===================================
-    output dice_frontend_pkg::thread_mask_t real_active_thread_mask_o,
     output logic                            mask_valid_o
 );
 
     // =========================================================================
     // Internal Signals & Types
     // =========================================================================
-    localparam int METADATA_LENGTH = 1;
-    localparam int PC_INC = 4;
+    localparam int MetadataLength = 1;
+    localparam int PcInc = 4;
 
     logic dependency_resolved;
     logic is_branch_op;
@@ -95,9 +89,10 @@ module branch_handler #(
     assign is_conditional = is_branch_op && !branch_metadata_i.branch_uni;
 
     // Calculate Targets
-    assign fallthrough_pc = current_pc_i + PC_INC;
-    assign jump_target_pc = current_pc_i + (32'(branch_metadata_i.branch_jump_target_offset) * PC_INC);
-    assign reconv_target_pc = current_pc_i + (32'(branch_metadata_i.branch_reconv_offset) * PC_INC);
+    assign fallthrough_pc = current_pc_i + PcInc;
+    assign jump_target_pc = current_pc_i + (32'(branch_metadata_i.branch_jump_target_offset) *
+                                            PcInc);
+    assign reconv_target_pc = current_pc_i + (32'(branch_metadata_i.branch_reconv_offset) * PcInc);
 
     // Dependency Check
     assign dependency_resolved = (!cta_status_table_i[hw_cta_id_cs_i].has_pending_eblock);
@@ -142,7 +137,7 @@ module branch_handler #(
         logic [PC_WIDTH-1:0]             reconv_pc;
     } pending_branch_info_t;
 
-    pending_branch_info_t pending_branch_table_q [dice_pkg::DICE_NUM_MAX_CTA_PER_CORE-1:0];
+    pending_branch_info_t pending_branch_table_q [dice_pkg::DICE_NUM_MAX_CTA_PER_CORE];
 
     always_comb begin
         pr_cta = '0;
@@ -251,8 +246,10 @@ module branch_handler #(
 
             // Store Pending Info
             if (is_conditional && !dependency_resolved && branch_req_valid_i) begin
-                pending_branch_table_q[hw_cta_id_cs_i].pred_reg     <= branch_metadata_i.branch_pred_reg;
-                pending_branch_table_q[hw_cta_id_cs_i].neg_pred     <= branch_metadata_i.branch_neg_pred;
+                pending_branch_table_q[hw_cta_id_cs_i].pred_reg     <=
+                    branch_metadata_i.branch_pred_reg;
+                pending_branch_table_q[hw_cta_id_cs_i].neg_pred     <=
+                    branch_metadata_i.branch_neg_pred;
                 pending_branch_table_q[hw_cta_id_cs_i].taken_pc     <= jump_target_pc;
                 pending_branch_table_q[hw_cta_id_cs_i].not_taken_pc <= fallthrough_pc;
                 pending_branch_table_q[hw_cta_id_cs_i].reconv_pc    <= reconv_target_pc;

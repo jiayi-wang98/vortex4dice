@@ -22,7 +22,7 @@ module meta_fetch #(
     // From stage barrier
     input logic fire_eblock_i
 );
-  localparam PAD_WIDTH = TAG_WIDTH - dice_frontend_pkg::EBLOCK_ID_WIDTH;
+  localparam int PadWidth = TAG_WIDTH - dice_frontend_pkg::EBLOCK_ID_WIDTH;
 
   // FSM states
   typedef enum logic [1:0] {
@@ -39,10 +39,10 @@ module meta_fetch #(
 
   //DIRECTLY FROM VORTEX======================================================
   logic [VX_gpu_pkg::ICACHE_ADDR_WIDTH-1:0] meta_cache_req_addr_q, meta_cache_req_addr_d;
-  localparam ADDR_SHIFT = $clog2(
+  localparam int AddrShift = $clog2(
       VX_gpu_pkg::VX_MEM_DATA_WIDTH / 8
-  );  // Should calculate shift based on data width (bytes)
-  assign meta_cache_req_addr_d = fdr_next_pc_i[ADDR_SHIFT+:VX_gpu_pkg::ICACHE_ADDR_WIDTH];
+  );
+  assign meta_cache_req_addr_d = fdr_next_pc_i[AddrShift+:VX_gpu_pkg::ICACHE_ADDR_WIDTH];
   // 4-byte aligned addresses
   //DIRECTLY FROM VORTEX======================================================
 
@@ -92,7 +92,8 @@ module meta_fetch #(
         eblock_id_q           <= schedule_eblock_id_i;
       end
       if (rsp_fire) begin
-        outgoing_meta_q <= dice_frontend_pkg::pgraph_meta_t'(meta_fetch_bus_if.rsp_data.data);
+        outgoing_meta_q <= dice_frontend_pkg::pgraph_meta_t'(
+            meta_fetch_bus_if.rsp_data.data);
         meta_valid_q    <= 1'b1;
       end
       if (fire_eblock_i) begin
@@ -111,7 +112,7 @@ module meta_fetch #(
   //Pad unused part of VORTEX tag with zeros
   //Logic is less complicated since there is only one cta
   //in fdr at once as opposed to vortexs large # of warps
-  assign meta_fetch_bus_if.req_data.tag    = {{PAD_WIDTH{1'b0}}, eblock_id_q};
+  assign meta_fetch_bus_if.req_data.tag    = {{PadWidth{1'b0}}, eblock_id_q};
 
   //============ MISC ASSIGNS ======================//
   assign meta_fetch_bus_if.req_data.addr   = meta_cache_req_addr_q;

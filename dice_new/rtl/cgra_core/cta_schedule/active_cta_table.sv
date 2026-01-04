@@ -1,5 +1,6 @@
 module active_cta_table #(
-    parameter int THREAD_WIDTH = dice_pkg::DICE_NUM_MAX_THREADS_PER_CORE / dice_pkg::DICE_NUM_MAX_CTA_PER_CORE  // Base thread width per CTA table entry
+    parameter int THREAD_WIDTH = dice_pkg::DICE_NUM_MAX_THREADS_PER_CORE /
+                                 dice_pkg::DICE_NUM_MAX_CTA_PER_CORE  // Base thread width
 ) (
     input logic clk_i,
     input logic rst_i,
@@ -23,7 +24,8 @@ module active_cta_table #(
     output logic         [dice_pkg::DICE_KERNEL_ID_WIDTH-1:0] out_kernel_id_o,
 
     // Status outputs
-    output dice_frontend_pkg::active_cta_t [dice_pkg::DICE_NUM_MAX_CTA_PER_CORE-1:0] active_cta_entries_o,
+    output dice_frontend_pkg::active_cta_t [dice_pkg::DICE_NUM_MAX_CTA_PER_CORE-1:0]
+        active_cta_entries_o,
 
     // Output flags
     output logic                                             full_o,
@@ -37,21 +39,23 @@ module active_cta_table #(
     // For power-of-2 THREAD_WIDTH, we can use bit shifts
     // entries_needed = ceil(cta_size / THREAD_WIDTH) = (cta_size + THREAD_WIDTH - 1) >> log2(THREAD_WIDTH)
     logic [dice_pkg::DICE_TID_WIDTH:0] adjusted_size;
-    adjusted_size = (dice_pkg::DICE_TID_WIDTH + 1)'(cta_size) + (dice_pkg::DICE_TID_WIDTH + 1)'(THREAD_WIDTH - 1);
-    return (dice_pkg::DICE_HW_CTA_ID_WIDTH + 1)'(adjusted_size >> (dice_pkg::DICE_TID_WIDTH'($clog2(THREAD_WIDTH))));
+    adjusted_size = (dice_pkg::DICE_TID_WIDTH + 1)'(cta_size) + THREAD_WIDTH - 1;
+    return (dice_pkg::DICE_HW_CTA_ID_WIDTH + 1)'(adjusted_size >>
+        (dice_pkg::DICE_TID_WIDTH'($clog2(THREAD_WIDTH))));
   endfunction
 
 
   // CTA table entry structure
   typedef struct packed {
     logic is_primary;  // True for the first entry of a multi-entry CTA
-    logic [$clog2(dice_pkg::DICE_NUM_MAX_CTA_PER_CORE):0] entries_used;  // Number of entries used by this CTA
+    logic [$clog2(dice_pkg::DICE_NUM_MAX_CTA_PER_CORE):0]
+        entries_used;  // Number of entries used by this CTA
     dice_frontend_pkg::active_cta_t entry_info;
   } cta_entry_t;
 
 
   // CTA table storage
-  cta_entry_t cta_table_q[dice_pkg::DICE_NUM_MAX_CTA_PER_CORE-1:0];
+  cta_entry_t cta_table_q[dice_pkg::DICE_NUM_MAX_CTA_PER_CORE];
 
   // Output buffer for popped entries (flip-flops)
   logic                                        output_buffer_valid_q;
@@ -67,6 +71,7 @@ module active_cta_table #(
 
   // Calculate entries needed for incoming CTA
   assign entries_needed = calc_entries_needed(add_cta_size_i);
+  assign entries_to_clear = cta_table_q[pop_hw_cta_id_i].entries_used;
 
   // Find next empty entry - Contiguous Block Search
   always_comb begin
@@ -121,7 +126,8 @@ module active_cta_table #(
   // CTA valid outputs and status information - only from primary entries
   always_comb begin
     for (int i = 0; i < dice_pkg::DICE_NUM_MAX_CTA_PER_CORE; i++) begin
-      if ((cta_table_q[i].entry_info.cta_valid == 1'b1) && (cta_table_q[i].is_primary == 1'b1)) begin
+      if ((cta_table_q[i].entry_info.cta_valid == 1'b1) &&
+          (cta_table_q[i].is_primary == 1'b1)) begin
         active_cta_entries_o[i] = cta_table_q[i].entry_info;
       end else begin
         active_cta_entries_o[i] = '0;
@@ -145,7 +151,7 @@ module active_cta_table #(
 
     end else begin
       // Compute entries_to_clear for pop operations
-      entries_to_clear = cta_table_q[pop_hw_cta_id_i].entries_used;
+      // entries_to_clear = cta_table_q[pop_hw_cta_id_i].entries_used; // Moved to continuous assignment
 
       if ((pop_this_cycle == 1'b1) && (output_consumed_this_cycle == 1'b1)) begin
         // Pop and output in same cycle - directly replace buffer contents
@@ -156,7 +162,8 @@ module active_cta_table #(
 
         // Clear all entries used by this CTA
         for (int j = 0; j < dice_pkg::DICE_NUM_MAX_CTA_PER_CORE; j++) begin
-          if (j >= 32'(pop_hw_cta_id_i) && j < (32'(pop_hw_cta_id_i) + 32'(entries_to_clear))) begin
+          if (j >= 32'(pop_hw_cta_id_i) &&
+              j < (32'(pop_hw_cta_id_i) + 32'(entries_to_clear))) begin
             cta_table_q[j] <= '0;
           end
         end
@@ -170,7 +177,8 @@ module active_cta_table #(
 
         // Clear all entries used by this CTA
         for (int j = 0; j < dice_pkg::DICE_NUM_MAX_CTA_PER_CORE; j++) begin
-          if (j >= 32'(pop_hw_cta_id_i) && j < (32'(pop_hw_cta_id_i) + 32'(entries_to_clear))) begin
+          if (j >= 32'(pop_hw_cta_id_i) &&
+              j < (32'(pop_hw_cta_id_i) + 32'(entries_to_clear))) begin
             cta_table_q[j] <= '0;
           end
         end
@@ -196,7 +204,8 @@ module active_cta_table #(
               cta_table_q[j].entry_info.cta_size <= add_cta_info_i.kernel_desc.cta_size;
               cta_table_q[j].entry_info.kernel_id <= add_cta_info_i.kernel_desc.kernel_id;
               cta_table_q[j].entry_info.smem_per_cta <= add_cta_info_i.kernel_desc.smem_per_cta;
-              cta_table_q[j].entry_info.hw_cta_size <= (dice_pkg::DICE_HW_CTA_SIZE_WIDTH)'(add_cta_size_i);
+              cta_table_q[j].entry_info.hw_cta_size <=
+                  (dice_pkg::DICE_HW_CTA_SIZE_WIDTH)'(add_cta_size_i);
             end else begin
               cta_table_q[j] <= '0;
             end

@@ -3,11 +3,12 @@
 module cta_schedule_stage #(
     parameter int MAX_NUM_CTA = 4,
     parameter int PC_WIDTH = 32,
-    localparam int THREAD_WIDTH = dice_pkg::DICE_NUM_MAX_THREADS_PER_CORE / dice_pkg::DICE_NUM_MAX_CTA_PER_CORE,
+    localparam int ThreadWidth = dice_pkg::DICE_NUM_MAX_THREADS_PER_CORE /
+                                 dice_pkg::DICE_NUM_MAX_CTA_PER_CORE,
     parameter int STACK_DEPTH = 32,
     parameter int NUM_STACK = 4,
-    localparam int CTA_ID_WIDTH = $clog2(MAX_NUM_CTA),
-    localparam int EBLOCK_ID_WIDTH = $clog2(MAX_NUM_CTA + 4)
+    localparam int CtaIdWidth = $clog2(MAX_NUM_CTA),
+    localparam int EblockIdWidth = $clog2(MAX_NUM_CTA + 4)
 ) (
     input logic clk_i,
     input logic rst_i,
@@ -27,7 +28,7 @@ module cta_schedule_stage #(
 
     // E-block commit interface (from execution/retire)
     input logic                       eblock_commit_valid_i,
-    input logic [EBLOCK_ID_WIDTH-1:0] eblock_commit_id_i,
+    input logic [EblockIdWidth-1:0] eblock_commit_id_i,
 
     // Branch handler / predictor interface (from FDR/execution)
     branch_handler_if.slave status_table_bh_if,
@@ -39,7 +40,7 @@ module cta_schedule_stage #(
 
     // UPDATE INTERFACE (SIMT STACK CONTROLLER AND BRANCH HANDLER)
     dice_bh_simt_if.slave simt_stack_update,
-    input logic [CTA_ID_WIDTH-1:0]      simt_update_hw_cta_id_i,
+    input logic [CtaIdWidth-1:0]        simt_update_hw_cta_id_i,
     input logic [1:0]                   simt_update_hw_cta_size_i,
 
 
@@ -47,7 +48,7 @@ module cta_schedule_stage #(
     output logic [NUM_STACK-1:0] stack_top_valid_o,
     output logic [NUM_STACK-1:0][PC_WIDTH-1:0] stack_top_next_pc_o,
     output logic [NUM_STACK-1:0][PC_WIDTH-1:0] stack_top_reconvergence_pc_o,
-    output logic [NUM_STACK-1:0][THREAD_WIDTH-1:0] stack_top_active_mask_o,
+    output logic [NUM_STACK-1:0][ThreadWidth-1:0] stack_top_active_mask_o,
     // Stack status - individual stack status
     output logic [NUM_STACK-1:0] stack_empty_o,
     output logic [NUM_STACK-1:0] stack_full_o
@@ -79,7 +80,8 @@ module cta_schedule_stage #(
   /* verilator lint_on WIDTHTRUNC */
 
   // Adapter for cta_scheduler which uses dice_frontend_pkg::cta_status_t
-  dice_frontend_pkg::cta_status_t [dice_pkg::DICE_NUM_MAX_CTA_PER_CORE-1:0] scheduler_status_adapter;
+  dice_frontend_pkg::cta_status_t [dice_pkg::DICE_NUM_MAX_CTA_PER_CORE-1:0]
+      scheduler_status_adapter;
 
   always_comb begin
       for (int i = 0; i < dice_pkg::DICE_NUM_MAX_CTA_PER_CORE; i++) begin
@@ -151,7 +153,7 @@ module cta_schedule_stage #(
   // Active CTA Table
   // -------------------------------------------------------------------------
   active_cta_table #(
-      .THREAD_WIDTH(THREAD_WIDTH)
+      .THREAD_WIDTH(ThreadWidth)
   ) active_cta_table_inst (
       .clk_i                  (clk_i),
       .rst_i                  (rst_i),
@@ -178,7 +180,7 @@ module cta_schedule_stage #(
   // -------------------------------------------------------------------------
   cta_scheduler #(
       .MAX_EBLOCK(dice_pkg::DICE_NUM_MAX_CTA_PER_CORE + 4),
-      .THREAD_WIDTH(THREAD_WIDTH)
+      .THREAD_WIDTH(ThreadWidth)
   ) cta_scheduler_inst (
       .clk_i                  (clk_i),
       .rst_i                  (rst_i),
@@ -215,7 +217,7 @@ module cta_schedule_stage #(
   // -------------------------------------------------------------------------
   simt_stack_controller #(
       .STACK_DEPTH (STACK_DEPTH),
-      .THREAD_WIDTH(THREAD_WIDTH),
+      .THREAD_WIDTH(ThreadWidth),
       .NUM_STACK   (NUM_STACK)
   ) simt_stack_controller_inst (
       .clk_i                      (clk_i),
@@ -225,7 +227,8 @@ module cta_schedule_stage #(
       .update_valid_i             (simt_stack_update.update_valid),
       .update_with_divergence_i   (simt_stack_update.update_stack_data.update_with_divergence),
       .update_next_pc_i           (simt_stack_update.update_stack_data.update_next_pc),
-      .predicate_regs_value_i     (simt_stack_update.update_stack_data.predicate_regs_value[NUM_STACK*THREAD_WIDTH-1:0]),
+      .predicate_regs_value_i     (simt_stack_update.update_stack_data.predicate_regs_value[
+                                      NUM_STACK*ThreadWidth-1:0]),
       .branch_not_taken_pc_i      (simt_stack_update.update_stack_data.branch_not_taken_pc),
       .branch_reconvergence_pc_i  (simt_stack_update.update_stack_data.branch_reconvergence_pc),
       .update_ready_o             (simt_stack_update_ready),

@@ -1,7 +1,8 @@
 module simt_stack #(
-    parameter STACK_DEPTH = 32,
-    localparam THREAD_WIDTH = dice_pkg::DICE_NUM_MAX_THREADS_PER_CORE / dice_pkg::DICE_NUM_MAX_CTA_PER_CORE,
-    localparam STACK_INDEX_WIDTH = $clog2(STACK_DEPTH)
+    parameter int STACK_DEPTH = 32,
+    parameter int THREAD_WIDTH = dice_pkg::DICE_NUM_MAX_THREADS_PER_CORE /
+                                 dice_pkg::DICE_NUM_MAX_CTA_PER_CORE,
+    localparam int StackIndexWidth = $clog2(STACK_DEPTH)
 )(
     input logic clk_i,
     input logic rst_i,
@@ -31,21 +32,22 @@ module simt_stack #(
 );
 
     // Constants
-    localparam ENTRY_WIDTH = dice_pkg::DICE_ADDR_WIDTH + dice_pkg::DICE_ADDR_WIDTH + THREAD_WIDTH;
+    localparam int EntryWidth = dice_pkg::DICE_ADDR_WIDTH + dice_pkg::DICE_ADDR_WIDTH +
+                                THREAD_WIDTH;
 
     // Stack pointer (0 = empty, points to top of stack + 1)
-    logic [STACK_INDEX_WIDTH:0] stack_ptr_q;  // Extra bit to represent STACK_DEPTH
+    logic [StackIndexWidth:0] stack_ptr_q;  // Extra bit to represent STACK_DEPTH
 
     // Output valid register
     logic out_valid_q;
 
     // RAM interface signals
     logic ram_wr_en, ram_rd_en;
-    logic [STACK_INDEX_WIDTH-1:0] ram_wr_addr, ram_rd_addr;
-    logic [ENTRY_WIDTH-1:0] ram_wr_data, ram_rd_data;
+    logic [StackIndexWidth-1:0] ram_wr_addr, ram_rd_addr;
+    logic [EntryWidth-1:0] ram_wr_data, ram_rd_data;
 
     // Pack/unpack functions for RAM data
-    function [ENTRY_WIDTH-1:0] pack_entry(
+    function automatic [EntryWidth-1:0] pack_entry(
         input logic [dice_pkg::DICE_ADDR_WIDTH-1:0] next_pc,
         input logic [dice_pkg::DICE_ADDR_WIDTH-1:0] reconvergence_pc,
         input logic [THREAD_WIDTH-1:0] active_mask
@@ -53,15 +55,18 @@ module simt_stack #(
         return {next_pc, reconvergence_pc, active_mask};
     endfunction
 
-    function logic [dice_pkg::DICE_ADDR_WIDTH-1:0] unpack_next_pc(input [ENTRY_WIDTH-1:0] entry);
-        return entry[ENTRY_WIDTH-1:dice_pkg::DICE_ADDR_WIDTH+THREAD_WIDTH];
+    function automatic logic [dice_pkg::DICE_ADDR_WIDTH-1:0] unpack_next_pc(
+        input logic [EntryWidth-1:0] entry);
+        return entry[EntryWidth-1:dice_pkg::DICE_ADDR_WIDTH+THREAD_WIDTH];
     endfunction
 
-    function logic [dice_pkg::DICE_ADDR_WIDTH-1:0] unpack_reconvergence_pc(input [ENTRY_WIDTH-1:0] entry);
+    function automatic logic [dice_pkg::DICE_ADDR_WIDTH-1:0] unpack_reconvergence_pc(
+        input logic [EntryWidth-1:0] entry);
         return entry[dice_pkg::DICE_ADDR_WIDTH+THREAD_WIDTH-1:THREAD_WIDTH];
     endfunction
 
-    function logic [THREAD_WIDTH-1:0] unpack_active_mask(input [ENTRY_WIDTH-1:0] entry);
+    function automatic logic [THREAD_WIDTH-1:0] unpack_active_mask(
+        input logic [EntryWidth-1:0] entry);
         return entry[THREAD_WIDTH-1:0];
     endfunction
 
@@ -80,7 +85,7 @@ module simt_stack #(
 
 `else
     dice_ram_1w1r #(
-        .DATA_WIDTH(ENTRY_WIDTH),
+        .DATA_WIDTH(EntryWidth),
         .DEPTH(STACK_DEPTH)
     ) stack_ram (
         .clk(clk_i),
@@ -115,20 +120,22 @@ module simt_stack #(
             if ((modify_top_i == 1'b1) && (stack_ptr_q > '0)) begin
                 // Modify top: write to current top location
                 ram_wr_en = 1'b1;
-                ram_wr_addr = (STACK_INDEX_WIDTH)'(stack_ptr_q - 1);
-                ram_wr_data = pack_entry(push_next_pc_i, push_reconvergence_pc_i, push_active_mask_i);
+                ram_wr_addr = (StackIndexWidth)'(stack_ptr_q - 1);
+                ram_wr_data = pack_entry(push_next_pc_i, push_reconvergence_pc_i,
+                                         push_active_mask_i);
             end else if (modify_top_i == 1'b0) begin
                 // Normal push: write to next location
                 ram_wr_en = 1'b1;
-                ram_wr_addr = (STACK_INDEX_WIDTH)'(stack_ptr_q);
-                ram_wr_data = pack_entry(push_next_pc_i, push_reconvergence_pc_i, push_active_mask_i);
+                ram_wr_addr = (StackIndexWidth)'(stack_ptr_q);
+                ram_wr_data = pack_entry(push_next_pc_i, push_reconvergence_pc_i,
+                                         push_active_mask_i);
             end
         end
 
         // Read top of stack when requested
         if ((read_top_i == 1'b1) && (stack_ptr_q > '0)) begin
             ram_rd_en = 1'b1;
-            ram_rd_addr = (STACK_INDEX_WIDTH)'(stack_ptr_q - 1);  // Top of stack
+            ram_rd_addr = (StackIndexWidth)'(stack_ptr_q - 1);  // Top of stack
         end
     end
 

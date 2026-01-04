@@ -30,8 +30,8 @@ module bitstream_fetch_load #(
     output logic cm_num_o
 );
 
-  localparam int COUNTER_BITS = $clog2(NUM_CHUNKS + 1);
-  localparam int OFFSET = CHUNK_SIZE / 8;
+  localparam int CounterBits = $clog2(NUM_CHUNKS + 1);
+  localparam int Offset = CHUNK_SIZE / 8;
 
   typedef enum logic [1:0] {
     StateIdle,
@@ -45,7 +45,7 @@ module bitstream_fetch_load #(
   logic [dice_pkg::DICE_ADDR_WIDTH-1:0] cm0_addr_q, cm1_addr_q, cm0_addr_d, cm1_addr_d;
   logic cm_select_q, cm_select_d;  // 0 = cm0, 1 = cm1
 
-  logic [COUNTER_BITS-1:0] chunk_count_q, chunk_count_d;  //how many chunks have been streamed
+  logic [CounterBits-1:0] chunk_count_q, chunk_count_d;  //how many chunks have been streamed
 
   // Data
   logic [CHUNK_SIZE-1:0] data_chunk_q, data_chunk_d;
@@ -91,8 +91,10 @@ module bitstream_fetch_load #(
   assign cm0_data_o = data_chunk_q;
   assign cm1_data_o = data_chunk_q;
 
-  assign done_streaming_o = (cm_select_q == 1'b0 && cm0_valid_q && cm0_addr_q == bitstream_addr_dec) ||
-                            (cm_select_q == 1'b1 && cm1_valid_q && cm1_addr_q == bitstream_addr_dec);
+  assign done_streaming_o = (cm_select_q == 1'b0 && cm0_valid_q &&
+                             cm0_addr_q == bitstream_addr_dec) ||
+                            (cm_select_q == 1'b1 && cm1_valid_q &&
+                             cm1_addr_q == bitstream_addr_dec);
 
   always_comb begin
     // Default assignments at top of always_comb
@@ -124,7 +126,8 @@ module bitstream_fetch_load #(
           if (!done_streaming_o) begin
             if (cm_select_q == 1'b0 && cm1_valid_q && cm1_addr_q == bitstream_addr_dec) begin
               cm_select_d = 1'b1;
-            end else if (cm_select_q == 1'b1 && cm0_valid_q && cm0_addr_q == bitstream_addr_dec) begin
+            end else if (cm_select_q == 1'b1 && cm0_valid_q &&
+                         cm0_addr_q == bitstream_addr_dec) begin
               cm_select_d = 1'b0;
             end else begin
               if (cm0_valid_q || cm1_valid_q) cm_select_d = ~cm_select_q;
@@ -159,7 +162,7 @@ module bitstream_fetch_load #(
             if (chunk_count_q == NUM_CHUNKS - 1) begin
               state_d = StateDone;
             end else begin
-              addr_d = addr_q + OFFSET;
+              addr_d = addr_q + Offset;
             end
           end
         end
