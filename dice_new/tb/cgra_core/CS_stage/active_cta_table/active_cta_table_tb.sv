@@ -52,6 +52,7 @@ module active_cta_table_tb;
   logic                                                                     pop_ready_o;
 
   logic                                                                     out_valid_o;
+  logic                                                                     out_ready_i;
   dice_pkg::dice_cta_id_t                                                   out_cta_id_o;
   logic                           [           dice_pkg::DICE_TID_WIDTH-1:0] out_cta_size_o;
   logic                           [     dice_pkg::DICE_KERNEL_ID_WIDTH-1:0] out_kernel_id_o;
@@ -93,6 +94,7 @@ module active_cta_table_tb;
       .pop_hw_cta_id_i       (pop_hw_cta_id_i),
       .pop_ready_o           (pop_ready_o),
       .out_valid_o           (out_valid_o),
+      .out_ready_i           (out_ready_i),
       .out_cta_id_o          (out_cta_id_o),
       .out_cta_size_o        (out_cta_size_o),
       .out_kernel_id_o       (out_kernel_id_o),
@@ -120,6 +122,7 @@ module active_cta_table_tb;
     add_cta_size_i  = '0;
     pop_valid_i     = 1'b0;
     pop_hw_cta_id_i = '0;
+    out_ready_i     = 1'b1;
     repeat (10) @(posedge clk);
     rst = 1'b0;
     @(posedge clk);
@@ -131,6 +134,7 @@ module active_cta_table_tb;
     add_cta_size_i  = '0;
     pop_valid_i     = 1'b0;
     pop_hw_cta_id_i = '0;
+    out_ready_i     = 1'b1;
   endtask
 
   task automatic add_cta(input dice_pkg::dice_cta_desc_t desc,
