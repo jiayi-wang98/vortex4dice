@@ -7,7 +7,6 @@ import DE_pkg::*;
 import dice_pkg::*;
 
 
-
 module reg_wr_buffer #(
       parameter int WIDTH      = 32
     , parameter int ADDR_WIDTH = $clog2(512)
@@ -43,7 +42,7 @@ module reg_wr_buffer #(
     localparam int ptr_width_lp = $clog2(DEPTH);
 
     // ----------------------------------------------------------------
-    // Pointer tracker 
+    // Pointer tracker
     // ----------------------------------------------------------------
     logic [ptr_width_lp-1:0] wptr_r, rptr_r;
     logic                    full, empty;
@@ -95,7 +94,7 @@ module reg_wr_buffer #(
     end
 
     // ----------------------------------------------------------------
-    // Oldest entry for writeback 
+    // Oldest entry for writeback
     // ----------------------------------------------------------------
     always_comb begin
         cmd_o = buffer[rptr_r];

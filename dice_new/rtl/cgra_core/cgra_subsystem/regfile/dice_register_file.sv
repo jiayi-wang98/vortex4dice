@@ -5,7 +5,6 @@ module dice_register_file #(
     parameter int ADDR_WIDTH = $clog2(DEPTH)
 )(
     input  logic              clk,
-    input  logic              rst_n,
     // Read port
     input  logic [NUM_BANK-1:0]    rd_en,
     input  logic [NUM_BANK*ADDR_WIDTH-1:0] rd_addr,

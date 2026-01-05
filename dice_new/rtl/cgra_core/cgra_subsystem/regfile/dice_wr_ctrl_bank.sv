@@ -9,7 +9,7 @@ module dice_wr_ctrl_bank #
       parameter WIDTH =  32
     , parameter DEPTH = 512
     , parameter ADDR_WIDTH = $clog2(DEPTH)
-    , parameter BUF_ELS = 8
+    , parameter BUF_DEPTH = 8
 )
 (
       input logic         clk_i
@@ -38,9 +38,6 @@ module dice_wr_ctrl_bank #
 );
 
 
-// two buffers with forwarding flags for each entry. starting with 8 entries
-
-  localparam BUF_DEPTH = 8;
 
 
   reg_wr_cmd cmd_lo;
@@ -55,28 +52,6 @@ module dice_wr_ctrl_bank #
   logic                  cgra_fw_valid;
   logic                  pop_cgra;
 
-  `ifdef BUF_REG_CGRA
-
-  reg_wr_buffer #(
-          .WIDTH     (WIDTH)
-        , .ADDR_WIDTH(ADDR_WIDTH)
-        , .DEPTH     (BUF_DEPTH)
-    ) u_cgra_buf (
-          .clk_i          (clk_i)
-        , .reset_i        (reset_i)
-        , .wr_i           (wr_cgra_i)
-        , .fw_req_i       (fw_req_i)
-        , .pop_i          (pop_cgra)
-        , .full_o         (cgra_full)
-        , .empty_o        (cgra_empty)
-        , .wb_addr_o      (cgra_wb_addr)
-        , .wb_data_o      (cgra_wb_data)
-        , .wb_valid_o     (cgra_wb_valid)
-        , .fw_hit_o       (cgra_fw_hit)
-        , .fw_data_o_o      (cgra_fw_data_o)
-        , .fw_data_o_valid_o(cgra_fw_valid)
-    );
- `else
 
   //TODO: implement single value write aribtration, a flip flop and a fw check maybe
   //
@@ -97,7 +72,6 @@ module dice_wr_ctrl_bank #
         , .fw_data_o_o       (cgra_fw_data_o)
         , .fw_data_o_valid_o (cgra_fw_valid)
   );
-  `endif //BUF_REG_CGRA
 
   // ---------------- LDST buffer ----------------
   logic                 ldst_full,  ldst_empty;
