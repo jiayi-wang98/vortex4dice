@@ -1,4 +1,4 @@
-`timescale 1ns/1ps
+`timescale 1ns / 1ps
 `include "dice_define.vh"
 
 module branch_handler_tb;
@@ -114,7 +114,11 @@ module branch_handler_tb;
 
     // TODO: Add test vectors here
     $display("[%0t] branch_handler_tb: Test passed!", $time);
+`ifdef MODELSIM
+    $stop;
+`else
     $finish;
+`endif
   end
 
   // =========================================================================

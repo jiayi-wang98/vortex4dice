@@ -1,4 +1,4 @@
-`timescale 1ns/1ps
+`timescale 1ns / 1ps
 `include "VX_define.vh"
 
 module bitstream_fetch_load_tb;
@@ -90,7 +90,11 @@ module bitstream_fetch_load_tb;
 
     // TODO: Add test vectors here
     $display("[%0t] bitstream_fetch_load_tb: Test passed!", $time);
+`ifdef MODELSIM
+    $stop;
+`else
     $finish;
+`endif
   end
 
   // =========================================================================

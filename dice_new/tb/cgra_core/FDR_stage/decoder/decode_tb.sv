@@ -70,7 +70,11 @@ module decode_tb;
 
     // TODO: Add test vectors here
     $display("[%0t] decode_tb: Test passed!", $time);
+`ifdef MODELSIM
+    $stop;
+`else
     $finish;
+`endif
   end
 
   // =========================================================================

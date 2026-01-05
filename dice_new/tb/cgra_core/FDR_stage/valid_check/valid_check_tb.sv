@@ -87,7 +87,11 @@ module valid_check_tb;
 
     // TODO: Add test vectors here
     $display("[%0t] valid_check_tb: Test passed!", $time);
+`ifdef MODELSIM
+    $stop;
+`else
     $finish;
+`endif
   end
 
   // =========================================================================

@@ -30,7 +30,7 @@ module cta_scheduler #(
 
 
     // External interface to invalidate committed e-blocks
-    input logic                            eblock_commit_valid_i,
+    input logic                                      eblock_commit_valid_i,
     input logic [dice_pkg::DICE_EBLOCK_ID_WIDTH-1:0] eblock_commit_id_i,
 
     // Scheduler outputs
@@ -38,28 +38,28 @@ module cta_scheduler #(
 );
 
   // E-block tracking table
-  logic [               MAX_EBLOCK-1:0] eblock_live_q;
-  logic [     dice_pkg::DICE_EBLOCK_ID_WIDTH-1:0] eblock_ptr_q;  // Circular pointer for e-block alloc
+  logic [MAX_EBLOCK-1:0] eblock_live_q;
+  logic [dice_pkg::DICE_EBLOCK_ID_WIDTH-1:0] eblock_ptr_q;  // Circular pointer for e-block alloc
 
   // PC history for locality scheduling
-  logic [          dice_pkg::DICE_ADDR_WIDTH-1:0] previous_pc_q;
-  logic                                 pc_history_valid_q;
+  logic [dice_pkg::DICE_ADDR_WIDTH-1:0] previous_pc_q;
+  logic pc_history_valid_q;
 
   // Round-robin tracking
-  logic [        dice_pkg::DICE_HW_CTA_ID_WIDTH-1:0] last_dispatched_cta_q;
+  logic [dice_pkg::DICE_HW_CTA_ID_WIDTH-1:0] last_dispatched_cta_q;
 
   // Internal scheduling signals
   logic [dice_pkg::DICE_NUM_MAX_CTA_PER_CORE-1:0] priority_match;
   logic [dice_pkg::DICE_NUM_MAX_CTA_PER_CORE-1:0] non_branch_candidates;
   logic [dice_pkg::DICE_NUM_MAX_CTA_PER_CORE-1:0] any_valid_candidates;
 
-  logic                                 priority_found;
-  logic                                 non_branch_found;
-  logic                                 any_valid_found;
+  logic priority_found;
+  logic non_branch_found;
+  logic any_valid_found;
 
-  logic [        dice_pkg::DICE_HW_CTA_ID_WIDTH-1:0] selected_cta_id;
-  logic                                 selection_valid;
-  logic                                 selected_from_branch_resolving;
+  logic [dice_pkg::DICE_HW_CTA_ID_WIDTH-1:0] selected_cta_id;
+  logic selection_valid;
+  logic selected_from_branch_resolving;
 
   //unpack struct
   logic [dice_pkg::DICE_NUM_MAX_CTA_PER_CORE-1:0] cta_valid, cta_branch_resolving;
@@ -101,6 +101,10 @@ module cta_scheduler #(
 
   // Selection logic with priority encoding
   always_comb begin
+    // Declare loop variable outside of for loops to prevent latch inference
+    logic [dice_pkg::DICE_CTA_ID_WIDTH-1:0] check_idx;
+    check_idx = '0;  // Default assignment
+
     selected_cta_id = '0;
     selection_valid = 1'b0;
     selected_from_branch_resolving = 1'b0;
@@ -110,7 +114,6 @@ module cta_scheduler #(
       selection_valid = 1'b1;
 
       for (int i = 0; i < dice_pkg::DICE_NUM_MAX_CTA_PER_CORE; i++) begin
-        automatic logic [dice_pkg::DICE_CTA_ID_WIDTH-1:0] check_idx;
         check_idx = (dice_pkg::DICE_CTA_ID_WIDTH)'((last_dispatched_cta_q + 1 + i) &
                                                    (dice_pkg::DICE_NUM_MAX_CTA_PER_CORE - 1));
 
@@ -129,7 +132,6 @@ module cta_scheduler #(
 
       // Start from next CTA after last dispatched
       for (int i = 0; i < dice_pkg::DICE_NUM_MAX_CTA_PER_CORE; i++) begin
-        automatic logic [dice_pkg::DICE_CTA_ID_WIDTH-1:0] check_idx;
         check_idx = (dice_pkg::DICE_CTA_ID_WIDTH)'((last_dispatched_cta_q + 1 + i) &
                                                    (dice_pkg::DICE_NUM_MAX_CTA_PER_CORE - 1));
         if (non_branch_candidates[check_idx] == 1'b1) begin
@@ -144,7 +146,6 @@ module cta_scheduler #(
 
       // Start from next CTA after last dispatched
       for (int i = 0; i < dice_pkg::DICE_NUM_MAX_CTA_PER_CORE; i++) begin
-        automatic logic [dice_pkg::DICE_CTA_ID_WIDTH-1:0] check_idx;
         check_idx = (dice_pkg::DICE_CTA_ID_WIDTH)'((last_dispatched_cta_q + 1 + i) &
                                                    (dice_pkg::DICE_NUM_MAX_CTA_PER_CORE - 1));
         if (any_valid_candidates[check_idx] == 1'b1) begin
@@ -163,8 +164,7 @@ module cta_scheduler #(
     scheduled_eblock.data.schedule_next_pc = (selected_from_branch_resolving == 1'b1) ?
         cta_status_entries_i[selected_cta_id].predict_pc : cta_next_pc_i[selected_cta_id];
     scheduled_eblock.data.schedule_eblock_id = (dice_frontend_pkg::EBLOCK_ID_WIDTH)'(eblock_ptr_q);
-    scheduled_eblock.data.schedule_active_mask = (dice_frontend_pkg::thread_mask_t)'(
-        stack_top_active_mask_i[selected_cta_id]);
+    scheduled_eblock.data.schedule_active_mask = stack_top_active_mask_i[selected_cta_id];
     scheduled_eblock.data.schedule_prefetch_block = selected_from_branch_resolving;
     scheduled_eblock.data.schedule_cta_id = active_cta_entries_i[selected_cta_id].cta_id;
     scheduled_eblock.data.schedule_grid_size = active_cta_entries_i[selected_cta_id].grid_size;

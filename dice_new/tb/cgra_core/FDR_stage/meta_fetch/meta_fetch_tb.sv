@@ -1,4 +1,4 @@
-`timescale 1ns/1ps
+`timescale 1ns / 1ps
 `include "VX_define.vh"
 
 module meta_fetch_tb;
@@ -86,7 +86,11 @@ module meta_fetch_tb;
 
     // TODO: Add test vectors here
     $display("[%0t] meta_fetch_tb: Test passed!", $time);
+`ifdef MODELSIM
+    $stop;
+`else
     $finish;
+`endif
   end
 
   // =========================================================================

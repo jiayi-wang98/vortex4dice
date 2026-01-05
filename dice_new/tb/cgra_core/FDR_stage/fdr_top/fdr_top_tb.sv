@@ -1,4 +1,4 @@
-`timescale 1ns/1ps
+`timescale 1ns / 1ps
 `include "VX_define.vh"
 
 module fdr_top_tb;
@@ -117,7 +117,11 @@ module fdr_top_tb;
 
     // TODO: Add test vectors here
     $display("[%0t] fdr_top_tb: Test passed!", $time);
+`ifdef MODELSIM
+    $stop;
+`else
     $finish;
+`endif
   end
 
   // =========================================================================

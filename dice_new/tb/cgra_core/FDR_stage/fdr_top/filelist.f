@@ -6,6 +6,8 @@ ${DICE_HOME}/rtl/dice_pkg.sv
 ${DICE_HOME}/rtl/dice_frontend_pkg.sv
 ${DICE_HOME}/hw/rtl/VX_define.vh
 ${DICE_HOME}/hw/rtl/VX_gpu_pkg.sv
+${DICE_HOME}/rtl/interfaces/cta_sched_if.sv
+${DICE_HOME}/rtl/interfaces/fdr_if.sv
 ${DICE_HOME}/rtl/cgra_core/fetch_stage/decode.sv
 ${DICE_HOME}/rtl/cgra_core/fetch_stage/meta_fetch.sv
 ${DICE_HOME}/rtl/cgra_core/fetch_stage/bitstream_fetch_load.sv
