@@ -1,4 +1,3 @@
-
 `include "dice_define.vh"
 
 package dice_frontend_pkg;
@@ -98,7 +97,8 @@ package dice_frontend_pkg;
     // Geometry & resources
     dice_grid_size_t                             schedule_grid_size;
     dice_cta_size_t                              schedule_cta_size;
-    logic [dice_pkg::DICE_HW_CTA_SIZE_WIDTH-1:0] schedule_hw_cta_size;
+    logic [dice_pkg::DICE_HW_CTA_SIZE_WIDTH-1:0] schedule_hw_cta_size; //CHANGE THIS TO HW SIZE
+    logic [1:0] hw_cta_size;
     logic [DICE_SMEM_SIZE_WIDTH-1:0]             schedule_smem_per_cta;
 
     // Execution state

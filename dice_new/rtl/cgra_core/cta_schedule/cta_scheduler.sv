@@ -5,33 +5,36 @@
 //the priority schedule was changed so it starts from id+1, ensure that is correct
 
 
-module cta_scheduler #(
-    parameter int MAX_EBLOCK = dice_pkg::DICE_NUM_MAX_CTA_PER_CORE + 4,
-    parameter int THREAD_WIDTH = dice_pkg::DICE_NUM_MAX_THREADS_PER_CORE /
-                                 dice_pkg::DICE_NUM_MAX_CTA_PER_CORE
+module cta_scheduler
+  import dice_pkg::*;
+  import dice_frontend_pkg::*;
+#(
+    parameter int MAX_EBLOCK = DICE_NUM_MAX_CTA_PER_CORE + 4,
+    parameter int THREAD_WIDTH = DICE_NUM_MAX_THREADS_PER_CORE /
+                                 DICE_NUM_MAX_CTA_PER_CORE
 ) (
     input logic clk_i,
     input logic rst_i,
     input logic enable_i, // Enable signal for scheduler operation
 
     // Active CTA Table
-    input dice_frontend_pkg::active_cta_t [dice_pkg::DICE_NUM_MAX_CTA_PER_CORE-1:0]
+    input active_cta_t [DICE_NUM_MAX_CTA_PER_CORE-1:0]
         active_cta_entries_i,
 
     //CTA STATUS TABLE
-    input dice_frontend_pkg::cta_status_t [dice_pkg::DICE_NUM_MAX_CTA_PER_CORE-1:0]
+    input cta_status_t [DICE_NUM_MAX_CTA_PER_CORE-1:0]
         cta_status_entries_i,
 
     //SIMT STACK
     //do i need this: stack_top_valid
-    input logic [dice_pkg::DICE_NUM_MAX_CTA_PER_CORE-1:0][dice_pkg::DICE_ADDR_WIDTH-1:0]
+    input logic [DICE_NUM_MAX_CTA_PER_CORE-1:0][DICE_ADDR_WIDTH-1:0]
         cta_next_pc_i,
-    input logic [dice_pkg::DICE_NUM_MAX_CTA_PER_CORE-1:0][THREAD_WIDTH-1:0] stack_top_active_mask_i,
+    input logic [DICE_NUM_MAX_CTA_PER_CORE-1:0][THREAD_WIDTH-1:0] stack_top_active_mask_i,
 
 
     // External interface to invalidate committed e-blocks
     input logic                                      eblock_commit_valid_i,
-    input logic [dice_pkg::DICE_EBLOCK_ID_WIDTH-1:0] eblock_commit_id_i,
+    input logic [DICE_EBLOCK_ID_WIDTH-1:0] eblock_commit_id_i,
 
     // Scheduler outputs
     cta_sched_if.master scheduled_eblock
@@ -39,32 +42,32 @@ module cta_scheduler #(
 
   // E-block tracking table
   logic [MAX_EBLOCK-1:0] eblock_live_q;
-  logic [dice_pkg::DICE_EBLOCK_ID_WIDTH-1:0] eblock_ptr_q;  // Circular pointer for e-block alloc
+  logic [DICE_EBLOCK_ID_WIDTH-1:0] eblock_ptr_q;  // Circular pointer for e-block alloc
 
   // PC history for locality scheduling
-  logic [dice_pkg::DICE_ADDR_WIDTH-1:0] previous_pc_q;
+  logic [DICE_ADDR_WIDTH-1:0] previous_pc_q;
   logic pc_history_valid_q;
 
   // Round-robin tracking
-  logic [dice_pkg::DICE_HW_CTA_ID_WIDTH-1:0] last_dispatched_cta_q;
+  logic [DICE_HW_CTA_ID_WIDTH-1:0] last_dispatched_cta_q;
 
   // Internal scheduling signals
-  logic [dice_pkg::DICE_NUM_MAX_CTA_PER_CORE-1:0] priority_match;
-  logic [dice_pkg::DICE_NUM_MAX_CTA_PER_CORE-1:0] non_branch_candidates;
-  logic [dice_pkg::DICE_NUM_MAX_CTA_PER_CORE-1:0] any_valid_candidates;
+  logic [DICE_NUM_MAX_CTA_PER_CORE-1:0] priority_match;
+  logic [DICE_NUM_MAX_CTA_PER_CORE-1:0] non_branch_candidates;
+  logic [DICE_NUM_MAX_CTA_PER_CORE-1:0] any_valid_candidates;
 
   logic priority_found;
   logic non_branch_found;
   logic any_valid_found;
 
-  logic [dice_pkg::DICE_HW_CTA_ID_WIDTH-1:0] selected_cta_id;
+  logic [DICE_HW_CTA_ID_WIDTH-1:0] selected_cta_id;
   logic selection_valid;
   logic selected_from_branch_resolving;
 
   //unpack struct
-  logic [dice_pkg::DICE_NUM_MAX_CTA_PER_CORE-1:0] cta_valid, cta_branch_resolving;
+  logic [DICE_NUM_MAX_CTA_PER_CORE-1:0] cta_valid, cta_branch_resolving;
   always_comb begin
-    for (int i = 0; i < dice_pkg::DICE_NUM_MAX_CTA_PER_CORE; i++) begin
+    for (int i = 0; i < DICE_NUM_MAX_CTA_PER_CORE; i++) begin
       cta_valid[i] = active_cta_entries_i[i].cta_valid;
       cta_branch_resolving[i] = cta_status_entries_i[i].is_prefetch;
     end
@@ -77,7 +80,7 @@ module cta_scheduler #(
     priority_found = 1'b0;
 
     if (pc_history_valid_q == 1'b1) begin
-      for (int i = 0; i < dice_pkg::DICE_NUM_MAX_CTA_PER_CORE; i++) begin
+      for (int i = 0; i < DICE_NUM_MAX_CTA_PER_CORE; i++) begin
         if ((cta_valid[i] == 1'b1) && (cta_next_pc_i[i] == previous_pc_q)) begin
           priority_match[i] = 1'b1;
           priority_found = 1'b1;
@@ -102,7 +105,7 @@ module cta_scheduler #(
   // Selection logic with priority encoding
   always_comb begin
     // Declare loop variable outside of for loops to prevent latch inference
-    logic [dice_pkg::DICE_CTA_ID_WIDTH-1:0] check_idx;
+    logic [DICE_CTA_ID_WIDTH-1:0] check_idx;
     check_idx = '0;  // Default assignment
 
     selected_cta_id = '0;
@@ -113,9 +116,9 @@ module cta_scheduler #(
       // Priority 1: Select first matching PC locality
       selection_valid = 1'b1;
 
-      for (int i = 0; i < dice_pkg::DICE_NUM_MAX_CTA_PER_CORE; i++) begin
-        check_idx = (dice_pkg::DICE_CTA_ID_WIDTH)'((last_dispatched_cta_q + 1 + i) &
-                                                   (dice_pkg::DICE_NUM_MAX_CTA_PER_CORE - 1));
+      for (int i = 0; i < DICE_NUM_MAX_CTA_PER_CORE; i++) begin
+        check_idx = (DICE_CTA_ID_WIDTH)'((last_dispatched_cta_q + 1 + i) &
+                                                   (DICE_NUM_MAX_CTA_PER_CORE - 1));
 
         if (priority_match[check_idx] == 1'b1) begin
           selected_cta_id = check_idx;
@@ -131,9 +134,9 @@ module cta_scheduler #(
       selected_from_branch_resolving = 1'b0;  // By definition, not branch resolving
 
       // Start from next CTA after last dispatched
-      for (int i = 0; i < dice_pkg::DICE_NUM_MAX_CTA_PER_CORE; i++) begin
-        check_idx = (dice_pkg::DICE_CTA_ID_WIDTH)'((last_dispatched_cta_q + 1 + i) &
-                                                   (dice_pkg::DICE_NUM_MAX_CTA_PER_CORE - 1));
+      for (int i = 0; i < DICE_NUM_MAX_CTA_PER_CORE; i++) begin
+        check_idx = (DICE_CTA_ID_WIDTH)'((last_dispatched_cta_q + 1 + i) &
+                                                   (DICE_NUM_MAX_CTA_PER_CORE - 1));
         if (non_branch_candidates[check_idx] == 1'b1) begin
           selected_cta_id = check_idx;
           break;
@@ -145,9 +148,9 @@ module cta_scheduler #(
       selection_valid = 1'b1;
 
       // Start from next CTA after last dispatched
-      for (int i = 0; i < dice_pkg::DICE_NUM_MAX_CTA_PER_CORE; i++) begin
-        check_idx = (dice_pkg::DICE_CTA_ID_WIDTH)'((last_dispatched_cta_q + 1 + i) &
-                                                   (dice_pkg::DICE_NUM_MAX_CTA_PER_CORE - 1));
+      for (int i = 0; i < DICE_NUM_MAX_CTA_PER_CORE; i++) begin
+        check_idx = (DICE_CTA_ID_WIDTH)'((last_dispatched_cta_q + 1 + i) &
+                                                   (DICE_NUM_MAX_CTA_PER_CORE - 1));
         if (any_valid_candidates[check_idx] == 1'b1) begin
           selected_cta_id = check_idx;
           selected_from_branch_resolving = cta_branch_resolving[check_idx];
@@ -160,10 +163,10 @@ module cta_scheduler #(
   // Output assignments
   always_comb begin
     scheduled_eblock.valid = enable_i && selection_valid && (eblock_live_q[eblock_ptr_q] == 1'b0);
-    scheduled_eblock.data.schedule_hw_cta_id = (dice_pkg::DICE_HW_CTA_ID_WIDTH)'(selected_cta_id);
+    scheduled_eblock.data.schedule_hw_cta_id = (DICE_HW_CTA_ID_WIDTH)'(selected_cta_id);
     scheduled_eblock.data.schedule_next_pc = (selected_from_branch_resolving == 1'b1) ?
         cta_status_entries_i[selected_cta_id].predict_pc : cta_next_pc_i[selected_cta_id];
-    scheduled_eblock.data.schedule_eblock_id = (dice_frontend_pkg::EBLOCK_ID_WIDTH)'(eblock_ptr_q);
+    scheduled_eblock.data.schedule_eblock_id = (EBLOCK_ID_WIDTH)'(eblock_ptr_q);
     scheduled_eblock.data.schedule_active_mask = stack_top_active_mask_i[selected_cta_id];
     scheduled_eblock.data.schedule_prefetch_block = selected_from_branch_resolving;
     scheduled_eblock.data.schedule_cta_id = active_cta_entries_i[selected_cta_id].cta_id;

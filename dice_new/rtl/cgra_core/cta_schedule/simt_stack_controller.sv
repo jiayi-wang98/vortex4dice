@@ -1,48 +1,51 @@
-module simt_stack_controller #(
+module simt_stack_controller
+  import dice_pkg::*;
+  import dice_frontend_pkg::*;
+#(
     parameter int STACK_DEPTH = 32,
-    parameter int THREAD_WIDTH = dice_pkg::DICE_NUM_MAX_THREADS_PER_CORE /
-                                 dice_pkg::DICE_NUM_MAX_CTA_PER_CORE,
+    parameter int THREAD_WIDTH = DICE_NUM_MAX_THREADS_PER_CORE /
+                                 DICE_NUM_MAX_CTA_PER_CORE,
     parameter int METADATA_LENGTH_WIDTH = 8
 ) (
     input logic clk_i,
     input logic rst_i,
 
     // CTA configuration
-    input logic [$clog2(dice_pkg::DICE_NUM_MAX_CTA_PER_CORE)-1:0] hw_cta_id_i,
+    input logic [$clog2(DICE_NUM_MAX_CTA_PER_CORE)-1:0] hw_cta_id_i,
     input logic [1:0] hw_cta_size_i,  // 00=1 stack, 01=2 stacks, 11=4 stacks
 
     // Update request interface (valid/ready handshake) - BRANCH HANDLER
     input logic update_valid_i,
     input logic update_with_divergence_i,  // 0 = no divergence, 1 = with divergence
-    input logic [dice_pkg::DICE_ADDR_WIDTH-1:0] update_next_pc_i,  // No divergence: next PC
+    input logic [DICE_ADDR_WIDTH-1:0] update_next_pc_i,  // No divergence: next PC
 
     // Divergence case inputs (only used when update_with_divergence = 1)
-    input dice_frontend_pkg::thread_mask_t predicate_regs_value_i,
-    input logic [dice_pkg::DICE_ADDR_WIDTH-1:0] branch_not_taken_pc_i,
-    input logic [dice_pkg::DICE_ADDR_WIDTH-1:0] branch_reconvergence_pc_i,
+    input thread_mask_t predicate_regs_value_i,
+    input logic [DICE_ADDR_WIDTH-1:0] branch_not_taken_pc_i,
+    input logic [DICE_ADDR_WIDTH-1:0] branch_reconvergence_pc_i,
 
     output logic update_ready_o,
 
     // Initialization interface (higher priority) - CTA CONTROLLER
     input logic init_valid_i,
-    input logic [$clog2(dice_pkg::DICE_NUM_MAX_CTA_PER_CORE)-1:0] init_hw_cta_id_i,
+    input logic [$clog2(DICE_NUM_MAX_CTA_PER_CORE)-1:0] init_hw_cta_id_i,
     input logic [1:0] init_hw_cta_size_i,
-    input logic [dice_pkg::DICE_ADDR_WIDTH-1:0] init_pc_i,
-    input logic [dice_pkg::DICE_ADDR_WIDTH-1:0] init_reconvergence_pc_i,
+    input logic [DICE_ADDR_WIDTH-1:0] init_pc_i,
+    input logic [DICE_ADDR_WIDTH-1:0] init_reconvergence_pc_i,
     output logic init_ready_o,
 
     // Stack top outputs (when not busy) - combined from active stacks
-    output logic [dice_pkg::DICE_NUM_MAX_CTA_PER_CORE-1:0] stack_top_valid_o,
-    output logic [dice_pkg::DICE_NUM_MAX_CTA_PER_CORE-1:0][dice_pkg::DICE_ADDR_WIDTH-1:0] stack_top_next_pc_o,
-    output logic [dice_pkg::DICE_NUM_MAX_CTA_PER_CORE-1:0][dice_pkg::DICE_ADDR_WIDTH-1:0] stack_top_reconvergence_pc_o,
-    output logic [dice_pkg::DICE_NUM_MAX_CTA_PER_CORE-1:0][THREAD_WIDTH-1:0] stack_top_active_mask_o,
+    output logic [DICE_NUM_MAX_CTA_PER_CORE-1:0] stack_top_valid_o,
+    output logic [DICE_NUM_MAX_CTA_PER_CORE-1:0][DICE_ADDR_WIDTH-1:0] stack_top_next_pc_o,
+    output logic [DICE_NUM_MAX_CTA_PER_CORE-1:0][DICE_ADDR_WIDTH-1:0] stack_top_reconvergence_pc_o,
+    output logic [DICE_NUM_MAX_CTA_PER_CORE-1:0][THREAD_WIDTH-1:0] stack_top_active_mask_o,
 
     // Stack status - individual stack status
-    output logic [dice_pkg::DICE_NUM_MAX_CTA_PER_CORE-1:0] stack_empty_o,
-    output logic [dice_pkg::DICE_NUM_MAX_CTA_PER_CORE-1:0] stack_full_o
+    output logic [DICE_NUM_MAX_CTA_PER_CORE-1:0] stack_empty_o,
+    output logic [DICE_NUM_MAX_CTA_PER_CORE-1:0] stack_full_o
 );
 
-  logic [$clog2(dice_pkg::DICE_NUM_MAX_CTA_PER_CORE)-1:0] hw_cta_id_q;
+  logic [$clog2(DICE_NUM_MAX_CTA_PER_CORE)-1:0] hw_cta_id_q;
   logic [1:0] hw_cta_size_q;
 
   // Calculate number of active stacks based on CTA size
@@ -58,7 +61,7 @@ module simt_stack_controller #(
   end
 
   // Calculate effective thread width based on CTA size
-  logic [$clog2(dice_pkg::DICE_NUM_MAX_CTA_PER_CORE*THREAD_WIDTH+1)-1:0] effective_thread_width;
+  logic [$clog2(DICE_NUM_MAX_CTA_PER_CORE*THREAD_WIDTH+1)-1:0] effective_thread_width;
   always_comb begin
     case (hw_cta_size_q)
       2'b00:   effective_thread_width = THREAD_WIDTH;  // 256 threads
@@ -84,41 +87,41 @@ module simt_stack_controller #(
 
   // Internal registers for multi-cycle operations
   logic update_with_divergence_q;
-  logic [dice_pkg::DICE_ADDR_WIDTH-1:0] update_next_pc_q;
-  dice_frontend_pkg::thread_mask_t predicate_regs_value_q;
-  logic [dice_pkg::DICE_ADDR_WIDTH-1:0] branch_not_taken_pc_q;
-  logic [dice_pkg::DICE_ADDR_WIDTH-1:0] branch_reconvergence_pc_q;
+  logic [DICE_ADDR_WIDTH-1:0] update_next_pc_q;
+  thread_mask_t predicate_regs_value_q;
+  logic [DICE_ADDR_WIDTH-1:0] branch_not_taken_pc_q;
+  logic [DICE_ADDR_WIDTH-1:0] branch_reconvergence_pc_q;
 
   // Registers for init operation
-  logic [dice_pkg::DICE_ADDR_WIDTH-1:0] init_pc_q;
-  logic [dice_pkg::DICE_ADDR_WIDTH-1:0] init_reconvergence_pc_q;
+  logic [DICE_ADDR_WIDTH-1:0] init_pc_q;
+  logic [DICE_ADDR_WIDTH-1:0] init_reconvergence_pc_q;
 
   // Per-stack signals
-  logic [dice_pkg::DICE_NUM_MAX_CTA_PER_CORE-1:0] stack_push;
-  logic [dice_pkg::DICE_NUM_MAX_CTA_PER_CORE-1:0] stack_modify_top;
-  logic [dice_pkg::DICE_NUM_MAX_CTA_PER_CORE-1:0] stack_pop;
-  logic [dice_pkg::DICE_NUM_MAX_CTA_PER_CORE-1:0] stack_read_top;
-  logic [dice_pkg::DICE_NUM_MAX_CTA_PER_CORE-1:0] stack_out_valid;
-  logic [dice_pkg::DICE_NUM_MAX_CTA_PER_CORE-1:0] stack_empty_individual;
-  logic [dice_pkg::DICE_NUM_MAX_CTA_PER_CORE-1:0] stack_full_individual;
+  logic [DICE_NUM_MAX_CTA_PER_CORE-1:0] stack_push;
+  logic [DICE_NUM_MAX_CTA_PER_CORE-1:0] stack_modify_top;
+  logic [DICE_NUM_MAX_CTA_PER_CORE-1:0] stack_pop;
+  logic [DICE_NUM_MAX_CTA_PER_CORE-1:0] stack_read_top;
+  logic [DICE_NUM_MAX_CTA_PER_CORE-1:0] stack_out_valid;
+  logic [DICE_NUM_MAX_CTA_PER_CORE-1:0] stack_empty_individual;
+  logic [DICE_NUM_MAX_CTA_PER_CORE-1:0] stack_full_individual;
 
-  logic [dice_pkg::DICE_ADDR_WIDTH-1:0] stack_push_next_pc[dice_pkg::DICE_NUM_MAX_CTA_PER_CORE];
-  logic [dice_pkg::DICE_ADDR_WIDTH-1:0] stack_push_reconvergence_pc[dice_pkg::DICE_NUM_MAX_CTA_PER_CORE];
-  logic [THREAD_WIDTH-1:0] stack_push_active_mask[dice_pkg::DICE_NUM_MAX_CTA_PER_CORE];
-  logic [dice_pkg::DICE_ADDR_WIDTH-1:0] stack_top_next_pc_int[dice_pkg::DICE_NUM_MAX_CTA_PER_CORE];
-  logic [dice_pkg::DICE_ADDR_WIDTH-1:0] stack_top_reconvergence_pc_int[dice_pkg::DICE_NUM_MAX_CTA_PER_CORE];
-  logic [THREAD_WIDTH-1:0] stack_top_active_mask_int[dice_pkg::DICE_NUM_MAX_CTA_PER_CORE];
+  logic [DICE_ADDR_WIDTH-1:0] stack_push_next_pc[DICE_NUM_MAX_CTA_PER_CORE];
+  logic [DICE_ADDR_WIDTH-1:0] stack_push_reconvergence_pc[DICE_NUM_MAX_CTA_PER_CORE];
+  logic [THREAD_WIDTH-1:0] stack_push_active_mask[DICE_NUM_MAX_CTA_PER_CORE];
+  logic [DICE_ADDR_WIDTH-1:0] stack_top_next_pc_int[DICE_NUM_MAX_CTA_PER_CORE];
+  logic [DICE_ADDR_WIDTH-1:0] stack_top_reconvergence_pc_int[DICE_NUM_MAX_CTA_PER_CORE];
+  logic [THREAD_WIDTH-1:0] stack_top_active_mask_int[DICE_NUM_MAX_CTA_PER_CORE];
 
   // Combined stack signals
   logic combined_stack_out_valid;
-  logic [dice_pkg::DICE_ADDR_WIDTH-1:0] combined_stack_top_next_pc;
-  logic [dice_pkg::DICE_ADDR_WIDTH-1:0] combined_stack_top_reconvergence_pc;
-  dice_frontend_pkg::thread_mask_t combined_stack_top_active_mask;
+  logic [DICE_ADDR_WIDTH-1:0] combined_stack_top_next_pc;
+  logic [DICE_ADDR_WIDTH-1:0] combined_stack_top_reconvergence_pc;
+  thread_mask_t combined_stack_top_active_mask;
 
   // Computed values for divergence analysis
-  dice_frontend_pkg::thread_mask_t taken_active_mask;
-  dice_frontend_pkg::thread_mask_t not_taken_active_mask;
-  dice_frontend_pkg::thread_mask_t effective_active_mask;
+  thread_mask_t taken_active_mask;
+  thread_mask_t not_taken_active_mask;
+  thread_mask_t effective_active_mask;
   logic all_taken, all_not_taken, has_divergence;
 
   // Operation control signals - combinational _next signals
@@ -126,17 +129,17 @@ module simt_stack_controller #(
 
   // Operation control signals - registered
   logic need_pop_q, need_modify_top_q, need_push_first_q, need_push_second_q;
-  logic [dice_pkg::DICE_ADDR_WIDTH-1:0] new_top_pc_q;
-  logic [dice_pkg::DICE_ADDR_WIDTH-1:0] new_top_reconvergence_pc_q;
-  dice_frontend_pkg::thread_mask_t new_top_active_mask_q;
-  logic [dice_pkg::DICE_ADDR_WIDTH-1:0] push_pc_1_q, push_pc_2_q;
-  logic [dice_pkg::DICE_ADDR_WIDTH-1:0] push_reconvergence_pc_1_q, push_reconvergence_pc_2_q;
-  dice_frontend_pkg::thread_mask_t push_active_mask_1_q, push_active_mask_2_q;
+  logic [DICE_ADDR_WIDTH-1:0] new_top_pc_q;
+  logic [DICE_ADDR_WIDTH-1:0] new_top_reconvergence_pc_q;
+  thread_mask_t new_top_active_mask_q;
+  logic [DICE_ADDR_WIDTH-1:0] push_pc_1_q, push_pc_2_q;
+  logic [DICE_ADDR_WIDTH-1:0] push_reconvergence_pc_1_q, push_reconvergence_pc_2_q;
+  thread_mask_t push_active_mask_1_q, push_active_mask_2_q;
 
   // Generate individual SIMT stacks
   genvar i;
   generate
-    for (i = 0; i < dice_pkg::DICE_NUM_MAX_CTA_PER_CORE; i++) begin : gen_stacks
+    for (i = 0; i < DICE_NUM_MAX_CTA_PER_CORE; i++) begin : gen_stacks
       simt_stack #(
           .STACK_DEPTH (STACK_DEPTH),
           .THREAD_WIDTH(THREAD_WIDTH)
@@ -172,7 +175,7 @@ module simt_stack_controller #(
 
     // Check if all active stacks have valid output
     all_active_valid = 1'b1;
-    for (int j = 0; j < dice_pkg::DICE_NUM_MAX_CTA_PER_CORE; j++) begin
+    for (int j = 0; j < DICE_NUM_MAX_CTA_PER_CORE; j++) begin
       if (j >= hw_cta_id_q && j < (hw_cta_id_q + num_active_stacks)) begin
         all_active_valid &= stack_out_valid[j];
       end
@@ -185,7 +188,7 @@ module simt_stack_controller #(
       combined_stack_top_reconvergence_pc = stack_top_reconvergence_pc_int[hw_cta_id_q];
 
       // Combine active masks from all active stacks
-      for (int j = 0; j < dice_pkg::DICE_NUM_MAX_CTA_PER_CORE; j++) begin
+      for (int j = 0; j < DICE_NUM_MAX_CTA_PER_CORE; j++) begin
         if (j >= hw_cta_id_q && j < (hw_cta_id_q + num_active_stacks)) begin
           mask_offset = (j - hw_cta_id_q) * THREAD_WIDTH;
           combined_stack_top_active_mask[mask_offset+:THREAD_WIDTH] = stack_top_active_mask_int[j];
@@ -279,24 +282,24 @@ module simt_stack_controller #(
 
   // Divergence analysis logic - operates on effective thread width
   always_comb begin
-    dice_frontend_pkg::thread_mask_t effective_predicate;
+    thread_mask_t effective_predicate;
 
     // Extract effective predicate based on CTA size
     case (hw_cta_size_q)
       2'b00:
       effective_predicate = {
-        {(dice_pkg::DICE_NUM_MAX_CTA_PER_CORE - 1) * THREAD_WIDTH{1'b0}},
+        {(DICE_NUM_MAX_CTA_PER_CORE - 1) * THREAD_WIDTH{1'b0}},
         predicate_regs_value_q[THREAD_WIDTH-1:0]
       };
       2'b01:
       effective_predicate = {
-        {(dice_pkg::DICE_NUM_MAX_CTA_PER_CORE - 2) * THREAD_WIDTH{1'b0}},
+        {(DICE_NUM_MAX_CTA_PER_CORE - 2) * THREAD_WIDTH{1'b0}},
         predicate_regs_value_q[2*THREAD_WIDTH-1:0]
       };
       2'b11: effective_predicate = predicate_regs_value_q;
       default:
       effective_predicate = {
-        {(dice_pkg::DICE_NUM_MAX_CTA_PER_CORE - 1) * THREAD_WIDTH{1'b0}},
+        {(DICE_NUM_MAX_CTA_PER_CORE - 1) * THREAD_WIDTH{1'b0}},
         predicate_regs_value_q[THREAD_WIDTH-1:0]
       };
     endcase
@@ -381,7 +384,7 @@ module simt_stack_controller #(
     int mask_offset;
     mask_offset = 0;
     // Initialize all stacks to inactive
-    for (int j = 0; j < dice_pkg::DICE_NUM_MAX_CTA_PER_CORE; j++) begin
+    for (int j = 0; j < DICE_NUM_MAX_CTA_PER_CORE; j++) begin
       stack_push[j] = 1'b0;
       stack_modify_top[j] = 1'b0;
       stack_pop[j] = 1'b0;
@@ -392,12 +395,12 @@ module simt_stack_controller #(
     end
 
     // Always read from all stacks to keep outputs valid
-    for (int j = 0; j < dice_pkg::DICE_NUM_MAX_CTA_PER_CORE; j++) begin
+    for (int j = 0; j < DICE_NUM_MAX_CTA_PER_CORE; j++) begin
       stack_read_top[j] = 1'b1;
     end
 
     // Activate only the stacks in the current CTA for operations
-    for (int j = 0; j < dice_pkg::DICE_NUM_MAX_CTA_PER_CORE; j++) begin
+    for (int j = 0; j < DICE_NUM_MAX_CTA_PER_CORE; j++) begin
       if (j >= hw_cta_id_q && j < (hw_cta_id_q + num_active_stacks)) begin
         case (current_state_q)
           StateModifyTop: begin
@@ -452,7 +455,7 @@ module simt_stack_controller #(
   // Convert unpacked arrays to packed arrays for outputs
   // stack_top_valid is always available when stack has data (not dependent on state)
   always_comb begin
-    for (int j = 0; j < dice_pkg::DICE_NUM_MAX_CTA_PER_CORE; j++) begin
+    for (int j = 0; j < DICE_NUM_MAX_CTA_PER_CORE; j++) begin
       stack_top_valid_o[j] = stack_out_valid[j] && (stack_empty_individual[j] == 1'b0);
       stack_top_next_pc_o[j] = stack_top_next_pc_int[j];
       stack_top_reconvergence_pc_o[j] = stack_top_reconvergence_pc_int[j];
@@ -591,17 +594,17 @@ module simt_stack_controller #(
   always @(posedge clk_i) begin
     if (rst_i == 1'b0) begin
       if ((update_valid_i == 1'b1) && (update_ready_o == 1'b1) &&
-          (hw_cta_id_i + hw_cta_size_i >= dice_pkg::DICE_NUM_MAX_CTA_PER_CORE)) begin
+          (hw_cta_id_i + hw_cta_size_i >= DICE_NUM_MAX_CTA_PER_CORE)) begin
         $error(
             "SIMT Stack Controller: CTA configuration exceeds available stacks " + "(hw_cta_id=%0d, hw_cta_size=%0d, max=%0d)",
-            hw_cta_id_i, hw_cta_size_i, dice_pkg::DICE_NUM_MAX_CTA_PER_CORE);
+            hw_cta_id_i, hw_cta_size_i, DICE_NUM_MAX_CTA_PER_CORE);
       end
 
       if ((init_valid_i == 1'b1) && (init_ready_o == 1'b1) &&
-          (init_hw_cta_id_i + init_hw_cta_size_i >= dice_pkg::DICE_NUM_MAX_CTA_PER_CORE)) begin
+          (init_hw_cta_id_i + init_hw_cta_size_i >= DICE_NUM_MAX_CTA_PER_CORE)) begin
         $error(
             "SIMT Stack Controller: Init CTA configuration exceeds available stacks " + "(init_hw_cta_id=%0d, init_hw_cta_size=%0d, max=%0d)",
-            init_hw_cta_id_i, init_hw_cta_size_i, dice_pkg::DICE_NUM_MAX_CTA_PER_CORE);
+            init_hw_cta_id_i, init_hw_cta_size_i, DICE_NUM_MAX_CTA_PER_CORE);
       end
 
       // Debug state transitions and operations

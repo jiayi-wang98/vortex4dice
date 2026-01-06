@@ -1,6 +1,10 @@
+`include "dice_define.vh"
 `include "VX_define.vh"
 
-module meta_fetch #(
+module meta_fetch
+  import dice_pkg::*;
+  import dice_frontend_pkg::*;
+#(
     parameter int TAG_WIDTH = 48
 ) (
     input logic clk_i,
@@ -8,21 +12,21 @@ module meta_fetch #(
 
     // From CS/FDR barrier
     input logic                                              schedule_valid_i,
-    input logic [dice_pkg::DICE_ADDR_WIDTH-1:0]              fdr_next_pc_i,
-    input logic [dice_frontend_pkg::EBLOCK_ID_WIDTH-1:0]     schedule_eblock_id_i,
+    input  logic [DICE_ADDR_WIDTH-1:0]      fdr_next_pc_i,
+    input  logic [EBLOCK_ID_WIDTH-1:0]                schedule_eblock_id_i,
     output logic                                             schedule_ready_o,
 
     // Request channel to cache
     VX_mem_bus_if.master meta_fetch_bus_if,
 
     // To decoder
-    output dice_frontend_pkg::pgraph_meta_t outgoing_meta_o,
+    output pgraph_meta_t                    outgoing_meta_o,
     output logic                            meta_valid_o,
 
     // From stage barrier
     input logic fire_eblock_i
 );
-  localparam int PadWidth = TAG_WIDTH - dice_frontend_pkg::EBLOCK_ID_WIDTH;
+  localparam int PadWidth = TAG_WIDTH - EBLOCK_ID_WIDTH;
 
   // FSM states
   typedef enum logic [1:0] {
@@ -34,8 +38,8 @@ module meta_fetch #(
 
   meta_fetch_state_e state_q, state_d;
   logic meta_valid_q;
-  logic [dice_frontend_pkg::EBLOCK_ID_WIDTH-1:0] eblock_id_q;
-  dice_frontend_pkg::pgraph_meta_t outgoing_meta_q;
+  logic [EBLOCK_ID_WIDTH-1:0] eblock_id_q;
+  pgraph_meta_t outgoing_meta_q;
 
   //DIRECTLY FROM VORTEX======================================================
   logic [VX_gpu_pkg::ICACHE_ADDR_WIDTH-1:0] meta_cache_req_addr_q, meta_cache_req_addr_d;
@@ -92,7 +96,7 @@ module meta_fetch #(
         eblock_id_q           <= schedule_eblock_id_i;
       end
       if (rsp_fire) begin
-        outgoing_meta_q <= dice_frontend_pkg::pgraph_meta_t'(
+        outgoing_meta_q <= pgraph_meta_t'(
             meta_fetch_bus_if.rsp_data.data);
         meta_valid_q    <= 1'b1;
       end

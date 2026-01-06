@@ -9,7 +9,10 @@
  *   4) Barrier condition met
  *   5) PC match (only for prefetch blocks after divergence resolved)
  */
-module valid_check (
+module valid_check
+  import dice_pkg::*;
+  import dice_frontend_pkg::*;
+(
     // -------------------------------------------------------------------------
     // From Decoder
     // -------------------------------------------------------------------------
@@ -17,14 +20,14 @@ module valid_check (
     input logic mask_valid_i,         // Decode done (mask valid)
 
     //from CS, FDR buffer
-    input logic [dice_pkg::DICE_ADDR_WIDTH-1:0]    eblock_pc_i,
+    input logic [DICE_ADDR_WIDTH-1:0]    eblock_pc_i,
     input logic                                    prefetch_block_i,
-    input logic [dice_pkg::DICE_HW_CTA_ID_WIDTH-1:0] hw_cta_id_i,
+    input logic [DICE_HW_CTA_ID_WIDTH-1:0] hw_cta_id_i,
 
     // -------------------------------------------------------------------------
     // From SIMT Stack
     // -------------------------------------------------------------------------
-    input logic [dice_pkg::DICE_ADDR_WIDTH-1:0] simt_stack_pc_i,  // next_pc for branch predict
+    input logic [DICE_ADDR_WIDTH-1:0] simt_stack_pc_i,  // next_pc for branch predict
 
     // -------------------------------------------------------------------------
     // From Bitstream Loader

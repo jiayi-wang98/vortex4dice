@@ -1,6 +1,9 @@
 `include "dice_define.vh"
 
-module cta_controller #(
+module cta_controller
+  import dice_pkg::*;
+  import dice_frontend_pkg::*;
+#(
     parameter int MAX_NUM_CTA = 4,
     parameter int CTA_INDEX_WIDTH = $clog2(MAX_NUM_CTA),
     parameter int THREAD_WIDTH = 256,  // must match active_cta_table & SIMT stack design
@@ -11,12 +14,12 @@ module cta_controller #(
 
     //cta dispatcher interface
     input  logic                     in_cta_valid_i,
-    input  dice_pkg::dice_cta_desc_t in_cta_desc_i,
+    input  dice_cta_desc_t in_cta_desc_i,
     output logic                     in_cta_ready_o,
 
     input  logic                   comp_cta_ready_i,
     output logic                   comp_cta_valid_o,
-    output dice_pkg::dice_cta_id_t comp_cta_id_o,
+    output dice_cta_id_t comp_cta_id_o,
 
 
     //active cta table
@@ -26,8 +29,8 @@ module cta_controller #(
 
     input  logic                                add_ready_i,
     output logic                                add_valid_o,
-    output dice_pkg::dice_cta_desc_t            add_cta_info_o,
-    output logic           [dice_pkg::DICE_TID_WIDTH:0] add_cta_size_o,  //ensure this is correct
+    output dice_cta_desc_t            add_cta_info_o,
+    output logic           [DICE_TID_WIDTH:0] add_cta_size_o,  //ensure this is correct
 
 
     //SIMT Stack Controller
@@ -39,17 +42,17 @@ module cta_controller #(
     output logic [PC_WIDTH-1:0] init_reconvergence_pc_o,
 
     //cta status table
-    input dice_pkg::dice_cta_status_t [dice_pkg::DICE_NUM_MAX_CTA_PER_CORE-1:0] cta_status_table_i,
+    input dice_cta_status_t [DICE_NUM_MAX_CTA_PER_CORE-1:0] cta_status_table_i,
     output logic clear_entry_valid_o,
-    output logic [dice_pkg::DICE_HW_CTA_ID_WIDTH-1:0] clear_entry_hw_id_o,
+    output logic [DICE_HW_CTA_ID_WIDTH-1:0] clear_entry_hw_id_o,
 
     // Active CTA Table Status
-    input logic [dice_pkg::DICE_HW_CTA_ID_WIDTH-1:0] next_empty_cta_index_i,
-    input logic [dice_pkg::DICE_NUM_MAX_CTA_PER_CORE-1:0] active_cta_status_i, // Validity bitmap
+    input logic [DICE_HW_CTA_ID_WIDTH-1:0] next_empty_cta_index_i,
+    input logic [DICE_NUM_MAX_CTA_PER_CORE-1:0] active_cta_status_i, // Validity bitmap
 
     // Active CTA Table Pop Return Interface
     input logic pop_out_valid_i,
-    input dice_pkg::dice_cta_id_t pop_out_cta_id_i
+    input dice_cta_id_t pop_out_cta_id_i
 );
 
 
@@ -80,13 +83,13 @@ module cta_controller #(
   //     2'b11 -> 4 stacks (1024 threads)
   // ------------------------------------------------------------
   function automatic logic [1:0] encode_hw_cta_size(
-      input logic [dice_pkg::DICE_TID_WIDTH:0] cta_size);
+      input logic [DICE_TID_WIDTH:0] cta_size);
     // Thresholds sized to match cta_size exactly
-    logic [dice_pkg::DICE_TID_WIDTH:0] thr1;
-    logic [dice_pkg::DICE_TID_WIDTH:0] thr2;
+    logic [DICE_TID_WIDTH:0] thr1;
+    logic [DICE_TID_WIDTH:0] thr2;
     begin
-      thr1 = (dice_pkg::DICE_TID_WIDTH + 1)'(THREAD_WIDTH);
-      thr2 = (dice_pkg::DICE_TID_WIDTH + 1)'(2 * THREAD_WIDTH);
+      thr1 = (DICE_TID_WIDTH + 1)'(THREAD_WIDTH);
+      thr2 = (DICE_TID_WIDTH + 1)'(2 * THREAD_WIDTH);
 
       if (cta_size <= thr1) encode_hw_cta_size = 2'b00;
       else if (cta_size <= thr2) encode_hw_cta_size = 2'b01;
@@ -112,8 +115,8 @@ module cta_controller #(
   // ------------------------------------------------------------
 
   // Round-robin pointer for fairness
-  logic [dice_pkg::DICE_HW_CTA_ID_WIDTH-1:0] completion_ptr_q;
-  logic [dice_pkg::DICE_HW_CTA_ID_WIDTH-1:0] victim_id;
+  logic [DICE_HW_CTA_ID_WIDTH-1:0] completion_ptr_q;
+  logic [DICE_HW_CTA_ID_WIDTH-1:0] victim_id;
   logic victim_found;
 
   // Round-robin arbiter to find a completed CTA
@@ -128,10 +131,10 @@ module cta_controller #(
       victim_id = '0;
 
       // We need to check all slots
-      for (int i = 0; i < dice_pkg::DICE_NUM_MAX_CTA_PER_CORE; i++) begin
+      for (int i = 0; i < DICE_NUM_MAX_CTA_PER_CORE; i++) begin
           // Calculate index wrapping around based on ptr
-          logic [dice_pkg::DICE_HW_CTA_ID_WIDTH-1:0] idx;
-          idx = completion_ptr_q + i[dice_pkg::DICE_HW_CTA_ID_WIDTH-1:0];
+          logic [DICE_HW_CTA_ID_WIDTH-1:0] idx;
+          idx = completion_ptr_q + i[DICE_HW_CTA_ID_WIDTH-1:0];
 
           // Check if this CTA is valid AND has NO pending eblocks
           // We assume input 'active_cta_status_i' tells us validity (see added IO)

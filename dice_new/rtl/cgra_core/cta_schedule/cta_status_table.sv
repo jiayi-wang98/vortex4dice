@@ -1,37 +1,40 @@
 
-module cta_status_table (
+module cta_status_table
+  import dice_pkg::*;
+  import dice_frontend_pkg::*;
+(
     input logic clk_i,
     input logic rst_i,
 
     // From branch handler / branch predictor
-    input dice_pkg::branch_predict_interface_t branch_predict_info_i,
+    input branch_predict_interface_t branch_predict_info_i,
     input logic                    branch_predict_info_we_i,
 
     // From Block Retire Table (BRT)
-    input dice_pkg::block_retire_status_t brt_info_i,
+    input block_retire_status_t brt_info_i,
     input logic               brt_info_we_i,
 
     // From cta controller
     input logic clear_entry_valid_i,
-    input logic [dice_pkg::DICE_HW_CTA_ID_WIDTH-1:0] clear_entry_hw_id_i,
+    input logic [DICE_HW_CTA_ID_WIDTH-1:0] clear_entry_hw_id_i,
 
     // Exposed status for each CTA
-    output dice_pkg::dice_cta_status_t [dice_pkg::DICE_NUM_MAX_CTA_PER_CORE-1:0] cta_status_o
+    output dice_cta_status_t [DICE_NUM_MAX_CTA_PER_CORE-1:0] cta_status_o
 );
 
-  dice_pkg::dice_cta_status_t [dice_pkg::DICE_NUM_MAX_CTA_PER_CORE-1:0] cta_status_q;
-  dice_pkg::dice_cta_status_t [dice_pkg::DICE_NUM_MAX_CTA_PER_CORE-1:0] cta_status_d;
+  dice_cta_status_t [DICE_NUM_MAX_CTA_PER_CORE-1:0] cta_status_q;
+  dice_cta_status_t [DICE_NUM_MAX_CTA_PER_CORE-1:0] cta_status_d;
 
-  logic [dice_pkg::DICE_HW_CTA_ID_WIDTH-1:0] bp_cta_id;
+  logic [DICE_HW_CTA_ID_WIDTH-1:0] bp_cta_id;
 
   always_comb begin
     bp_cta_id = '0;
-    for (int i = 0; i < dice_pkg::DICE_NUM_MAX_CTA_PER_CORE; i++) begin
+    for (int i = 0; i < DICE_NUM_MAX_CTA_PER_CORE; i++) begin
       cta_status_d[i] = cta_status_q[i];
     end
 
     if (brt_info_we_i) begin
-      for (int i = 0; i < dice_pkg::DICE_NUM_MAX_CTA_PER_CORE; i++) begin
+      for (int i = 0; i < DICE_NUM_MAX_CTA_PER_CORE; i++) begin
         cta_status_d[i].has_pending_eblock = brt_info_i.hw_cta_pending[i];
       end
     end
@@ -59,11 +62,11 @@ module cta_status_table (
 
   always_ff @(posedge clk_i) begin
     if (rst_i) begin
-      for (int i = 0; i < dice_pkg::DICE_NUM_MAX_CTA_PER_CORE; i++) begin
+      for (int i = 0; i < DICE_NUM_MAX_CTA_PER_CORE; i++) begin
         cta_status_q[i] <= '0;
       end
     end else begin
-      for (int i = 0; i < dice_pkg::DICE_NUM_MAX_CTA_PER_CORE; i++) begin
+      for (int i = 0; i < DICE_NUM_MAX_CTA_PER_CORE; i++) begin
         cta_status_q[i] <= cta_status_d[i];
       end
     end

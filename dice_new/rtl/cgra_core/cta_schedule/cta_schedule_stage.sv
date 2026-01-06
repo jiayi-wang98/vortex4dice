@@ -1,10 +1,13 @@
 `include "dice_define.vh"
 
-module cta_schedule_stage #(
+module cta_schedule_stage
+  import dice_pkg::*;
+  import dice_frontend_pkg::*;
+#(
     parameter int MAX_NUM_CTA = 4,
     parameter int PC_WIDTH = 32,
-    localparam int ThreadWidth = dice_pkg::DICE_NUM_MAX_THREADS_PER_CORE /
-                                 dice_pkg::DICE_NUM_MAX_CTA_PER_CORE,
+    localparam int ThreadWidth = DICE_NUM_MAX_THREADS_PER_CORE /
+                                 DICE_NUM_MAX_CTA_PER_CORE,
     parameter int STACK_DEPTH = 32,
     localparam int CtaIdWidth = $clog2(MAX_NUM_CTA),
     localparam int EblockIdWidth = $clog2(MAX_NUM_CTA + 4)
@@ -15,12 +18,12 @@ module cta_schedule_stage #(
     // Host/Dispatcher interface for new CTA allocation
     input  logic                     cta_add_valid_i,
     output logic                     cta_add_ready_o,
-    input  dice_pkg::dice_cta_desc_t new_cta_all_desc_i,
+    input  dice_cta_desc_t new_cta_all_desc_i,
 
     // CTA completion output (to dispatcher)
     output logic                   cta_complete_valid_o,
     input  logic                   cta_complete_ready_i,
-    output dice_pkg::dice_cta_id_t cta_done_id_o,
+    output dice_cta_id_t cta_done_id_o,
 
     // Scheduler output interface (to FDR stage)
     cta_sched_if.master schedule_if,
@@ -33,7 +36,7 @@ module cta_schedule_stage #(
     branch_handler_if.slave status_table_bh_if,
 
     // Block Retire Table interface
-    input dice_pkg::block_retire_status_t brt_info_i,
+    input block_retire_status_t brt_info_i,
     input logic                           brt_info_write_enable_i,
 
 
@@ -44,13 +47,13 @@ module cta_schedule_stage #(
 
 
     // SIMT STACK STATUS - MAY CHANGE TO BE INCLUDED IN BH AND VC IFs
-    output logic [dice_pkg::DICE_NUM_MAX_CTA_PER_CORE-1:0] stack_top_valid_o,
-    output logic [dice_pkg::DICE_NUM_MAX_CTA_PER_CORE-1:0][PC_WIDTH-1:0] stack_top_next_pc_o,
-    output logic [dice_pkg::DICE_NUM_MAX_CTA_PER_CORE-1:0][PC_WIDTH-1:0] stack_top_reconvergence_pc_o,
-    output logic [dice_pkg::DICE_NUM_MAX_CTA_PER_CORE-1:0][ThreadWidth-1:0] stack_top_active_mask_o,
+    output logic [DICE_NUM_MAX_CTA_PER_CORE-1:0] stack_top_valid_o,
+    output logic [DICE_NUM_MAX_CTA_PER_CORE-1:0][PC_WIDTH-1:0] stack_top_next_pc_o,
+    output logic [DICE_NUM_MAX_CTA_PER_CORE-1:0][PC_WIDTH-1:0] stack_top_reconvergence_pc_o,
+    output logic [DICE_NUM_MAX_CTA_PER_CORE-1:0][ThreadWidth-1:0] stack_top_active_mask_o,
     // Stack status - individual stack status
-    output logic [dice_pkg::DICE_NUM_MAX_CTA_PER_CORE-1:0] stack_empty_o,
-    output logic [dice_pkg::DICE_NUM_MAX_CTA_PER_CORE-1:0] stack_full_o
+    output logic [DICE_NUM_MAX_CTA_PER_CORE-1:0] stack_empty_o,
+    output logic [DICE_NUM_MAX_CTA_PER_CORE-1:0] stack_full_o
 
     //cta status table stuff
 
@@ -61,30 +64,28 @@ module cta_schedule_stage #(
   // -------------------------------------------------------------------------
   logic active_table_add_ready;
   logic active_table_add_valid;
-  dice_pkg::dice_cta_desc_t active_table_cta_desc;
-  logic [dice_pkg::DICE_TID_WIDTH:0] active_table_cta_size;
+  dice_cta_desc_t active_table_cta_desc;
+  logic [DICE_TID_WIDTH:0] active_table_cta_size;
   logic active_table_pop_valid;
-  logic [dice_pkg::DICE_HW_CTA_ID_WIDTH-1:0] active_table_pop_hw_id;
+  logic [DICE_HW_CTA_ID_WIDTH-1:0] active_table_pop_hw_id;
   logic active_table_pop_ready;
   logic active_table_out_valid;
   logic active_table_out_ready;
-  dice_pkg::dice_cta_id_t active_table_out_cta_id;
-  logic [dice_pkg::DICE_HW_CTA_ID_WIDTH-1:0] active_table_next_empty_idx;
-  dice_frontend_pkg::active_cta_t [dice_pkg::DICE_NUM_MAX_CTA_PER_CORE-1:0] active_cta_entries;
+  dice_cta_id_t active_table_out_cta_id;
+  logic [DICE_HW_CTA_ID_WIDTH-1:0] active_table_next_empty_idx;
+  active_cta_t [DICE_NUM_MAX_CTA_PER_CORE-1:0] active_cta_entries;
 
-  dice_pkg::dice_cta_status_t [dice_pkg::DICE_NUM_MAX_CTA_PER_CORE-1:0] cta_status_real;
+  dice_cta_status_t [DICE_NUM_MAX_CTA_PER_CORE-1:0] cta_status_real;
 
-  /* verilator lint_off WIDTHTRUNC */
   assign status_table_bh_if.cta_status_data = cta_status_real;
-  /* verilator lint_on WIDTHTRUNC */
 
-  // Adapter for cta_scheduler which uses dice_frontend_pkg::cta_status_t
-  dice_frontend_pkg::cta_status_t [dice_pkg::DICE_NUM_MAX_CTA_PER_CORE-1:0]
+  // Adapter for cta_scheduler which uses cta_status_t
+  cta_status_t [DICE_NUM_MAX_CTA_PER_CORE-1:0]
       scheduler_status_adapter;
 
   always_comb begin
-    for (int i = 0; i < dice_pkg::DICE_NUM_MAX_CTA_PER_CORE; i++) begin
-      scheduler_status_adapter[i].hw_cta_id   = (dice_pkg::DICE_CTA_ID_WIDTH + 1)'(i);
+    for (int i = 0; i < DICE_NUM_MAX_CTA_PER_CORE; i++) begin
+      scheduler_status_adapter[i].hw_cta_id   = (DICE_CTA_ID_WIDTH + 1)'(i);
       scheduler_status_adapter[i].is_prefetch = cta_status_real[i].is_prefetch;
       scheduler_status_adapter[i].predict_pc  = cta_status_real[i].predict_pc;
     end
@@ -104,15 +105,15 @@ module cta_schedule_stage #(
 
 
   // Create validity bitmap from active_cta_entries
-  logic [dice_pkg::DICE_NUM_MAX_CTA_PER_CORE-1:0] active_cta_validty_bitmap;
+  logic [DICE_NUM_MAX_CTA_PER_CORE-1:0] active_cta_validty_bitmap;
   always_comb begin
-    for (int i = 0; i < dice_pkg::DICE_NUM_MAX_CTA_PER_CORE; i++) begin
+    for (int i = 0; i < DICE_NUM_MAX_CTA_PER_CORE; i++) begin
       active_cta_validty_bitmap[i] = active_cta_entries[i].cta_valid;
     end
   end
 
   logic clear_entry_valid;
-  logic [dice_pkg::DICE_HW_CTA_ID_WIDTH-1:0] clear_entry_hw_id;
+  logic [DICE_HW_CTA_ID_WIDTH-1:0] clear_entry_hw_id;
 
   // -------------------------------------------------------------------------
   // CTA Controller
@@ -159,7 +160,7 @@ module cta_schedule_stage #(
       .add_ready_o           (active_table_add_ready),
       .add_valid_i           (active_table_add_valid),
       .add_cta_info_i        (active_table_cta_desc),
-      .add_cta_size_i        (active_table_cta_size[dice_pkg::DICE_TID_WIDTH-1:0]),
+      .add_cta_size_i        (active_table_cta_size[DICE_TID_WIDTH-1:0]),
       .pop_valid_i           (active_table_pop_valid),
       .pop_hw_cta_id_i       (active_table_pop_hw_id),
       .pop_ready_o           (active_table_pop_ready),
@@ -178,7 +179,7 @@ module cta_schedule_stage #(
   // CTA Scheduler
   // -------------------------------------------------------------------------
   cta_scheduler #(
-      .MAX_EBLOCK  (dice_pkg::DICE_NUM_MAX_CTA_PER_CORE + 4),
+      .MAX_EBLOCK  (DICE_NUM_MAX_CTA_PER_CORE + 4),
       .THREAD_WIDTH(ThreadWidth)
   ) cta_scheduler_inst (
       .clk_i                  (clk_i),
@@ -189,7 +190,7 @@ module cta_schedule_stage #(
       .cta_next_pc_i          (stack_top_next_pc_o),
       .stack_top_active_mask_i(stack_top_active_mask_o),
       .eblock_commit_valid_i  (eblock_commit_valid_i),
-      .eblock_commit_id_i     ((dice_pkg::DICE_EBLOCK_ID_WIDTH)'(eblock_commit_id_i)),
+      .eblock_commit_id_i     ((DICE_EBLOCK_ID_WIDTH)'(eblock_commit_id_i)),
       .scheduled_eblock       (schedule_if)
   );
 
@@ -226,7 +227,7 @@ module cta_schedule_stage #(
       .update_with_divergence_i(simt_stack_update.update_stack_data.update_with_divergence),
       .update_next_pc_i(simt_stack_update.update_stack_data.update_next_pc),
       .predicate_regs_value_i     (simt_stack_update.update_stack_data.predicate_regs_value[
-                                      dice_pkg::DICE_NUM_MAX_CTA_PER_CORE*ThreadWidth-1:0]),
+                                      DICE_NUM_MAX_CTA_PER_CORE*ThreadWidth-1:0]),
       .branch_not_taken_pc_i(simt_stack_update.update_stack_data.branch_not_taken_pc),
       .branch_reconvergence_pc_i(simt_stack_update.update_stack_data.branch_reconvergence_pc),
       .update_ready_o(simt_stack_update_ready),

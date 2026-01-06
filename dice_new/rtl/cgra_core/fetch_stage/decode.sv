@@ -1,23 +1,25 @@
-
 //need to figure out how the active mask will be packaged
-module decode (
-    input dice_frontend_pkg::pgraph_meta_t metadata_i,
+module decode
+  import dice_pkg::*;
+  import dice_frontend_pkg::*;
+(
+    input pgraph_meta_t metadata_i,
     input logic                            meta_in_valid_i,
 
-    input dice_frontend_pkg::thread_mask_t real_active_thread_mask_i,
+    input thread_mask_t real_active_thread_mask_i,
 
     //To bitstream Fetcher
-    output logic [dice_pkg::DICE_ADDR_WIDTH-1:0]            bitstream_addr_o,
+    output logic [DICE_ADDR_WIDTH-1:0]            bitstream_addr_o,
     output logic                                            bitstream_addr_valid_o,
-    output logic [dice_frontend_pkg::BITSTREAM_LENGTH_WIDTH-1:0] bitstream_length_o,
+    output logic [BITSTREAM_LENGTH_WIDTH-1:0] bitstream_length_o,
 
     //To branch handler
-    output dice_frontend_pkg::branch_meta_t branch_metadata_o,
+    output branch_meta_t branch_metadata_o,
     output logic                            branch_req_valid_o,
 
     //To valid checker
     output logic                       is_barrier_o,
-    output dice_frontend_pkg::fdr_meta_t meta_o
+    output fdr_meta_t meta_o
 );
 
   // Bitstream Fetch

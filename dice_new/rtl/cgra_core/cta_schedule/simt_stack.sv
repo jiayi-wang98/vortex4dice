@@ -1,7 +1,10 @@
-module simt_stack #(
+module simt_stack
+  import dice_pkg::*;
+  import dice_frontend_pkg::*;
+#(
     parameter int STACK_DEPTH = 32,
-    parameter int THREAD_WIDTH = dice_pkg::DICE_NUM_MAX_THREADS_PER_CORE /
-                                 dice_pkg::DICE_NUM_MAX_CTA_PER_CORE,
+    parameter int THREAD_WIDTH = DICE_NUM_MAX_THREADS_PER_CORE /
+                                 DICE_NUM_MAX_CTA_PER_CORE,
     localparam int StackIndexWidth = $clog2(STACK_DEPTH)
 )(
     input logic clk_i,
@@ -10,8 +13,8 @@ module simt_stack #(
     // Push interface (can also modify top when modify_top is asserted)
     input logic push_i,
     input logic modify_top_i,  // When 1, don't increment stack, just update top
-    input logic [dice_pkg::DICE_ADDR_WIDTH-1:0] push_next_pc_i,
-    input logic [dice_pkg::DICE_ADDR_WIDTH-1:0] push_reconvergence_pc_i,
+    input logic [DICE_ADDR_WIDTH-1:0] push_next_pc_i,
+    input logic [DICE_ADDR_WIDTH-1:0] push_reconvergence_pc_i,
     input logic [THREAD_WIDTH-1:0] push_active_mask_i,
 
     // Pop interface
@@ -21,8 +24,8 @@ module simt_stack #(
     input logic read_top_i,  // Request to read top of stack
 
     // Stack top outputs (registered - valid next cycle after read_top)
-    output logic [dice_pkg::DICE_ADDR_WIDTH-1:0] top_next_pc_o,
-    output logic [dice_pkg::DICE_ADDR_WIDTH-1:0] top_reconvergence_pc_o,
+    output logic [DICE_ADDR_WIDTH-1:0] top_next_pc_o,
+    output logic [DICE_ADDR_WIDTH-1:0] top_reconvergence_pc_o,
     output logic [THREAD_WIDTH-1:0] top_active_mask_o,
     output logic out_valid_o,  // Indicates top outputs are valid
 
@@ -32,7 +35,7 @@ module simt_stack #(
 );
 
     // Constants
-    localparam int EntryWidth = dice_pkg::DICE_ADDR_WIDTH + dice_pkg::DICE_ADDR_WIDTH +
+    localparam int EntryWidth = DICE_ADDR_WIDTH + DICE_ADDR_WIDTH +
                                 THREAD_WIDTH;
 
     // Stack pointer (0 = empty, points to top of stack + 1)
@@ -48,21 +51,21 @@ module simt_stack #(
 
     // Pack/unpack functions for RAM data
     function automatic [EntryWidth-1:0] pack_entry(
-        input logic [dice_pkg::DICE_ADDR_WIDTH-1:0] next_pc,
-        input logic [dice_pkg::DICE_ADDR_WIDTH-1:0] reconvergence_pc,
+        input logic [DICE_ADDR_WIDTH-1:0] next_pc,
+        input logic [DICE_ADDR_WIDTH-1:0] reconvergence_pc,
         input logic [THREAD_WIDTH-1:0] active_mask
     );
         return {next_pc, reconvergence_pc, active_mask};
     endfunction
 
-    function automatic logic [dice_pkg::DICE_ADDR_WIDTH-1:0] unpack_next_pc(
+    function automatic logic [DICE_ADDR_WIDTH-1:0] unpack_next_pc(
         input logic [EntryWidth-1:0] entry);
-        return entry[EntryWidth-1:dice_pkg::DICE_ADDR_WIDTH+THREAD_WIDTH];
+        return entry[EntryWidth-1:DICE_ADDR_WIDTH+THREAD_WIDTH];
     endfunction
 
-    function automatic logic [dice_pkg::DICE_ADDR_WIDTH-1:0] unpack_reconvergence_pc(
+    function automatic logic [DICE_ADDR_WIDTH-1:0] unpack_reconvergence_pc(
         input logic [EntryWidth-1:0] entry);
-        return entry[dice_pkg::DICE_ADDR_WIDTH+THREAD_WIDTH-1:THREAD_WIDTH];
+        return entry[DICE_ADDR_WIDTH+THREAD_WIDTH-1:THREAD_WIDTH];
     endfunction
 
     function automatic logic [THREAD_WIDTH-1:0] unpack_active_mask(
