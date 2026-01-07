@@ -89,7 +89,7 @@ module tb_vx_cache_with_temporal;
         .cache_data(cache_data),
         .cache_valid(cache_valid)
     );
-
+    logic [DATA_WIDTH-1] write_data_temp = 'd0;
     int i;
     // ----------------------
     // Reset sequence
@@ -122,13 +122,13 @@ module tb_vx_cache_with_temporal;
         // Issue the write
         incmd_valid        = 1;
         incmd_block_id     = 4'd1;
-        incmd_tid          = 10'd0;
+        incmd_tid          = i + 512;
         incmd_write_enable = 1;
-        incmd_write_data   = 64'd128;  // 1,2,3,4
-        incmd_write_mask   = 8'hFF;
-        incmd_address      = 64'd0 + i*8; // consecutive addresses
+        incmd_write_data   = write_data_temp + i;  // 1,2,3,4
+        incmd_write_mask   = 8'h00;
+        incmd_address      = 64'd0 + i*4; // consecutive addresses
         incmd_size         = 2'b00;
-        incmd_ld_dest_reg  = 7'd0;
+        incmd_ld_dest_reg  = 7'd10;
         outcmd_ready = 1'b1;
         
         @(posedge clk);
