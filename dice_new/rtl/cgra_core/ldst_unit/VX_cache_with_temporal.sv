@@ -1,5 +1,5 @@
 module VX_cache_with_temporal #(
-    parameter int NUMBER_OF_MAX_COALESCED_INTERVAL = 8, // Maximum number of clk cycles to hold internal commands
+    parameter int NUMBER_OF_MAX_COALESCED_INTERVAL = 8, // Maximum number of clk cycles to hold internal commands   
     parameter int CACHE_LINE_SIZE = 32, // Size of a cache line in bytes
     parameter int NUMBER_OF_MAX_COALESCED_COMMANDS = CACHE_LINE_SIZE/4, // Maximum number of commands that can be coalesced
     parameter int BASE_ADDRESS_OFFSET = $clog2(CACHE_LINE_SIZE), // Width of base address offset in bits
@@ -26,13 +26,15 @@ module VX_cache_with_temporal #(
     input logic [ADDR_WIDTH-1:0] incmd_address,       // Address for the command
     input logic [1:0] incmd_size,          // Size of the command (e.g., 00=1B, 01=2B, 10=4B, 11=8B)
     input logic [MAX_REG_WIDTH-1:0] incmd_ld_dest_reg,    // Load destination register
-    output logic outcmd_ready,
-
-    output logic incmd_ready,           // Ready signal for input command
+    input logic outcmd_ready,
+    
+    
     output logic [DATA_WIDTH-1:0] cache_data,
     output logic cache_valid
     
-);
+);  
+    logic core_req_ready;
+    logic incmd_ready;           // Ready signal for input command
     logic cache_perf;
     logic outcmd_valid;              // Output command valid signal
     logic [EBLOCK_ID_WIDTH-1:0] outcmd_block_id;    // Output command block ID
@@ -119,13 +121,13 @@ module VX_cache_with_temporal #(
     .core_req_flags('{default: 0}),
     .core_req_data('{outcmd_write_data}),
     .core_req_tag('{core_tag_req}),
-    .core_req_ready('{outcmd_ready}),
+    .core_req_ready('{core_req_ready}),
 
 
     .core_rsp_valid('{cache_valid}),
     .core_rsp_data('{cache_data}),
     .core_rsp_tag('{core_tag_rsp}),
-    .core_rsp_ready('{incmd_ready}), 
+    .core_rsp_ready('{indcmd_ready}), 
 
     .mem_req_valid(),
     .mem_req_rw(),

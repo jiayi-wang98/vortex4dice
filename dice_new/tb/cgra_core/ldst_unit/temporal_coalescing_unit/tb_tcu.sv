@@ -593,10 +593,9 @@ module temporal_coalescing_unit_testbench;
         $finish;
     end
 
-    // VCD dump for waveform generation
     initial begin
-        $dumpfile("temporal_coalescing_testbench.vcd");
-        $dumpvars(0, temporal_coalescing_unit_testbench);
+    //dump fsdb
+    $fsdbDumpfile("tb_tcu.fsdb");
+    $fsdbDumpvars("+all");
     end
-
 endmodule

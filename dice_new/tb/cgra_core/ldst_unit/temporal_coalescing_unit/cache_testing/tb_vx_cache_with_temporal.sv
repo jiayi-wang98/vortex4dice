@@ -49,18 +49,14 @@ module tb_vx_cache_with_temporal;
     
     logic [DATA_WIDTH-1:0] cache_data;
     logic cache_valid;
-
+    logic incmd_ready;
      // Clock generation
     initial begin
         clk = 0;
         forever #(CLK_PERIOD/2) clk = ~clk;
     end
     
-     initial begin
-    //dump fsdb
-    $dumpfile("tb_vx_cache_with_temporal.fsdb");
-    $dumpvars("+all");
-    end
+    
 
     // Instantiate wrapper
     VX_cache_with_temporal #(
@@ -89,7 +85,7 @@ module tb_vx_cache_with_temporal;
         .incmd_ld_dest_reg(incmd_ld_dest_reg),
         .outcmd_ready(outcmd_ready),
         
-        .incmd_ready(incmd_ready),
+        
         .cache_data(cache_data),
         .cache_valid(cache_valid)
     );
@@ -102,8 +98,9 @@ module tb_vx_cache_with_temporal;
         rst = 1;
         #20;
         rst = 0;
-    end
-   initial begin
+    end 
+
+    initial begin
     // Initialize inputs
     incmd_valid        = 0;
     incmd_block_id     = 0;
@@ -114,12 +111,9 @@ module tb_vx_cache_with_temporal;
     incmd_address      = 0;
     incmd_size         = 0;
     incmd_ld_dest_reg  = 0;
-
     
-    @(negedge rst); // wait for reset
-    repeat (2) @(posedge clk);
 
-    // Send 4 words to fill cache line
+        // Send 4 words to fill cache line
     for (i = 0; i < 128; i = i + 1) begin
         @(posedge clk);
         // Wait until cache can accept the write
@@ -130,26 +124,36 @@ module tb_vx_cache_with_temporal;
         incmd_block_id     = 4'd1;
         incmd_tid          = 10'd0;
         incmd_write_enable = 1;
-        incmd_write_data   = 64'(i+1);  // 1,2,3,4
+        incmd_write_data   = 64'd128;  // 1,2,3,4
         incmd_write_mask   = 8'hFF;
         incmd_address      = 64'd0 + i*8; // consecutive addresses
         incmd_size         = 2'b00;
         incmd_ld_dest_reg  = 7'd0;
-
+        outcmd_ready = 1'b1;
+        
         @(posedge clk);
         incmd_valid = 0;  // deassert for 1 cycle between writes
     end
+        incmd_write_enable = 0; @(posedge clk);
+        #100;
+    $finish;
 end
 
-    initial begin
-    $monitor("Time=%0t | incmd_valid=%b | incmd_ready=%b | outcmd_valid=%b | cache_data=%b |  | cache_valid=%b", 
-             $time,
-             incmd_valid,
-             incmd_ready,
-             outcmd_valid,
-             cache_data,
-             cache_valid);
-             
+initial begin
+$monitor("Time=%0t | incmd_valid=%b | incmd_ready=%b | outcmd_valid=%b | cache_data=%b |  | cache_valid=%b", 
+         $time,
+         incmd_valid,
+         incmd_ready,
+         outcmd_valid,
+         cache_data,
+         cache_valid);
+
 end
+
+initial begin
+    //dump fsdb
+    $fsdbDumpfile("tb_vx_cache_with_temporal.fsdb");
+    $fsdbDumpvars("+all");
+    end
 endmodule
 
