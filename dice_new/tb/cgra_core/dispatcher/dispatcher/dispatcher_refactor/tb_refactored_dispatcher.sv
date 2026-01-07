@@ -108,7 +108,7 @@ module dispatcher_basic_testbench;
         
         if (!dispatch_fifo_empty) begin  // Changed: check if data available
             dispatch_fifo_pop = 1'b1;
-            @(negedge clk);  // Pop happens here
+            @(posedge clk);  // Pop happens here
             
             // Count and display dispatched threads
             if (dispatch_valid_0) begin
@@ -145,14 +145,16 @@ module dispatcher_basic_testbench;
     
     // Wait for completion
     task wait_for_completion();
-        int timeout = 10000;  // Increased timeout
+        int timeout = 10000;
         int idle_cycles = 0;
+        int extra_drain_cycles;
         
+        // Stage 1: Wait for dispatcher_done
         while (!dispatcher_done && timeout > 0) begin
             // Pop whenever ANY data is available
             if (!dispatch_fifo_empty) begin
                 pop_and_count();
-                idle_cycles = 0;  // Reset idle counter
+                idle_cycles = 0;
             end else begin
                 @(negedge clk);
                 idle_cycles++;
@@ -162,24 +164,60 @@ module dispatcher_basic_testbench;
                     $display("WARNING: Idle for 100 cycles but not done");
                     $display("  dispatcher_done=%b, dispatch_fifo_empty=%b", 
                             dispatcher_done, dispatch_fifo_empty);
-                    $display("  ready_fifo_empty=%b", {ready_fifo_empty[3], ready_fifo_empty[2], 
-                                                        ready_fifo_empty[1], ready_fifo_empty[0]});
+                    $display("  ready_fifo_empty=%b", {dut.ready_fifo_empty[3], dut.ready_fifo_empty[2], 
+                                                        dut.ready_fifo_empty[1], dut.ready_fifo_empty[0]});
                 end
             end
             timeout--;
         end
         
-        // After dispatcher_done, drain any remaining data in FIFOs
-        while (!dispatch_fifo_empty) begin
-            pop_and_count();
+        if (timeout == 0) begin
+            $display("ERROR: Timeout waiting for dispatcher_done!");
+            $finish;
+        end
+        
+        $display("Dispatcher signaled done. Starting pipeline flush...");
+        
+        // Stage 2: CRITICAL - Allow pipeline to flush
+        // Give extra cycles for thread_fifo -> ready_fifo -> dispatch_tid pipeline
+        // Based on your observation: 4 cycles minimum for propagation
+        extra_drain_cycles = 0;
+        
+        // Keep draining as long as we're seeing new data OR haven't given enough cycles
+        while ((extra_drain_cycles < 10 || !dispatch_fifo_empty) && timeout > 0) begin
+            if (!dispatch_fifo_empty) begin
+                pop_and_count();
+                extra_drain_cycles = 0;  // Reset counter when we pop data
+            end else begin
+                @(negedge clk);
+                extra_drain_cycles++;
+            end
+            timeout--;
+        end
+        
+        // Stage 3: Final check - make absolutely sure FIFOs are empty
+        repeat(5) @(negedge clk);
+        
+        if (!dispatch_fifo_empty) begin
+            $display("WARNING: FIFOs still have data after drain period!");
+            while (!dispatch_fifo_empty && timeout > 0) begin
+                pop_and_count();
+                timeout--;
+            end
         end
         
         if (timeout == 0) begin
-            $display("ERROR: Timeout waiting for completion!");
+            $display("ERROR: Timeout during pipeline flush!");
             $finish;
         end else begin
             $display("CTA dispatch completed. Total dispatched: %0d", dispatched_count);
         end
+
+        $display("DEBUG: thread_fifo_empty=%b, thread_chunk_done=%b", 
+                 dut.thread_fifo_empty, dut.thread_chunk_done);
+        $display("DEBUG: All ready_fifo_empty=%b", 
+                 {dut.ready_fifo_empty[3], dut.ready_fifo_empty[2], 
+                  dut.ready_fifo_empty[1], dut.ready_fifo_empty[0]});
     endtask
     
     // Check basic functionality
@@ -264,44 +302,48 @@ module dispatcher_basic_testbench;
     
     // Test 3: Different unrolling factors
     task test_unrolling_factors();
-        logic [1023:0] mask;
+        logic [31:0] mask;
         int count_1way, count_2way, count_4way;
         
         $display("\n=== Test %0d: Unrolling Factor Test ===", ++test_num);
         
-        mask = 1024'b0;
-        mask[15:0] = 16'hFFFF;  // Enable first 16 threads
+        // CHANGE: Use more threads to ensure all lanes get work
+        // Set multiple chunks worth of threads
+        // mask = '1;
+        mask = 32'b0;
+        mask[31:0] = 32'hFFFFFFFF;
         
-        // Test 1-way unrolling
+        // Test 1-way - expect 32 threads dispatched
         $display("--- Testing 1-way unrolling ---");
         reset_system();
-        start_cta(mask, 66'h1, 2'b00, 2'b00);  // 1-way
+        start_cta(mask, 66'h1, 2'b00, 2'b00);
         wait_for_completion();
         $display("1-way dispatched: %0d threads", dispatched_count);
         count_1way = dispatched_count;
         
-        // Test 2-way unrolling
+        // Test 2-way - expect 32 threads dispatched
         $display("--- Testing 2-way unrolling ---");
         reset_system();
-        dispatched_count = 0;
-        start_cta(mask, 66'h1, 2'b00, 2'b01);  // 2-way
+        start_cta(mask, 66'h1, 2'b00, 2'b01);
         wait_for_completion();
         $display("2-way dispatched: %0d threads", dispatched_count);
         count_2way = dispatched_count;
-        
-        // Test 4-way unrolling
+
+        // Test 4-way - expect 32 threads dispatched
         $display("--- Testing 4-way unrolling ---");
         reset_system();
-        dispatched_count = 0;
-        start_cta(mask, 66'h1, 2'b00, 2'b10);  // 4-way
+        start_cta(mask, 66'h1, 2'b00, 2'b10);
         wait_for_completion();
         $display("4-way dispatched: %0d threads", dispatched_count);
         count_4way = dispatched_count;
         
-        if (count_1way == 16 && count_2way == 16 && count_4way == 16) begin
+        // Check results
+        if (count_1way == 32 && count_2way == 32 && count_4way == 32) begin
             $display("PASS: All unrolling factors dispatch correct thread count");
         end else begin
             $display("ERROR: Unrolling factor test failed");
+            $display("  Expected: 32, 32, 32");
+            $display("  Got: %0d, %0d, %0d", count_1way, count_2way, count_4way);
         end
         
         dispatched_count = 0;

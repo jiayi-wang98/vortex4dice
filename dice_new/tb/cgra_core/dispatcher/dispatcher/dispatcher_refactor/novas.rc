@@ -231,13 +231,13 @@ autoSaveSession = FALSE
 TclAutoSource = 
 cmd_enter_form = FALSE
 SyncBrowserDir = TRUE
-recent_commands_nWave = zoomOut,editCut,getAllSignals,getSignal,getSignal,getSignal
 FindBarVisible = 
 SignalCaseInSensitive = FALSE
 ColorThemeModern = bright
 prevColorThemeModern = bright
 version = Verdi_X-2025.06
-recent_commands_Verdi = nsFullScreen,hbLoadFsdbFile,hbImpDsg,srcCompile,aboutFsdb,hbCloseFsdbFile
+recent_commands_Verdi = hbReload,hbLoadFsdbFile,nsFullScreen,hbImpDsg,srcCompile,aboutFsdb,hbCloseFsdbFile
+recent_commands_nWave = digitalFHex,digitalFUDec,zoomOut,editCut,getAllSignals,getSignal,getSignal,getSignal
 [GlobalProp]
 ErrWindow_Font = Helvetica_M_R_12
 [Globals]
@@ -274,8 +274,8 @@ PrefetchViewableAnnot = TRUE
 designTreeBgColor = ID_WHITE
 import_default_language = Verilog
 import_from = source
-ShowFileListView = FALSE
 simulation_file_type = *.fsdb;*.vf;*.jf;*.zwd*
+ShowFileListView = FALSE
 [Hier]
 filterTimeout = 1500
 [ImportLiberty]
@@ -395,8 +395,8 @@ QwInfoMsgDlg = 232,297,750,250
 CompileDesignUi = 166,174,691,410
 importDesignForm = 602,212,715,574
 QwUserAskDlg = 788,386,324,128
-loadFile = 205,163,614,432
 tipViewerDlg = 751,386,398,259
+loadFile = 205,200,614,432
 [Safety]
 RegisterObject = ID_RED4
 CoreObject = ID_ORANGE5
@@ -697,38 +697,38 @@ isHidden = TRUE
 isUserChangeColumnVisible = FALSE
 isColFilterColorCoding = FALSE
 [VIA.oneSearch.preference.vgifColumnSettingRC.setting0.column1]
-name = "Time"
+name = "Severity"
 width = 60
-visualIndex = 0
+visualIndex = 2
 isHidden = FALSE
 isUserChangeColumnVisible = FALSE
 isColFilterColorCoding = FALSE
 [VIA.oneSearch.preference.vgifColumnSettingRC.setting0.column2]
-name = "Code"
-width = 60
-visualIndex = 3
-isHidden = TRUE
-isUserChangeColumnVisible = FALSE
-isColFilterColorCoding = FALSE
-[VIA.oneSearch.preference.vgifColumnSettingRC.setting0.column3]
 name = "Type"
 width = 60
 visualIndex = 4
 isHidden = TRUE
 isUserChangeColumnVisible = FALSE
 isColFilterColorCoding = FALSE
-[VIA.oneSearch.preference.vgifColumnSettingRC.setting0.column4]
+[VIA.oneSearch.preference.vgifColumnSettingRC.setting0.column3]
 name = "Message"
 width = 2000
 visualIndex = 5
 isHidden = FALSE
 isUserChangeColumnVisible = FALSE
 isColFilterColorCoding = FALSE
-[VIA.oneSearch.preference.vgifColumnSettingRC.setting0.column5]
-name = "Severity"
+[VIA.oneSearch.preference.vgifColumnSettingRC.setting0.column4]
+name = "Time"
 width = 60
-visualIndex = 2
+visualIndex = 0
 isHidden = FALSE
+isUserChangeColumnVisible = FALSE
+isColFilterColorCoding = FALSE
+[VIA.oneSearch.preference.vgifColumnSettingRC.setting0.column5]
+name = "Code"
+width = 60
+visualIndex = 3
+isHidden = TRUE
 isUserChangeColumnVisible = FALSE
 isColFilterColorCoding = FALSE
 [VIA.ruleHistory]
@@ -807,7 +807,6 @@ AutoApplySeverityColor = TRUE
 scope_to_save_with_macro
 open_file_dir
 open_rc_file_dir
-getSignalForm = 217 262 800 479 165 387 391 91
 viewPort = 0 11 1461 356 248 241
 legendBackground = -c ID_BLACK
 valueBackground = -c ID_BLACK
@@ -1008,6 +1007,7 @@ maskFsaSfsmRule = TRUE
 maskFsaEcrRule = TRUE
 maskTPropagation = TRUE
 RecentFile2 = "\"/home/jami3jun/vortex4dice/dice_new/tb/cgra_core/dispatcher/dispatcher/dispatcher_basic.fsdb\""
+getSignalForm = 217 262 800 479 165 387 391 91
 [compile_design]
 DefaultLang = Verilog
 [cov_hier_name_column]
