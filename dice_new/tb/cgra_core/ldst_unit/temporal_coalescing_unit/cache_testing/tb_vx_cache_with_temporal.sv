@@ -114,7 +114,7 @@ module tb_vx_cache_with_temporal;
     
 
         // Send 4 words to fill cache line
-    for (i = 0; i < 128; i = i + 1) begin
+    for (i = 0; i < 128; i = i + 1) begin   
         @(posedge clk);
         // Wait until cache can accept the write
         while (!incmd_ready) @(posedge clk);
@@ -128,14 +128,18 @@ module tb_vx_cache_with_temporal;
         incmd_write_mask   = 8'h00;
         incmd_address      = 64'd0 + i*4; // consecutive addresses
         incmd_size         = 2'b00;
-        incmd_ld_dest_reg  = 7'd10;
+        incmd_ld_dest_reg  = 7'd0;
         outcmd_ready = 1'b1;
+        incmd_ready = 1'b1;
         
         @(posedge clk);
-        incmd_valid = 0;  // deassert for 1 cycle between writes
+        //incmd_valid = 0; incmd_write_enable = 0; outcmd_ready = 0; @(posedge clk);
     end
-        incmd_write_enable = 0; @(posedge clk);
-        #100;
+        outcmd_write_enable = 0; @(posedge clk);
+
+        #10000
+
+       
     $finish;
 end
 

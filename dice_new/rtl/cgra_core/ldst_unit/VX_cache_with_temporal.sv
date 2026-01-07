@@ -127,7 +127,7 @@ module VX_cache_with_temporal #(
     .core_rsp_valid('{cache_valid}),
     .core_rsp_data('{cache_data}),
     .core_rsp_tag('{core_tag_rsp}),
-    .core_rsp_ready('{indcmd_ready}), 
+    .core_rsp_ready('{incmd_ready}), 
 
     .mem_req_valid(),
     .mem_req_rw(),
