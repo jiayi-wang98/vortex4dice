@@ -260,15 +260,39 @@ module dispatcher(
     
     // Collision-free dispatch logic
     logic [3:0] ready_fifo_push_en; // per-lane push enable
+
+    //flag of if current valid tids are checking collision
+    logic is_checking_collision, is_checking_collision_next; //flag of current tids is checking collision and have not been pushed to ready fifo yet
+    always_ff@(posedge clk or negedge rst_n) begin
+        if (!rst_n) begin
+            is_checking_collision <= 1'b0;
+        end else begin
+            is_checking_collision <= is_checking_collision_next;
+        end
+    end
+
+    always_comb begin
+        // Determine if there are any valid TIDs checking collision
+        if (is_checking_collision == 1'b0) begin
+            if (thread_fifo_pop) is_checking_collision_next = 1'b1;
+            else is_checking_collision_next = 1'b0;
+        end else begin //clear or maintain the flag
+            if(all_lane_can_dispatch && ready_fifo_not_full) begin
+                if(thread_fifo_pop) is_checking_collision_next = 1'b1; //next valid tid coming, maintain the flag
+                else is_checking_collision_next = 1'b0; //clear, no more valid tids
+            end
+        end
+    end
+
     always_comb begin
         // NEW: Calculating per-lane push enable
+        //when can push, 
+        //firstly, if there is a group of tids is checking collision, if no valid tids then do not push
+        //then check if previous tids are blocked by collision, if no previous tids or not blocked, then can push
+        //finally check if ready fifo is full, if not full, then can push
         for (int i = 0; i < 4; i++) begin
-            ready_fifo_push_en[i] = thread_fifo_pop && 
-                                (i == 0 ? thread_valid_0 :
-                                 i == 1 ? thread_valid_1 :
-                                 i == 2 ? thread_valid_2 : thread_valid_3) &&
-                                !lane_collision[i] && 
-                                !const_collision && 
+            ready_fifo_push_en[i] = is_checking_collision &&  
+                                !lane_collision[i] && !const_collision && 
                                 !ready_fifo_full[i];
         end
         // Push data assignments (unchanged)
@@ -283,7 +307,7 @@ module dispatcher(
         for (i = 0; i < 4; i++) begin : gen_ready_fifos
             sync_fifo #(
                 .DATA_WIDTH(11),        // 11 bits: {valid, tid[9:0]}
-                .DEPTH(16)               // 4 entries deep
+                .DEPTH(4)               // 4 entries deep
             ) ready_fifo (
                 .clk(clk),
                 .rst_n(rst_n),

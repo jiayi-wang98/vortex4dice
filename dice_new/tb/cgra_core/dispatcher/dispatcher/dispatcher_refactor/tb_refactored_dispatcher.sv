@@ -61,6 +61,7 @@ module dispatcher_basic_testbench;
     
     // Task to reset system
     task reset_system();
+        @(negedge clk);
         $display("=== Resetting System ===");
         rst_n = 0;
         fetch_done = 0;
