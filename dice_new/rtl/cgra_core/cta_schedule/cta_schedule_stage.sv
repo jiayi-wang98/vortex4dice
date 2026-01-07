@@ -3,15 +3,8 @@
 module cta_schedule_stage
   import dice_pkg::*;
   import dice_frontend_pkg::*;
-#(
-    parameter int MAX_NUM_CTA = 4,
-    parameter int PC_WIDTH = 32,
-    localparam int ThreadWidth = DICE_NUM_MAX_THREADS_PER_CORE /
-                                 DICE_NUM_MAX_CTA_PER_CORE,
-    parameter int STACK_DEPTH = 32,
-    localparam int CtaIdWidth = $clog2(MAX_NUM_CTA),
-    localparam int EblockIdWidth = $clog2(MAX_NUM_CTA + 4)
-) (
+(
+
     input logic clk_i,
     input logic rst_i,
 
@@ -30,7 +23,7 @@ module cta_schedule_stage
 
     // E-block commit interface (from execution/retire)
     input logic                     eblock_commit_valid_i,
-    input logic [EblockIdWidth-1:0] eblock_commit_id_i,
+    input logic [EBLOCK_ID_WIDTH-1:0] eblock_commit_id_i,
 
     // Branch handler / predictor interface (from FDR/execution)
     branch_handler_if.slave status_table_bh_if,
@@ -39,29 +32,41 @@ module cta_schedule_stage
     input block_retire_status_t brt_info_i,
     input logic                           brt_info_write_enable_i,
 
+    // SIMT Stack Update Interface (now includes hw_cta_id/size)
+    dice_bh_simt_if.slave simt_stack_update,
 
-    // UPDATE INTERFACE (SIMT STACK CONTROLLER AND BRANCH HANDLER)
-          dice_bh_simt_if.slave                  simt_stack_update,
-    input logic                 [CtaIdWidth-1:0] simt_update_hw_cta_id_i,
-    input logic                 [           1:0] simt_update_hw_cta_size_i,
+    // SIMT Stack Status Interface (NEW - replaces individual outputs)
+    simt_stack_status_if.master simt_status_if,
 
-
-    // SIMT STACK STATUS - MAY CHANGE TO BE INCLUDED IN BH AND VC IFs
-    output logic [DICE_NUM_MAX_CTA_PER_CORE-1:0] stack_top_valid_o,
-    output logic [DICE_NUM_MAX_CTA_PER_CORE-1:0][PC_WIDTH-1:0] stack_top_next_pc_o,
-    output logic [DICE_NUM_MAX_CTA_PER_CORE-1:0][PC_WIDTH-1:0] stack_top_reconvergence_pc_o,
-    output logic [DICE_NUM_MAX_CTA_PER_CORE-1:0][ThreadWidth-1:0] stack_top_active_mask_o,
-    // Stack status - individual stack status
-    output logic [DICE_NUM_MAX_CTA_PER_CORE-1:0] stack_empty_o,
-    output logic [DICE_NUM_MAX_CTA_PER_CORE-1:0] stack_full_o
-
-    //cta status table stuff
+    // Branch Control Interface (NEW)
+    branch_control_if.slave branch_ctrl_if
 
 );
 
-  // -------------------------------------------------------------------------
+  // Local Parameters (derived from packages)
+  localparam int ThreadWidth = DICE_NUM_MAX_THREADS_PER_CORE / DICE_NUM_MAX_CTA_PER_CORE;
+
+  // Local wires - SIMT Stack outputs (internal, then assigned to interface)
+  logic [DICE_NUM_MAX_CTA_PER_CORE-1:0]                        stack_top_valid;
+  logic [DICE_NUM_MAX_CTA_PER_CORE-1:0][DICE_ADDR_WIDTH-1:0]   stack_top_next_pc;
+  logic [DICE_NUM_MAX_CTA_PER_CORE-1:0][DICE_ADDR_WIDTH-1:0]   stack_top_reconvergence_pc;
+  logic [DICE_NUM_MAX_CTA_PER_CORE-1:0][ThreadWidth-1:0]       stack_top_active_mask;
+  logic [DICE_NUM_MAX_CTA_PER_CORE-1:0]                        stack_empty;
+  logic [DICE_NUM_MAX_CTA_PER_CORE-1:0]                        stack_full;
+
+  // SIMT Status Interface Assignment
+  generate
+    for (genvar i = 0; i < DICE_NUM_MAX_CTA_PER_CORE; i++) begin : gen_simt_status
+      assign simt_status_if.status[i].valid            = stack_top_valid[i];
+      assign simt_status_if.status[i].next_pc          = stack_top_next_pc[i];
+      assign simt_status_if.status[i].reconvergence_pc = stack_top_reconvergence_pc[i];
+      assign simt_status_if.status[i].active_mask      = stack_top_active_mask[i];
+      assign simt_status_if.status[i].empty            = stack_empty[i];
+      assign simt_status_if.status[i].full             = stack_full[i];
+    end
+  endgenerate
+
   // Local wires
-  // -------------------------------------------------------------------------
   logic active_table_add_ready;
   logic active_table_add_valid;
   dice_cta_desc_t active_table_cta_desc;
@@ -91,17 +96,17 @@ module cta_schedule_stage
     end
   end
 
-  // SIMT stack update wiring
+  // SIMT stack update wiring - now uses interface signals directly
   logic simt_stack_update_ready;
   assign simt_stack_update.update_ready = simt_stack_update_ready;
 
   // SIMT stack initialization wiring (cta_controller → simt_stack_controller)
-  logic                                           simt_init_valid;
-  logic [                $clog2(MAX_NUM_CTA)-1:0] simt_init_hw_cta_id;
-  logic [                                    1:0] simt_init_hw_cta_size;
-  logic [                           PC_WIDTH-1:0] simt_init_pc;
-  logic [                           PC_WIDTH-1:0] simt_init_reconvergence_pc;
-  logic                                           simt_init_ready;
+  logic                                                     simt_init_valid;
+  logic [$clog2(DICE_NUM_MAX_CTA_PER_CORE)-1:0]             simt_init_hw_cta_id;
+  logic [                                  1:0]             simt_init_hw_cta_size;
+  logic [                   DICE_ADDR_WIDTH-1:0]            simt_init_pc;
+  logic [                   DICE_ADDR_WIDTH-1:0]            simt_init_reconvergence_pc;
+  logic                                                     simt_init_ready;
 
 
   // Create validity bitmap from active_cta_entries
@@ -115,9 +120,7 @@ module cta_schedule_stage
   logic clear_entry_valid;
   logic [DICE_HW_CTA_ID_WIDTH-1:0] clear_entry_hw_id;
 
-  // -------------------------------------------------------------------------
   // CTA Controller
-  // -------------------------------------------------------------------------
   cta_controller cta_controller_inst (
       .clk_i                  (clk_i),
       .rst_i                  (rst_i),
@@ -149,12 +152,8 @@ module cta_schedule_stage
       .clear_entry_hw_id_o    (clear_entry_hw_id)
   );
 
-  // -------------------------------------------------------------------------
   // Active CTA Table
-  // -------------------------------------------------------------------------
-  active_cta_table #(
-      .THREAD_WIDTH(ThreadWidth)
-  ) active_cta_table_inst (
+  active_cta_table active_cta_table_inst (
       .clk_i                 (clk_i),
       .rst_i                 (rst_i),
       .add_ready_o           (active_table_add_ready),
@@ -175,20 +174,15 @@ module cta_schedule_stage
   );
 
 
-  // -------------------------------------------------------------------------
   // CTA Scheduler
-  // -------------------------------------------------------------------------
-  cta_scheduler #(
-      .MAX_EBLOCK  (DICE_NUM_MAX_CTA_PER_CORE + 4),
-      .THREAD_WIDTH(ThreadWidth)
-  ) cta_scheduler_inst (
+  cta_scheduler cta_scheduler_inst (
       .clk_i                  (clk_i),
       .rst_i                  (rst_i),
       .enable_i               (1'b1),
       .active_cta_entries_i   (active_cta_entries),
       .cta_status_entries_i   (scheduler_status_adapter),
-      .cta_next_pc_i          (stack_top_next_pc_o),
-      .stack_top_active_mask_i(stack_top_active_mask_o),
+      .cta_next_pc_i          (stack_top_next_pc),
+      .stack_top_active_mask_i(stack_top_active_mask),
       .eblock_commit_valid_i  (eblock_commit_valid_i),
       .eblock_commit_id_i     ((DICE_EBLOCK_ID_WIDTH)'(eblock_commit_id_i)),
       .scheduled_eblock       (schedule_if)
@@ -196,9 +190,7 @@ module cta_schedule_stage
 
 
 
-  // -------------------------------------------------------------------------
   // CTA Status Table
-  // -------------------------------------------------------------------------
   cta_status_table cta_status_table_inst (
       .clk_i                   (clk_i),
       .rst_i                   (rst_i),
@@ -212,17 +204,13 @@ module cta_schedule_stage
   );
 
 
-  // -------------------------------------------------------------------------
   // SIMT Stack Controller
-  // -------------------------------------------------------------------------
-  simt_stack_controller #(
-      .STACK_DEPTH (STACK_DEPTH),
-      .THREAD_WIDTH(ThreadWidth)
-  ) simt_stack_controller_inst (
+  simt_stack_controller simt_stack_controller_inst (
       .clk_i(clk_i),
       .rst_i(rst_i),
-      .hw_cta_id_i(simt_update_hw_cta_id_i),
-      .hw_cta_size_i(simt_update_hw_cta_size_i),
+      // Now using interface signals for hw_cta_id/size
+      .hw_cta_id_i(simt_stack_update.hw_cta_id),
+      .hw_cta_size_i(simt_stack_update.hw_cta_size),
       .update_valid_i(simt_stack_update.update_valid),
       .update_with_divergence_i(simt_stack_update.update_stack_data.update_with_divergence),
       .update_next_pc_i(simt_stack_update.update_stack_data.update_next_pc),
@@ -237,12 +225,12 @@ module cta_schedule_stage
       .init_pc_i(simt_init_pc),
       .init_reconvergence_pc_i(simt_init_reconvergence_pc),
       .init_ready_o(simt_init_ready),
-      .stack_top_valid_o(stack_top_valid_o),
-      .stack_top_next_pc_o(stack_top_next_pc_o),
-      .stack_top_reconvergence_pc_o(stack_top_reconvergence_pc_o),
-      .stack_top_active_mask_o(stack_top_active_mask_o),
-      .stack_empty_o(stack_empty_o),
-      .stack_full_o(stack_full_o)
+      .stack_top_valid_o(stack_top_valid),
+      .stack_top_next_pc_o(stack_top_next_pc),
+      .stack_top_reconvergence_pc_o(stack_top_reconvergence_pc),
+      .stack_top_active_mask_o(stack_top_active_mask),
+      .stack_empty_o(stack_empty),
+      .stack_full_o(stack_full)
   );
 
 
