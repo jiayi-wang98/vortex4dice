@@ -9,20 +9,16 @@ module cta_schedule_stage
     input logic rst_i,
 
     // Host/Dispatcher interface for new CTA allocation
-    input  logic                     cta_add_valid_i,
-    output logic                     cta_add_ready_o,
-    input  dice_cta_desc_t new_cta_all_desc_i,
+    cta_dispatch_if.slave cta_dispatch_if,
 
     // CTA completion output (to dispatcher)
-    output logic                   cta_complete_valid_o,
-    input  logic                   cta_complete_ready_i,
-    output dice_cta_id_t cta_done_id_o,
+    cta_complete_if.master cta_complete_if,
 
     // Scheduler output interface (to FDR stage)
     cta_sched_if.master schedule_if,
 
     // E-block commit interface (from execution/retire)
-    input logic                     eblock_commit_valid_i,
+    input logic                       eblock_commit_valid_i,
     input logic [EBLOCK_ID_WIDTH-1:0] eblock_commit_id_i,
 
     // Branch handler / predictor interface (from FDR/execution)
@@ -30,7 +26,7 @@ module cta_schedule_stage
 
     // Block Retire Table interface
     input block_retire_status_t brt_info_i,
-    input logic                           brt_info_write_enable_i,
+    input logic                 brt_info_write_enable_i,
 
     // SIMT Stack Update Interface (now includes hw_cta_id/size)
     dice_bh_simt_if.slave simt_stack_update,
@@ -47,12 +43,12 @@ module cta_schedule_stage
   localparam int ThreadWidth = DICE_NUM_MAX_THREADS_PER_CORE / DICE_NUM_MAX_CTA_PER_CORE;
 
   // Local wires - SIMT Stack outputs (internal, then assigned to interface)
-  logic [DICE_NUM_MAX_CTA_PER_CORE-1:0]                        stack_top_valid;
-  logic [DICE_NUM_MAX_CTA_PER_CORE-1:0][DICE_ADDR_WIDTH-1:0]   stack_top_next_pc;
-  logic [DICE_NUM_MAX_CTA_PER_CORE-1:0][DICE_ADDR_WIDTH-1:0]   stack_top_reconvergence_pc;
-  logic [DICE_NUM_MAX_CTA_PER_CORE-1:0][ThreadWidth-1:0]       stack_top_active_mask;
-  logic [DICE_NUM_MAX_CTA_PER_CORE-1:0]                        stack_empty;
-  logic [DICE_NUM_MAX_CTA_PER_CORE-1:0]                        stack_full;
+  logic [DICE_NUM_MAX_CTA_PER_CORE-1:0]                      stack_top_valid;
+  logic [DICE_NUM_MAX_CTA_PER_CORE-1:0][DICE_ADDR_WIDTH-1:0] stack_top_next_pc;
+  logic [DICE_NUM_MAX_CTA_PER_CORE-1:0][DICE_ADDR_WIDTH-1:0] stack_top_reconvergence_pc;
+  logic [DICE_NUM_MAX_CTA_PER_CORE-1:0][    ThreadWidth-1:0] stack_top_active_mask;
+  logic [DICE_NUM_MAX_CTA_PER_CORE-1:0]                      stack_empty;
+  logic [DICE_NUM_MAX_CTA_PER_CORE-1:0]                      stack_full;
 
   // SIMT Status Interface Assignment
   generate
@@ -85,8 +81,7 @@ module cta_schedule_stage
   assign status_table_bh_if.cta_status_data = cta_status_real;
 
   // Adapter for cta_scheduler which uses cta_status_t
-  cta_status_t [DICE_NUM_MAX_CTA_PER_CORE-1:0]
-      scheduler_status_adapter;
+  cta_status_t [DICE_NUM_MAX_CTA_PER_CORE-1:0] scheduler_status_adapter;
 
   always_comb begin
     for (int i = 0; i < DICE_NUM_MAX_CTA_PER_CORE; i++) begin
@@ -101,16 +96,16 @@ module cta_schedule_stage
   assign simt_stack_update.update_ready = simt_stack_update_ready;
 
   // SIMT stack initialization wiring (cta_controller → simt_stack_controller)
-  logic                                                     simt_init_valid;
-  logic [$clog2(DICE_NUM_MAX_CTA_PER_CORE)-1:0]             simt_init_hw_cta_id;
-  logic [                                  1:0]             simt_init_hw_cta_size;
-  logic [                   DICE_ADDR_WIDTH-1:0]            simt_init_pc;
-  logic [                   DICE_ADDR_WIDTH-1:0]            simt_init_reconvergence_pc;
-  logic                                                     simt_init_ready;
+  logic                                         simt_init_valid;
+  logic [$clog2(DICE_NUM_MAX_CTA_PER_CORE)-1:0] simt_init_hw_cta_id;
+  logic [                                  1:0] simt_init_hw_cta_size;
+  logic [                  DICE_ADDR_WIDTH-1:0] simt_init_pc;
+  logic [                  DICE_ADDR_WIDTH-1:0] simt_init_reconvergence_pc;
+  logic                                         simt_init_ready;
 
 
   // Create validity bitmap from active_cta_entries
-  logic [DICE_NUM_MAX_CTA_PER_CORE-1:0] active_cta_validty_bitmap;
+  logic [        DICE_NUM_MAX_CTA_PER_CORE-1:0] active_cta_validty_bitmap;
   always_comb begin
     for (int i = 0; i < DICE_NUM_MAX_CTA_PER_CORE; i++) begin
       active_cta_validty_bitmap[i] = active_cta_entries[i].cta_valid;
@@ -124,12 +119,8 @@ module cta_schedule_stage
   cta_controller cta_controller_inst (
       .clk_i                  (clk_i),
       .rst_i                  (rst_i),
-      .in_cta_valid_i         (cta_add_valid_i),
-      .in_cta_ready_o         (cta_add_ready_o),
-      .in_cta_desc_i          (new_cta_all_desc_i),
-      .comp_cta_valid_o       (cta_complete_valid_o),
-      .comp_cta_ready_i       (cta_complete_ready_i),
-      .comp_cta_id_o          (cta_done_id_o),
+      .dispatch_if            (cta_dispatch_if),
+      .complete_if            (cta_complete_if),
       .add_valid_o            (active_table_add_valid),
       .add_ready_i            (active_table_add_ready),
       .add_cta_info_o         (active_table_cta_desc),
