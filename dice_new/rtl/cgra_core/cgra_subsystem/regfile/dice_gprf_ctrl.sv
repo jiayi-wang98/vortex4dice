@@ -2,13 +2,17 @@
 `include "dice_pkg.sv"
 
 
+
+module dice_gprf_ctrl
+
 import DE_pkg::*;
 import dice_pkg::*;
 
-module dice_gprf_ctrl #(
+#(
     parameter int NUM_PORTS = DICE_NUM_BANKS,
     parameter int DATA_WIDTH = DICE_REG_DATA_WIDTH,
     parameter int NUM_TID = 512,
+    parameter int TID_WIDTH = $clog2(NUM_TID),
     parameter int DEPTH = NUM_TID,
     parameter int ADDR_WIDTH = $clog2(DEPTH)
 )
@@ -17,11 +21,30 @@ module dice_gprf_ctrl #(
     , input  logic              reset_i
 
     // Read Input
-    , input reg_rd_cmd [NUM_PORTS-1:0]        rd_i
+    // take anywhere from 1 to 4 tids
+    // take one bitmap
+    // send to a new module called called read_org
+
+    // valid ready for tid and bitmap
+    , input logic                             rd_tid_valid_i
+    , output logic                            rd_tid_ready_i
+
+
+    , input logic [NUM_PORTS-1:0]        rd_en_i
+    , input logic [(4*RF_ADDR_WIDTH)-1:0]     rd_tid_i
+    , input logic [NUM_PORTS-1:0]             rd_bitmap_i
     , output logic [NUM_PORTS*DATA_WIDTH-1:0] rd_data_o
+
+
     // Write Input
-    , input   reg_wr_cmd [NUM_PORTS-1:0]      wr_i
-    , input  logic [NUM_PORTS*DATA_WIDTH-1:0] wr_data
+    // ldst unit will give me write packets packaged by bank!
+    , input reg_wr_cmd [NUM_PORTS-1:0]      cgra_wr_i
+    , input logic                           cgra_valid_i
+    , output logic                          cgra_ready_o
+    
+    , input reg_wr_cmd [NUM_PORTS-1:0]      ldst_wr_i
+    , input logic                           ldst_valid_i
+    , output logic                          ldst_ready_o
 );
 
     logic [NUM_PORTS-1] rd_en;
@@ -59,6 +82,8 @@ module dice_gprf_ctrl #(
         for (i = 0;  i < NUM_PORTS; i++) begin
             dice_wr_ctrl_bank#
             (
+                  .WIDTH(DATA_WIDTH)
+                , .
             ) u_wr_ctrl (
             );
 
