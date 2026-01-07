@@ -36,9 +36,7 @@ module cta_scheduler
     cta_sched_if.master scheduled_eblock
 );
 
-  // -------------------------------------------------------------------------
   // Local Parameters (derived from packages)
-  // -------------------------------------------------------------------------
   localparam int MaxEblock = MAX_EBLOCK;  // From dice_frontend_pkg
   localparam int ThreadWidth = DICE_NUM_MAX_THREADS_PER_CORE / DICE_NUM_MAX_CTA_PER_CORE;
 

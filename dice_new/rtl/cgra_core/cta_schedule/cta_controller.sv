@@ -56,14 +56,12 @@ module cta_controller
 );
 
 
-  // ------------------------------------------------------------
   // Handshake: accept CTA only when *both*:
   //  - active_cta_table can allocate it (add_ready_i)
   //  - SIMT stack controller can initialize (init_ready_i)
   //
   // This guarantees we use the same hw_cta_id (next_empty_cta_index_i)
   // for both the active table and the SIMT stack(s) in the same cycle.
-  // ------------------------------------------------------------
   assign in_cta_ready_o = add_ready_i && init_ready_i;  //can accept from dispatcher
 
 
@@ -75,13 +73,11 @@ module cta_controller
 
 
 
-  // ------------------------------------------------------------
   // Encode hw_cta_size (number of stacks) from CTA thread count
   //   hw_cta_size encodings (per simt_stack_controller docs):
   //     2'b00 -> 1 stack (256 threads)
   //     2'b01 -> 2 stacks (512 threads)
   //     2'b11 -> 4 stacks (1024 threads)
-  // ------------------------------------------------------------
   function automatic logic [1:0] encode_hw_cta_size(
       input logic [DICE_TID_WIDTH:0] cta_size);
     // Thresholds sized to match cta_size exactly
@@ -110,9 +106,7 @@ module cta_controller
 
 
 
-  // ------------------------------------------------------------
   // Completion Logic
-  // ------------------------------------------------------------
 
   // Round-robin pointer for fairness
   logic [DICE_HW_CTA_ID_WIDTH-1:0] completion_ptr_q;

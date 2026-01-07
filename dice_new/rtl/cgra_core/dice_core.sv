@@ -49,7 +49,7 @@ module dice_core
       .brt_info_write_enable_i (),
       .simt_stack_update       (simt_stack_update_if),
       .simt_status_if          (simt_status_if),
-      .branch_ctrl_if          (branch_ctrl_if)
+      .branch_ctrl_if          (branch_ctrl_if) //branch handler and status table -> may be redundant and internal cta schedule logic could be changed
   );
 
   fdr_top u_fdr_top (
@@ -63,7 +63,7 @@ module dice_core
       .simt_stack_update_if     (simt_stack_update_if),
       .prf_if                   (prf_if),
       .bh_if                    (bh_if),
-      .branch_ctrl_if           (branch_ctrl_if),
+      .branch_ctrl_if           (branch_ctrl_if), //branch handler and status table -> may be redundant and internal cta schedule logic could be changed
       .cm0_if                   (cm0_if),
       .cm1_if                   (cm1_if)
   );

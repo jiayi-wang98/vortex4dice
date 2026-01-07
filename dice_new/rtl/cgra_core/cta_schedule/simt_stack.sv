@@ -29,9 +29,7 @@ module simt_stack
     output logic stack_full_o
 );
 
-    // -------------------------------------------------------------------------
     // Local Parameters (derived from packages)
-    // -------------------------------------------------------------------------
     localparam int ThreadWidth = DICE_NUM_MAX_THREADS_PER_CORE / DICE_NUM_MAX_CTA_PER_CORE;
     localparam int StackIndexWidth = $clog2(SIMT_STACK_DEPTH);
 

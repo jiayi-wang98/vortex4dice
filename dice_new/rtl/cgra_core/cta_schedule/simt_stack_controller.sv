@@ -40,9 +40,7 @@ module simt_stack_controller
     output logic [DICE_NUM_MAX_CTA_PER_CORE-1:0] stack_full_o
 );
 
-  // -------------------------------------------------------------------------
   // Local Parameters (derived from packages)
-  // -------------------------------------------------------------------------
   localparam int ThreadWidth = DICE_NUM_MAX_THREADS_PER_CORE / DICE_NUM_MAX_CTA_PER_CORE;
   localparam int MetadataLengthWidth = BITSTREAM_LENGTH_WIDTH;  // From dice_frontend_pkg
 

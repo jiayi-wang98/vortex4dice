@@ -1,6 +1,4 @@
-// =============================================================================
 // Module: divergence_monitor.sv
-// =============================================================================
 // Background branch resolution path. Continuously scans CTA status table for
 // CTAs that have:
 //   - unresolved_control_divergence = 1
@@ -8,7 +6,6 @@
 //
 // When both conditions are met, reads the pending branch table and predicate
 // register file to resolve the deferred branch via SIMT stack controller.
-// =============================================================================
 
 `include "dice_define.vh"
 
@@ -24,26 +21,18 @@ module divergence_monitor
     input logic clk_i,
     input logic rst_i,
 
-    // =========================================================================
     // CTA Status (read all CTAs)
-    // =========================================================================
     input dice_cta_status_t [NumCta-1:0] cta_status_i,
 
-    // =========================================================================
     // Pending Branch Table (from branch_resolver)
-    // =========================================================================
     input pending_branch_info_t [NumCta-1:0] pending_branch_table_i,
 
-    // =========================================================================
     // Predicate RF Interface
-    // =========================================================================
     output logic                                          prf_req_o,
     output logic [$clog2(NumCta)+$clog2(NumPredRegs)-1:0] prf_raddr_o,
     input  logic [                       ThreadWidth-1:0] prf_rdata_i,
 
-    // =========================================================================
     // SIMT Stack Controller Interface
-    // =========================================================================
     output logic                      update_valid_o,
     output logic                      update_with_divergence_o,
     output logic [       PcWidth-1:0] update_next_pc_o,
@@ -53,21 +42,15 @@ module divergence_monitor
     output logic [$clog2(NumCta)-1:0] update_hw_cta_id_o,
     input  logic                      update_ready_i,
 
-    // =========================================================================
     // Grant Signal (from arbiter - active when foreground is not using stack)
-    // =========================================================================
     input logic grant_i,
 
-    // =========================================================================
     // To CTA Status Table (clear divergence)
-    // =========================================================================
     output logic [$clog2(NumCta)-1:0] clear_cta_id_o,
     output logic                      clear_divergence_valid_o
 );
 
-  // ===========================================================================
   // FSM States
-  // ===========================================================================
   typedef enum logic [2:0] {
     StateScan,
     StateReadPrf,
@@ -77,9 +60,7 @@ module divergence_monitor
 
   state_e current_state_q, next_state;
 
-  // ===========================================================================
   // Internal Signals
-  // ===========================================================================
   // Round-robin scanner pointer
   logic                 [$clog2(NumCta)-1:0] monitor_ptr_q;
 
@@ -91,9 +72,7 @@ module divergence_monitor
   logic                 [$clog2(NumCta)-1:0] target_cta_id_q;
   pending_branch_info_t                      target_branch_info_q;
 
-  // ===========================================================================
   // Work Detection (combinational scan)
-  // ===========================================================================
   always_comb begin
     found_work  = 1'b0;
     work_cta_id = monitor_ptr_q;
@@ -106,9 +85,7 @@ module divergence_monitor
     end
   end
 
-  // ===========================================================================
   // FSM Next State Logic
-  // ===========================================================================
   always_comb begin
     next_state = current_state_q;
 
@@ -142,9 +119,7 @@ module divergence_monitor
     endcase
   end
 
-  // ===========================================================================
   // FSM Sequential Logic
-  // ===========================================================================
   always_ff @(posedge clk_i) begin
     if (rst_i) begin
       current_state_q      <= StateScan;
@@ -172,9 +147,7 @@ module divergence_monitor
     end
   end
 
-  // ===========================================================================
   // Predicate RF Interface
-  // ===========================================================================
   always_comb begin
     prf_req_o   = 1'b0;
     prf_raddr_o = '0;
@@ -185,9 +158,7 @@ module divergence_monitor
     end
   end
 
-  // ===========================================================================
   // SIMT Stack Controller Interface
-  // ===========================================================================
   always_comb begin
     update_valid_o            = 1'b0;
     update_with_divergence_o  = 1'b0;
@@ -210,9 +181,7 @@ module divergence_monitor
     end
   end
 
-  // ===========================================================================
   // Clear Divergence Flag
-  // ===========================================================================
   always_comb begin
     clear_cta_id_o           = '0;
     clear_divergence_valid_o = 1'b0;

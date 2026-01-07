@@ -32,9 +32,7 @@ module active_cta_table
     output logic [DICE_HW_CTA_ID_WIDTH-1:0]        next_empty_cta_index_o
 );
 
-  // -------------------------------------------------------------------------
   // Local Parameters (derived from packages)
-  // -------------------------------------------------------------------------
   localparam int ThreadWidth = DICE_NUM_MAX_THREADS_PER_CORE / DICE_NUM_MAX_CTA_PER_CORE;
 
   // Calculate number of entries needed for a CTA

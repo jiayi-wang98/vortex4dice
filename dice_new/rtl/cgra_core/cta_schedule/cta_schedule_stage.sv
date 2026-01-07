@@ -43,14 +43,10 @@ module cta_schedule_stage
 
 );
 
-  // -------------------------------------------------------------------------
   // Local Parameters (derived from packages)
-  // -------------------------------------------------------------------------
   localparam int ThreadWidth = DICE_NUM_MAX_THREADS_PER_CORE / DICE_NUM_MAX_CTA_PER_CORE;
 
-  // -------------------------------------------------------------------------
   // Local wires - SIMT Stack outputs (internal, then assigned to interface)
-  // -------------------------------------------------------------------------
   logic [DICE_NUM_MAX_CTA_PER_CORE-1:0]                        stack_top_valid;
   logic [DICE_NUM_MAX_CTA_PER_CORE-1:0][DICE_ADDR_WIDTH-1:0]   stack_top_next_pc;
   logic [DICE_NUM_MAX_CTA_PER_CORE-1:0][DICE_ADDR_WIDTH-1:0]   stack_top_reconvergence_pc;
@@ -58,9 +54,7 @@ module cta_schedule_stage
   logic [DICE_NUM_MAX_CTA_PER_CORE-1:0]                        stack_empty;
   logic [DICE_NUM_MAX_CTA_PER_CORE-1:0]                        stack_full;
 
-  // -------------------------------------------------------------------------
   // SIMT Status Interface Assignment
-  // -------------------------------------------------------------------------
   generate
     for (genvar i = 0; i < DICE_NUM_MAX_CTA_PER_CORE; i++) begin : gen_simt_status
       assign simt_status_if.status[i].valid            = stack_top_valid[i];
@@ -72,9 +66,7 @@ module cta_schedule_stage
     end
   endgenerate
 
-  // -------------------------------------------------------------------------
   // Local wires
-  // -------------------------------------------------------------------------
   logic active_table_add_ready;
   logic active_table_add_valid;
   dice_cta_desc_t active_table_cta_desc;
@@ -128,9 +120,7 @@ module cta_schedule_stage
   logic clear_entry_valid;
   logic [DICE_HW_CTA_ID_WIDTH-1:0] clear_entry_hw_id;
 
-  // -------------------------------------------------------------------------
   // CTA Controller
-  // -------------------------------------------------------------------------
   cta_controller cta_controller_inst (
       .clk_i                  (clk_i),
       .rst_i                  (rst_i),
@@ -162,9 +152,7 @@ module cta_schedule_stage
       .clear_entry_hw_id_o    (clear_entry_hw_id)
   );
 
-  // -------------------------------------------------------------------------
   // Active CTA Table
-  // -------------------------------------------------------------------------
   active_cta_table active_cta_table_inst (
       .clk_i                 (clk_i),
       .rst_i                 (rst_i),
@@ -186,9 +174,7 @@ module cta_schedule_stage
   );
 
 
-  // -------------------------------------------------------------------------
   // CTA Scheduler
-  // -------------------------------------------------------------------------
   cta_scheduler cta_scheduler_inst (
       .clk_i                  (clk_i),
       .rst_i                  (rst_i),
@@ -204,9 +190,7 @@ module cta_schedule_stage
 
 
 
-  // -------------------------------------------------------------------------
   // CTA Status Table
-  // -------------------------------------------------------------------------
   cta_status_table cta_status_table_inst (
       .clk_i                   (clk_i),
       .rst_i                   (rst_i),
@@ -220,9 +204,7 @@ module cta_schedule_stage
   );
 
 
-  // -------------------------------------------------------------------------
   // SIMT Stack Controller
-  // -------------------------------------------------------------------------
   simt_stack_controller simt_stack_controller_inst (
       .clk_i(clk_i),
       .rst_i(rst_i),

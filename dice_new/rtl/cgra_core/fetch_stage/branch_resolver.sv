@@ -1,13 +1,10 @@
-// =============================================================================
 // Module: branch_resolver.sv
-// =============================================================================
 // Foreground branch resolution path. Handles immediate branch resolution for:
 // - Uniform branches (all threads same direction)
 // - Conditional branches with resolved dependencies (no pending eblocks)
 //
 // When dependencies are unresolved, stores branch info in pending_branch_table
 // and signals the CTA status table for later resolution by divergence_monitor.
-// =============================================================================
 
 `include "dice_define.vh"
 
@@ -23,35 +20,25 @@ module branch_resolver
     input logic clk_i,
     input logic rst_i,
 
-    // =========================================================================
     // From Decoder
-    // =========================================================================
     input branch_meta_t               branch_metadata_i,
     input logic                       branch_req_valid_i,
     input logic         [PcWidth-1:0] current_pc_i,
     input logic                       ret_i,
 
-    // =========================================================================
     // From CS Stage
-    // =========================================================================
     input logic         [$clog2(NumCta)-1:0] hw_cta_id_i,
     input thread_mask_t                      init_thread_mask_i,
 
-    // =========================================================================
     // CTA Status (read-only for current CTA)
-    // =========================================================================
     input dice_cta_status_t cta_status_i,
 
-    // =========================================================================
     // Predicate RF Interface
-    // =========================================================================
     output logic                                          prf_req_o,
     output logic [$clog2(NumCta)+$clog2(NumPredRegs)-1:0] prf_raddr_o,
     input  logic [                       ThreadWidth-1:0] prf_rdata_i,
 
-    // =========================================================================
     // SIMT Stack Controller Interface
-    // =========================================================================
     output logic                      update_valid_o,
     output logic                      update_with_divergence_o,
     output logic [       PcWidth-1:0] update_next_pc_o,
@@ -61,32 +48,22 @@ module branch_resolver
     output logic [$clog2(NumCta)-1:0] update_hw_cta_id_o,
     input  logic                      update_ready_i,
 
-    // =========================================================================
     // To Decoder (mask output)
-    // =========================================================================
     output thread_mask_t real_active_thread_mask_o,
     output logic         mask_valid_o,
 
-    // =========================================================================
     // To CTA Status Table (branch prediction)
-    // =========================================================================
     output branch_predict_interface_t predict_interface_o,
     output logic                      predict_we_o,
 
-    // =========================================================================
     // Pending Branch Table (exposed for divergence_monitor read)
-    // =========================================================================
     output pending_branch_info_t [NumCta-1:0] pending_branch_table_o
 );
 
-  // ===========================================================================
   // Local Parameters
-  // ===========================================================================
   localparam int PcInc = 4;  // PC increment per instruction - SHOULD BE THE LENGTH OF THE METADATA
 
-  // ===========================================================================
   // FSM States
-  // ===========================================================================
   typedef enum logic [2:0] {
     StateIdle,
     StateCheckDeps,
@@ -96,9 +73,7 @@ module branch_resolver
 
   state_e current_state_q, next_state;
 
-  // ===========================================================================
   // Internal Signals
-  // ===========================================================================
   logic                                      is_branch_op;
   logic                                      is_uniform;
   logic                                      is_conditional;
@@ -125,9 +100,7 @@ module branch_resolver
   // Pending branch table storage
   pending_branch_info_t                      pending_branch_table_q[NumCta];
 
-  // ===========================================================================
   // Branch Type Detection
-  // ===========================================================================
   assign is_branch_op = branch_req_valid_i && branch_metadata_i.branch_ena;
   assign is_uniform = is_branch_op && branch_metadata_i.branch_uni;
   assign is_conditional = is_branch_op && !branch_metadata_i.branch_uni;
@@ -135,16 +108,12 @@ module branch_resolver
   // Dependency check - can resolve if no pending eblocks for this CTA
   assign dependency_resolved = !cta_status_i.has_pending_eblock;
 
-  // ===========================================================================
   // PC Calculations
-  // ===========================================================================
   assign fallthrough_pc = current_pc_i + PcInc;
   assign jump_target_pc  = current_pc_i + (PcWidth'(branch_metadata_i.branch_jump_target_offset) * PcInc);
   assign reconv_target_pc = current_pc_i + (PcWidth'(branch_metadata_i.branch_reconv_offset) * PcInc);
 
-  // ===========================================================================
   // FSM Next State Logic
-  // ===========================================================================
   always_comb begin
     next_state = current_state_q;
 
@@ -187,9 +156,7 @@ module branch_resolver
     endcase
   end
 
-  // ===========================================================================
   // FSM Sequential Logic
-  // ===========================================================================
   always_ff @(posedge clk_i) begin
     if (rst_i) begin
       current_state_q       <= StateIdle;
@@ -237,9 +204,7 @@ module branch_resolver
     end
   end
 
-  // ===========================================================================
   // Predicate RF Interface
-  // ===========================================================================
   always_comb begin
     prf_req_o   = 1'b0;
     prf_raddr_o = '0;
@@ -252,9 +217,7 @@ module branch_resolver
     end
   end
 
-  // ===========================================================================
   // SIMT Stack Controller Interface
-  // ===========================================================================
   always_comb begin
     update_valid_o            = 1'b0;
     update_with_divergence_o  = 1'b0;
@@ -284,9 +247,7 @@ module branch_resolver
     end
   end
 
-  // ===========================================================================
   // Output to Decoder (active thread mask)
-  // ===========================================================================
   always_comb begin
     real_active_thread_mask_o = init_thread_mask_q;
     mask_valid_o              = 1'b0;
@@ -299,9 +260,7 @@ module branch_resolver
     end
   end
 
-  // ===========================================================================
   // CTA Status Table Interface (branch prediction)
-  // ===========================================================================
   always_comb begin
     predict_interface_o = '0;
     predict_we_o        = 1'b0;
@@ -323,9 +282,7 @@ module branch_resolver
     end
   end
 
-  // ===========================================================================
   // Pending Branch Table Output
-  // ===========================================================================
   always_comb begin
     for (int i = 0; i < NumCta; i++) begin
       pending_branch_table_o[i] = pending_branch_table_q[i];

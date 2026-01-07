@@ -10,75 +10,55 @@ module fdr_top
     input logic clk_i,
     input logic rst_i,
 
-    // =========================================================================
+
     // Memory Bus Interfaces
-    // =========================================================================
+
     VX_mem_bus_if.master metacache_mem_if,
     VX_mem_bus_if.master bitstream_cache_mem_if,
 
-    // =========================================================================
     // Scheduler / FDR Interfaces
-    // =========================================================================
     cta_sched_if.slave schedule_if,
     fdr_if.master      fdr_if,
 
-    // =========================================================================
     // SIMT Stack Status Interface (NEW - from CTA Schedule Stage)
-    // =========================================================================
     simt_stack_status_if.slave simt_status_if,
 
-    // =========================================================================
     // SIMT Stack Update Interface (to CTA Schedule Stage)
-    // =========================================================================
     dice_bh_simt_if.master simt_stack_update_if,
 
-    // =========================================================================
     // Predicate Register File Interface (NEW)
-    // =========================================================================
     prf_if.requester prf_if,
 
-    // =========================================================================
     // Branch Handler Interface (prediction to CTA Status Table)
-    // =========================================================================
     branch_handler_if.master bh_if,
 
-    // =========================================================================
     // Branch Control Interface (NEW - divergence/prefetch clearing)
-    // =========================================================================
     branch_control_if.master branch_ctrl_if,
 
-    // =========================================================================
     // CGRA Configuration Memory Interfaces (NEW)
-    // =========================================================================
     cgra_cm_if.master cm0_if,
     cgra_cm_if.master cm1_if
 );
 
-  // ===========================================================================
+
   // Local Parameters
-  // ===========================================================================
+
   localparam int PrfAddrWidth = $clog2(DICE_NUM_MAX_CTA_PER_CORE) + $clog2(DICE_PR_NUM);
   localparam int CtaIdWidth = $clog2(DICE_NUM_MAX_CTA_PER_CORE);
 
-  // ===========================================================================
   // Internal Signals - Meta Fetch / Decoder
-  // ===========================================================================
   pgraph_meta_t                                             meta_internal;
   logic                                                     meta_valid_internal;
   logic                                                     fire_eblock_internal;
   logic                                                     schedule_ready_internal;
 
-  // ===========================================================================
   // Internal Signals - Bitstream
-  // ===========================================================================
   logic                 [              DICE_ADDR_WIDTH-1:0] bitstream_addr;
   logic                 [       BITSTREAM_LENGTH_WIDTH-1:0] bitstream_length;
   logic                                                     bitstream_addr_valid_internal;
   logic                                                     done_streaming_internal;
 
-  // ===========================================================================
   // Internal Signals - Branch Handler
-  // ===========================================================================
   thread_mask_t                                             branch_mask_internal;
   branch_meta_t                                             branch_meta_internal;
   logic                                                     branch_mask_valid;
@@ -113,9 +93,7 @@ module fdr_top
   logic                                                     bg_update_ready;
   logic                                                     bg_grant;
 
-  // ===========================================================================
   // Internal Signals - Valid Checker
-  // ===========================================================================
   logic                                                     clear_prefetch_internal;
   logic                                                     predict_miss_internal;
 
@@ -127,14 +105,10 @@ module fdr_top
   logic                 [              DICE_ADDR_WIDTH-1:0] simt_stack_pc;
   assign simt_stack_pc = simt_status_if.status[current_hw_cta_id].next_pc;
 
-  // ===========================================================================
   // Scheduler Ready Handshake
-  // ===========================================================================
   assign schedule_if.ready = schedule_ready_internal;
 
-  // ===========================================================================
   // Pass-through Assignments (schedule_if → fdr_if)
-  // ===========================================================================
   assign fdr_if.data.schedule_hw_cta_id    = schedule_if.data.schedule_hw_cta_id;
   assign fdr_if.data.schedule_eblock_id    = schedule_if.data.schedule_eblock_id;
   assign fdr_if.data.schedule_cta_id       = schedule_if.data.schedule_cta_id;
@@ -145,16 +119,12 @@ module fdr_top
   assign fdr_if.data.schedule_smem_per_cta = schedule_if.data.schedule_smem_per_cta;
   assign fdr_if.data.real_active_mask      = branch_mask_internal;
 
-  // ===========================================================================
   // Branch Control Interface Assignments
-  // ===========================================================================
   assign branch_ctrl_if.ctrl.clear_prefetch_valid     = clear_prefetch_internal;
   assign branch_ctrl_if.ctrl.clear_prefetch_hw_cta_id = current_hw_cta_id;
   assign branch_ctrl_if.ctrl.predict_miss_flush       = predict_miss_internal;
 
-  // ===========================================================================
   // PRF Interface Wiring
-  // ===========================================================================
   logic prf_req_internal;
   logic [PrfAddrWidth-1:0] prf_raddr_internal;
   logic [DICE_NUM_MAX_THREADS_PER_CORE-1:0] prf_rdata_internal;
@@ -169,9 +139,7 @@ module fdr_top
   assign prf_raddr_internal = fg_prf_req ? fg_prf_raddr : bg_prf_raddr;
   assign bg_grant           = !fg_update_valid;
 
-  // ===========================================================================
   // SIMT Stack Update Interface Wiring
-  // ===========================================================================
   logic simt_update_valid_internal;
   logic simt_update_with_divergence_internal;
   logic [DICE_ADDR_WIDTH-1:0] simt_update_next_pc_internal;
@@ -222,9 +190,7 @@ module fdr_top
   assign fg_update_ready = simt_stack_update_if.update_ready;
   assign bg_update_ready = simt_stack_update_if.update_ready && !fg_update_valid;
 
-  // ===========================================================================
   // Branch Handler Interface Assignments
-  // ===========================================================================
   branch_predict_interface_t predict_interface_internal;
   logic predict_we_internal;
 
@@ -237,9 +203,7 @@ module fdr_top
   assign branch_ctrl_if.ctrl.clear_divergence_cta_id = clear_divergence_cta_id_internal;
   assign branch_ctrl_if.ctrl.clear_divergence_valid  = clear_divergence_valid_internal;
 
-  // ===========================================================================
   // Meta Fetch
-  // ===========================================================================
   meta_fetch #(
       .TAG_WIDTH(TAG_WIDTH)
   ) u_meta_fetch (
@@ -255,9 +219,7 @@ module fdr_top
       .fire_eblock_i       (fire_eblock_internal)
   );
 
-  // ===========================================================================
   // Decoder
-  // ===========================================================================
   decode u_decode (
       .metadata_i               (meta_internal),
       .meta_in_valid_i          (meta_valid_internal),
@@ -271,9 +233,7 @@ module fdr_top
       .meta_o                   (fdr_if.data.metadata)
   );
 
-  // ===========================================================================
   // Bitstream Fetch/Load
-  // ===========================================================================
   bitstream_fetch_load #(
       .TAG_WIDTH     (TAG_WIDTH),
       .BITSTREAM_SIZE(BITSTREAM_SIZE)
@@ -291,9 +251,7 @@ module fdr_top
       .cm_num_o        (fdr_if.data.loaded_buffer)
   );
 
-  // ===========================================================================
   // Valid Checker
-  // ===========================================================================
   valid_check u_valid_check (
       .barrier_indicator_i(is_barrier_internal),
       .mask_valid_i       (branch_mask_valid),
@@ -312,9 +270,7 @@ module fdr_top
       .predict_miss_o     (predict_miss_internal)
   );
 
-  // ===========================================================================
   // Branch Resolver (Foreground) -- NEEDS TO BE THOROUGHLY TESTED
-  // ===========================================================================
   branch_resolver u_branch_resolver (
       .clk_i                    (clk_i),
       .rst_i                    (rst_i),
@@ -343,9 +299,7 @@ module fdr_top
       .pending_branch_table_o   (pending_branch_table)
   );
 
-  // ===========================================================================
   // Divergence Monitor (Background) -- NEEDS TO BE THOROUGHLY TESTED
-  // ===========================================================================
   divergence_monitor u_divergence_monitor (
       .clk_i                    (clk_i),
       .rst_i                    (rst_i),
