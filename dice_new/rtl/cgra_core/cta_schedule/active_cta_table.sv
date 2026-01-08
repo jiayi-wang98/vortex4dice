@@ -6,10 +6,10 @@ module active_cta_table
     input logic rst_i,
 
     // Add new entry interface (table is slave)
-    output logic                                add_ready_o,
-    input  logic                                add_valid_i,
-    input  dice_cta_desc_t                      add_cta_info_i,
-    input  logic           [DICE_TID_WIDTH-1:0] add_cta_size_i,
+    output logic                 add_ready_o,
+    input  logic                 add_valid_i,
+    input  dice_cta_desc_t       add_cta_info_i,
+    input  logic           [1:0] add_hw_cta_size_i, // 00=1 slot, 01=2, 11=4
 
     // Pop interface
     input  logic                            pop_valid_i,
@@ -34,19 +34,6 @@ module active_cta_table
   // Local Parameters (derived from packages)
   localparam int ThreadWidth = DICE_NUM_MAX_THREADS_PER_CORE / DICE_NUM_MAX_CTA_PER_CORE;
 
-  // Calculate number of entries needed for a CTA
-  // Optimized for power-of-2 ThreadWidth using bit shifts
-  function automatic logic [DICE_HW_CTA_ID_WIDTH:0] calc_entries_needed(
-      input logic [DICE_TID_WIDTH-1:0] cta_size);
-    // For power-of-2 ThreadWidth, we can use bit shifts
-    // entries_needed = ceil(cta_size / ThreadWidth) = (cta_size + ThreadWidth - 1) >> log2(ThreadWidth)
-    logic [DICE_TID_WIDTH:0] adjusted_size;
-    adjusted_size = (DICE_TID_WIDTH + 1)'(cta_size) + ThreadWidth - 1;
-    return (DICE_HW_CTA_ID_WIDTH + 1)'(adjusted_size >> (DICE_TID_WIDTH'($clog2(ThreadWidth))));
-  endfunction
-
-
-
   // CTA table entry structure
   typedef struct packed {
     logic is_primary;  // True for the first entry of a multi-entry CTA
@@ -70,8 +57,8 @@ module active_cta_table
   logic         [  DICE_HW_CTA_ID_WIDTH:0] entries_needed;
   logic         [  DICE_HW_CTA_ID_WIDTH:0] entries_to_clear;
 
-  // Calculate entries needed for incoming CTA
-  assign entries_needed   = calc_entries_needed(add_cta_size_i);
+  // Use entries_needed from cta_controller (1, 2, or 4 slots)
+  assign entries_needed   = (DICE_HW_CTA_ID_WIDTH + 1)'(add_entries_needed_i);
   assign entries_to_clear = cta_table_q[pop_hw_cta_id_i].entries_used;
 
   // Find next empty entry - Contiguous Block Search
@@ -203,7 +190,7 @@ module active_cta_table
               cta_table_q[j].entry_info.cta_size <= add_cta_info_i.kernel_desc.cta_size;
               cta_table_q[j].entry_info.kernel_id <= add_cta_info_i.kernel_desc.kernel_id;
               cta_table_q[j].entry_info.smem_per_cta <= add_cta_info_i.kernel_desc.smem_per_cta;
-              cta_table_q[j].entry_info.hw_cta_size <= (DICE_HW_CTA_SIZE_WIDTH)'(add_cta_size_i);
+              cta_table_q[j].entry_info.hw_cta_size <= (DICE_HW_CTA_SIZE_WIDTH)'(add_hw_cta_size_i);
             end else begin
               cta_table_q[j] <= '0;
             end
