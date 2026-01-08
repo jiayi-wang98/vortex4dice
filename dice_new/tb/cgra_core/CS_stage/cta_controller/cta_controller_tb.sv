@@ -1,87 +1,38 @@
 // =============================================================================
 // Testbench: cta_controller_tb.sv
 // =============================================================================
-// FILES USED (ALLOWED BOILERPLATE ONLY):
-//   - dice_new/tb/cgra_core/CS_stage/cta_controller/cta_controller_tb.sv
-//   - dice_new/rtl/dice_pkg.sv
-//   - dice_new/rtl/dice_frontend_pkg.sv
-//
-// ASSUMPTIONS (FROM BOILERPLATE/HEADERS):
-//   - Controller manages CTA lifecycle: receives new CTAs, initializes SIMT stacks,
-//     adds to active table, and handles completion.
-//   - Multiple valid/ready interfaces: in_cta, comp_cta, pop, add, init.
-//   - Synchronous active-high reset.
-//   - No assumptions about internal latency or FSM structure.
-//
-// TESTS:
-//   1. Reset -> verify safe idle outputs.
-//   2. Accept single CTA (in_cta handshake).
-//   3. Verify init interface fires for stack initialization.
-//   4. Verify add interface fires to add to active table.
-//   5. CTA completion handshake.
-//   6. Random smoke test with fixed seed.
+// Simple testbench for cta_controller module.
+// Tests each handshake interface: dispatch, add, init, pop, complete.
 // =============================================================================
 
 `timescale 1ns / 1ps
 `include "dice_define.vh"
 
 module cta_controller_tb;
+  import dice_pkg::*;
+  import dice_frontend_pkg::*;
 
   // ===========================================================================
   // Parameters
   // ===========================================================================
-  localparam int MaxNumCta = 4;
-  localparam int CtaIndexWidth = $clog2(MaxNumCta);
-  localparam int ThreadWidth = 256;
-  localparam int PcWidth = 32;
   localparam int ClkPeriod = 10;
-  localparam int TimeoutCycles = 10000;
-  localparam int RandSeed = 54321;
+  localparam int TimeoutCycles = 1000;
 
   // ===========================================================================
-  // DUT Signals
+  // Clock and Reset
   // ===========================================================================
-  logic                                                                 clk;
-  logic                                                                 rst;
+  logic clk;
+  logic rst;
 
-  logic                                                                 in_cta_valid_i;
-  dice_pkg::dice_cta_desc_t                                             in_cta_desc_i;
-  logic                                                                 in_cta_ready_o;
-
-  logic                                                                 comp_cta_ready_i;
-  logic                                                                 comp_cta_valid_o;
-  dice_pkg::dice_cta_id_t                                               comp_cta_id_o;
-
-  logic                                                                 pop_valid_o;
-  logic                       [                      CtaIndexWidth-1:0] pop_hw_cta_id_o;
-  logic                                                                 pop_ready_i;
-
-  logic                                                                 add_ready_i;
-  logic                                                                 add_valid_o;
-  dice_pkg::dice_cta_desc_t                                             add_cta_info_o;
-  logic                       [             dice_pkg::DICE_TID_WIDTH:0] add_cta_size_o;
-
-  logic                                                                 init_valid_o;
-  logic                                                                 init_ready_i;
-  logic                       [                  $clog2(MaxNumCta)-1:0] init_hw_cta_id_o;
-  logic                       [                                    1:0] init_hw_cta_size_o;
-  logic                       [                            PcWidth-1:0] init_pc_o;
-  logic                       [                            PcWidth-1:0] init_reconvergence_pc_o;
-
-  dice_pkg::dice_cta_status_t [dice_pkg::DICE_NUM_MAX_CTA_PER_CORE-1:0] cta_status_table_i;
-  logic                                                                 clear_entry_valid_o;
-  logic                       [     dice_pkg::DICE_HW_CTA_ID_WIDTH-1:0] clear_entry_hw_id_o;
-
-  logic                       [     dice_pkg::DICE_HW_CTA_ID_WIDTH-1:0] next_empty_cta_index_i;
-  logic                       [dice_pkg::DICE_NUM_MAX_CTA_PER_CORE-1:0] active_cta_status_i;
-
-  logic                                                                 pop_out_valid_i;
-  dice_pkg::dice_cta_id_t                                               pop_out_cta_id_i;
+  initial begin
+    clk = 1'b0;
+    forever #(ClkPeriod / 2) clk = ~clk;
+  end
 
   // ===========================================================================
   // Timeout Counter
   // ===========================================================================
-  int                                                                   cycle_count;
+  int cycle_count;
 
   always_ff @(posedge clk or posedge rst) begin
     if (rst) begin
@@ -95,29 +46,59 @@ module cta_controller_tb;
   end
 
   // ===========================================================================
+  // Interfaces
+  // ===========================================================================
+  cta_dispatch_if dispatch_if ();
+  cta_complete_if complete_if ();
+
+  // ===========================================================================
+  // DUT Signals
+  // ===========================================================================
+  // Active CTA table interface
+  logic                                             pop_valid_o;
+  logic             [     DICE_HW_CTA_ID_WIDTH-1:0] pop_hw_cta_id_o;
+  logic                                             pop_ready_i;
+  logic                                             add_ready_i;
+  logic                                             add_valid_o;
+  dice_cta_desc_t                                   add_cta_info_o;
+  logic             [                          1:0] add_hw_cta_size_o;
+  logic             [     DICE_HW_CTA_ID_WIDTH-1:0] next_empty_cta_index_i;
+  logic             [DICE_NUM_MAX_CTA_PER_CORE-1:0] active_cta_status_i;
+  logic                                             pop_out_valid_i;
+  dice_cta_id_t                                     pop_out_cta_id_i;
+
+  // SIMT Stack Controller interface
+  logic                                             init_valid_o;
+  logic                                             init_ready_i;
+  logic             [     DICE_HW_CTA_ID_WIDTH-1:0] init_hw_cta_id_o;
+  logic             [     DICE_HW_CTA_ID_WIDTH-1:0] init_hw_cta_size_o;
+  logic             [          DICE_ADDR_WIDTH-1:0] init_pc_o;
+  logic             [          DICE_ADDR_WIDTH-1:0] init_reconvergence_pc_o;
+
+  // CTA Status Table interface
+  dice_cta_status_t [DICE_NUM_MAX_CTA_PER_CORE-1:0] cta_status_table_i;
+  logic                                             clear_entry_valid_o;
+  logic             [     DICE_HW_CTA_ID_WIDTH-1:0] clear_entry_hw_id_o;
+
+  // ===========================================================================
   // DUT Instantiation
   // ===========================================================================
-  cta_controller #(
-      .MAX_NUM_CTA    (MaxNumCta),
-      .CTA_INDEX_WIDTH(CtaIndexWidth),
-      .THREAD_WIDTH   (ThreadWidth),
-      .PC_WIDTH       (PcWidth)
-  ) u_dut (
+  cta_controller u_dut (
       .clk_i                  (clk),
       .rst_i                  (rst),
-      .in_cta_valid_i         (in_cta_valid_i),
-      .in_cta_desc_i          (in_cta_desc_i),
-      .in_cta_ready_o         (in_cta_ready_o),
-      .comp_cta_ready_i       (comp_cta_ready_i),
-      .comp_cta_valid_o       (comp_cta_valid_o),
-      .comp_cta_id_o          (comp_cta_id_o),
+      .dispatch_if            (dispatch_if.slave),
+      .complete_if            (complete_if.master),
       .pop_valid_o            (pop_valid_o),
       .pop_hw_cta_id_o        (pop_hw_cta_id_o),
       .pop_ready_i            (pop_ready_i),
       .add_ready_i            (add_ready_i),
       .add_valid_o            (add_valid_o),
       .add_cta_info_o         (add_cta_info_o),
-      .add_cta_size_o         (add_cta_size_o),
+      .add_hw_cta_size_o      (add_hw_cta_size_o),
+      .next_empty_cta_index_i (next_empty_cta_index_i),
+      .active_cta_status_i    (active_cta_status_i),
+      .pop_out_valid_i        (pop_out_valid_i),
+      .pop_out_cta_id_i       (pop_out_cta_id_i),
       .init_valid_o           (init_valid_o),
       .init_ready_i           (init_ready_i),
       .init_hw_cta_id_o       (init_hw_cta_id_o),
@@ -126,20 +107,8 @@ module cta_controller_tb;
       .init_reconvergence_pc_o(init_reconvergence_pc_o),
       .cta_status_table_i     (cta_status_table_i),
       .clear_entry_valid_o    (clear_entry_valid_o),
-      .clear_entry_hw_id_o    (clear_entry_hw_id_o),
-      .next_empty_cta_index_i (next_empty_cta_index_i),
-      .active_cta_status_i    (active_cta_status_i),
-      .pop_out_valid_i        (pop_out_valid_i),
-      .pop_out_cta_id_i       (pop_out_cta_id_i)
+      .clear_entry_hw_id_o    (clear_entry_hw_id_o)
   );
-
-  // ===========================================================================
-  // Clock Generation
-  // ===========================================================================
-  initial begin
-    clk = 1'b0;
-    forever #(ClkPeriod / 2) clk = ~clk;
-  end
 
   // ===========================================================================
   // Helper Tasks
@@ -147,197 +116,201 @@ module cta_controller_tb;
 
   task automatic reset_dut();
     rst                    = 1'b1;
-    in_cta_valid_i         = 1'b0;
-    in_cta_desc_i          = '0;
-    comp_cta_ready_i       = 1'b1;
+    dispatch_if.valid      = 1'b0;
+    dispatch_if.data       = '0;
+    complete_if.ready      = 1'b1;
     pop_ready_i            = 1'b1;
     add_ready_i            = 1'b1;
-    init_ready_i           = 1'b1;
-    cta_status_table_i     = '0;
     next_empty_cta_index_i = '0;
     active_cta_status_i    = '0;
     pop_out_valid_i        = 1'b0;
     pop_out_cta_id_i       = '0;
+    init_ready_i           = 1'b1;
+    cta_status_table_i     = '0;
     repeat (10) @(posedge clk);
     rst = 1'b0;
     @(posedge clk);
   endtask
 
   task automatic drive_idle();
-    in_cta_valid_i = 1'b0;
-    in_cta_desc_i = '0;
-    pop_out_valid_i = 1'b0;
-    pop_out_cta_id_i = '0;
+    dispatch_if.valid = 1'b0;
+    dispatch_if.data  = '0;
+    pop_out_valid_i   = 1'b0;
+    pop_out_cta_id_i  = '0;
   endtask
 
-  task automatic send_new_cta(input dice_pkg::dice_cta_desc_t desc);
-    in_cta_desc_i  = desc;
-    in_cta_valid_i = 1'b1;
-    @(posedge clk);
-    while (in_cta_ready_o != 1'b1) @(posedge clk);
-    @(posedge clk);
-    in_cta_valid_i = 1'b0;
-  endtask
-
-  task automatic wait_for_add();
-    int wait_cycles;
-    wait_cycles = 0;
-    while (add_valid_o != 1'b1 && wait_cycles < 100) begin
-      @(posedge clk);
-      wait_cycles++;
-    end
-  endtask
-
-  task automatic wait_for_init();
-    int wait_cycles;
-    wait_cycles = 0;
-    while (init_valid_o != 1'b1 && wait_cycles < 100) begin
-      @(posedge clk);
-      wait_cycles++;
-    end
-  endtask
+  // Helper to create a simple CTA descriptor
+  function automatic dice_cta_desc_t make_cta_desc(input logic [DICE_KERNEL_ID_WIDTH-1:0] kernel_id,
+                                                   input logic [DICE_ADDR_WIDTH-1:0] start_pc,
+                                                   input logic [DICE_TID_WIDTH:0] cta_size_x);
+    dice_cta_desc_t desc;
+    desc = '0;
+    desc.kernel_desc.kernel_id = kernel_id;
+    desc.kernel_desc.start_pc = start_pc;
+    desc.kernel_desc.cta_size.x = cta_size_x;
+    desc.kernel_desc.cta_size.y = 1;
+    desc.kernel_desc.cta_size.z = 1;
+    return desc;
+  endfunction
 
   // ===========================================================================
   // Test Stimulus
   // ===========================================================================
   initial begin
-    int rand_val;
-    dice_pkg::dice_cta_desc_t test_desc;
-    int init_seen;
-    int add_seen;
+    dice_cta_desc_t test_desc;
 
     $display("=============================================================");
     $display(" cta_controller Testbench");
     $display("=============================================================");
 
     // -------------------------------------------------------------------------
-    // Test 1: Reset -> Safe Idle Outputs
+    // TEST 1: Reset
     // -------------------------------------------------------------------------
-    $display("[%0t] TEST 1: Reset and idle output check", $time);
+    $display("[%0t] TEST 1: Reset", $time);
     reset_dut();
 
-    // After reset, controller should be ready to accept new CTAs
-    assert (in_cta_ready_o == 1'b1)
-    else $fatal(1, "[%0t] FAIL: After reset, expected in_cta_ready_o=1", $time);
-    // comp_cta_valid should be low (no completions pending)
-    assert (comp_cta_valid_o == 1'b0)
-    else $fatal(1, "[%0t] FAIL: After reset, expected comp_cta_valid_o=0", $time);
-    $display("[%0t] PASS: Post-reset idle check", $time);
+    // After reset, dispatch_if.ready should reflect add_ready_i && init_ready_i
+    assert (dispatch_if.ready == 1'b1)
+    else $fatal(1, "FAIL: dispatch_if.ready not high after reset");
+    $display("[%0t] PASS: Reset complete, dispatch ready", $time);
 
     // -------------------------------------------------------------------------
-    // Test 2: Accept Single CTA
+    // TEST 2: Dispatch -> Add handshake
     // -------------------------------------------------------------------------
-    $display("[%0t] TEST 2: Accept single CTA", $time);
-    test_desc = '0;
-    test_desc.kernel_desc.kernel_id = 1;
-    test_desc.kernel_desc.start_pc = 32'h1000;
-    test_desc.cta_id.x = 0;
-    send_new_cta(test_desc);
-    repeat (2) @(posedge clk);
-    $display("[%0t] PASS: Single CTA accepted", $time);
+    $display("[%0t] TEST 2: Dispatch -> Add handshake", $time);
+    test_desc = make_cta_desc(1, 32'h1000, 32);  // 32 threads
+
+    dispatch_if.data = test_desc;
+    dispatch_if.valid = 1'b1;
+    @(posedge clk);
+
+    // add_valid_o should fire when dispatch valid and init_ready
+    assert (add_valid_o == 1'b1)
+    else $fatal(1, "FAIL: add_valid_o not asserted on dispatch");
+    assert (add_cta_info_o.kernel_desc.kernel_id == 1)
+    else $fatal(1, "FAIL: add_cta_info_o mismatch");
+    $display("[%0t] add_valid_o=%b, add_hw_cta_size_o=%b", $time, add_valid_o, add_hw_cta_size_o);
+
+    dispatch_if.valid = 1'b0;
+    @(posedge clk);
+    $display("[%0t] PASS: Dispatch -> Add handshake", $time);
 
     // -------------------------------------------------------------------------
-    // Test 3: Verify Init Interface Fires
+    // TEST 3: Dispatch -> Init handshake
     // -------------------------------------------------------------------------
-    $display("[%0t] TEST 3: Verify init interface for stack initialization", $time);
-    reset_dut();
-    test_desc = '0;
-    test_desc.kernel_desc.start_pc = 32'h2000;
-    // Fork to send CTA and monitor init
-    in_cta_desc_i = test_desc;
-    in_cta_valid_i = 1'b1;
-    init_seen = 0;
-    for (int i = 0; i < 100; i++) begin
-      @(posedge clk);
-      if (init_valid_o == 1'b1) begin
-        init_seen = 1;
-        break;
-      end
-      if (in_cta_ready_o == 1'b1 && in_cta_valid_i == 1'b1) begin
-        in_cta_valid_i = 1'b0;
-      end
-    end
-    in_cta_valid_i = 1'b0;
-    assert (init_seen == 1)
-    else $warning("[%0t] WARN: init_valid_o never observed (may be design-specific)", $time);
-    if (init_seen) $display("[%0t] PASS: init interface fired", $time);
-    else $display("[%0t] INFO: init interface not observed, skipping", $time);
+    $display("[%0t] TEST 3: Dispatch -> Init handshake", $time);
+    test_desc = make_cta_desc(2, 32'h2000, 64);  // 64 threads
+    next_empty_cta_index_i = 2'd1;  // Expect this to appear on init_hw_cta_id_o
+
+    dispatch_if.data = test_desc;
+    dispatch_if.valid = 1'b1;
+    @(posedge clk);
+
+    // init_valid_o should fire when dispatch valid and add_ready
+    assert (init_valid_o == 1'b1)
+    else $fatal(1, "FAIL: init_valid_o not asserted on dispatch");
+    assert (init_hw_cta_id_o == 2'd1)
+    else $fatal(1, "FAIL: init_hw_cta_id_o should be next_empty_cta_index_i");
+    assert (init_pc_o == 32'h2000)
+    else $fatal(1, "FAIL: init_pc_o mismatch");
+    $display("[%0t] init_valid_o=%b, init_hw_cta_id_o=%0d, init_pc_o=0x%h", $time, init_valid_o,
+             init_hw_cta_id_o, init_pc_o);
+
+    dispatch_if.valid = 1'b0;
+    @(posedge clk);
+    $display("[%0t] PASS: Dispatch -> Init handshake", $time);
 
     // -------------------------------------------------------------------------
-    // Test 4: Verify Add Interface Fires
+    // TEST 4: Backpressure - add_ready_i low
     // -------------------------------------------------------------------------
-    $display("[%0t] TEST 4: Verify add interface to active table", $time);
-    reset_dut();
-    test_desc = '0;
-    test_desc.kernel_desc.kernel_id = 2;
-    in_cta_desc_i = test_desc;
-    in_cta_valid_i = 1'b1;
-    add_seen = 0;
-    for (int i = 0; i < 100; i++) begin
-      @(posedge clk);
-      if (add_valid_o == 1'b1) begin
-        add_seen = 1;
-        break;
-      end
-      if (in_cta_ready_o == 1'b1 && in_cta_valid_i == 1'b1) begin
-        in_cta_valid_i = 1'b0;
-      end
-    end
-    in_cta_valid_i = 1'b0;
-    assert (add_seen == 1)
-    else $warning("[%0t] WARN: add_valid_o never observed (may be design-specific)", $time);
-    if (add_seen) $display("[%0t] PASS: add interface fired", $time);
-    else $display("[%0t] INFO: add interface not observed, skipping", $time);
+    $display("[%0t] TEST 4: Backpressure - add_ready_i low", $time);
+    add_ready_i = 1'b0;  // Block add
+
+    test_desc = make_cta_desc(3, 32'h3000, 32);
+    dispatch_if.data = test_desc;
+    dispatch_if.valid = 1'b1;
+    @(posedge clk);
+
+    // dispatch.ready should be low
+    assert (dispatch_if.ready == 1'b0)
+    else $fatal(1, "FAIL: dispatch_if.ready should be low when add_ready_i is low");
+    // init_valid should also be low (since add not ready)
+    assert (init_valid_o == 1'b0)
+    else $fatal(1, "FAIL: init_valid_o should be low when add_ready_i is low");
+
+    // Release backpressure
+    add_ready_i = 1'b1;
+    @(posedge clk);
+
+    dispatch_if.valid = 1'b0;
+    @(posedge clk);
+    $display("[%0t] PASS: Backpressure test", $time);
 
     // -------------------------------------------------------------------------
-    // Test 5: CTA Completion Handshake
+    // TEST 5: Pop -> Complete handshake
     // -------------------------------------------------------------------------
-    $display("[%0t] TEST 5: CTA completion handshake", $time);
-    reset_dut();
-    // Simulate pop_out to trigger completion
+    $display("[%0t] TEST 5: Pop -> Complete handshake", $time);
+
+    // Setup: Mark CTA 0 as active, completed (is_return=1, no pending eblocks)
+    active_cta_status_i[0] = 1'b1;
+    cta_status_table_i[0].has_pending_eblock = 1'b0;
+    cta_status_table_i[0].is_return = 1'b1;
+    pop_out_valid_i = 1'b0;  // No pending output
+    @(posedge clk);
+
+    // pop_valid_o should go high
+    $display("[%0t] pop_valid_o=%b, pop_hw_cta_id_o=%0d", $time, pop_valid_o, pop_hw_cta_id_o);
+    assert (pop_valid_o == 1'b1)
+    else $fatal(1, "FAIL: pop_valid_o should be high for completed CTA");
+
+    // Simulate pop completing - active_cta_table returns the CTA id
+    active_cta_status_i[0] = 1'b0;  // Clear the entry
+    pop_out_valid_i = 1'b1;
     pop_out_cta_id_i = '0;
-    pop_out_valid_i  = 1'b1;
-    repeat (5) @(posedge clk);
+    @(posedge clk);
+
+    // complete_if.valid should fire
+    assert (complete_if.valid == 1'b1)
+    else $fatal(1, "FAIL: complete_if.valid should be high");
+    $display("[%0t] complete_if.valid=%b, complete_if.cta_id=%p", $time, complete_if.valid,
+             complete_if.cta_id);
+
     pop_out_valid_i = 1'b0;
-    // Check if comp_cta_valid fires
-    for (int i = 0; i < 20; i++) begin
-      if (comp_cta_valid_o == 1'b1) begin
-        $display("[%0t] comp_cta_valid_o observed", $time);
-        break;
-      end
-      @(posedge clk);
-    end
-    $display("[%0t] PASS: Completion handshake test complete", $time);
+    @(posedge clk);
+    $display("[%0t] PASS: Pop -> Complete handshake", $time);
 
     // -------------------------------------------------------------------------
-    // Test 6: Random Smoke Test
+    // TEST 6: Clear entry fires with pop
     // -------------------------------------------------------------------------
-    $display("[%0t] TEST 6: Random smoke test (seed=%0d)", $time, RandSeed);
-    reset_dut();
-    rand_val = RandSeed;
-    for (int i = 0; i < 30; i++) begin
-      rand_val = rand_val * 1103515245 + 12345;
-      if ((rand_val[3:0] % 3) == 0 && in_cta_ready_o == 1'b1) begin
-        test_desc = '0;
-        test_desc.kernel_desc.kernel_id = rand_val[dice_pkg::DICE_KERNEL_ID_WIDTH-1:0];
-        test_desc.kernel_desc.start_pc = rand_val[31:0];
-        in_cta_desc_i = test_desc;
-        in_cta_valid_i = 1'b1;
-      end else begin
-        in_cta_valid_i = 1'b0;
-      end
-      @(posedge clk);
-    end
-    in_cta_valid_i = 1'b0;
-    repeat (10) @(posedge clk);
-    $display("[%0t] PASS: Random smoke test complete", $time);
+    $display("[%0t] TEST 6: Clear entry signal", $time);
+
+    // Setup another completed CTA
+    active_cta_status_i[1] = 1'b1;
+    cta_status_table_i[1].has_pending_eblock = 1'b0;
+    cta_status_table_i[1].is_return = 1'b1;
+    pop_out_valid_i = 1'b0;
+    @(posedge clk);
+
+    // clear_entry should fire with pop
+    assert (clear_entry_valid_o == pop_valid_o)
+    else $fatal(1, "FAIL: clear_entry_valid_o should match pop_valid_o");
+    $display("[%0t] clear_entry_valid_o=%b, clear_entry_hw_id_o=%0d", $time, clear_entry_valid_o,
+             clear_entry_hw_id_o);
+
+    // Cleanup
+    active_cta_status_i = '0;
+    cta_status_table_i  = '0;
+    @(posedge clk);
+    $display("[%0t] PASS: Clear entry signal", $time);
 
     // -------------------------------------------------------------------------
     // Done
     // -------------------------------------------------------------------------
+    repeat (5) @(posedge clk);
     $display("=============================================================");
     $display(" ALL TESTS PASSED: cta_controller_tb");
     $display("=============================================================");
+
 `ifdef MODELSIM
     $stop;
 `else
@@ -348,13 +321,6 @@ module cta_controller_tb;
   // ===========================================================================
   // Waveform Dump
   // ===========================================================================
-`ifdef FSDB
-  initial begin
-    $fsdbDumpfile("cta_controller_tb.fsdb");
-    $fsdbDumpvars(0, cta_controller_tb);
-  end
-`endif
-
 `ifdef VCD
   initial begin
     $dumpfile("cta_controller_tb.vcd");
