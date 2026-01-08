@@ -45,7 +45,8 @@ module active_cta_table_tb;
   logic                                                                     add_ready_o;
   logic                                                                     add_valid_i;
   dice_pkg::dice_cta_desc_t                                                 add_cta_info_i;
-  logic                           [             dice_pkg::DICE_TID_WIDTH:0] add_cta_size_i;
+  logic                           [                                    1:0] add_hw_cta_size_i;
+  logic                           [                                    2:0] add_entries_needed_i;
 
   logic                                                                     pop_valid_i;
   logic                           [     dice_pkg::DICE_HW_CTA_ID_WIDTH-1:0] pop_hw_cta_id_i;
@@ -81,15 +82,32 @@ module active_cta_table_tb;
   // ===========================================================================
   // DUT Instantiation
   // ===========================================================================
-  active_cta_table #(
-      .THREAD_WIDTH(ThreadWidth)
-  ) u_dut (
+
+  // Helper function to compute hw_cta_size encoding from thread count (mirrors cta_controller)
+  function automatic logic [1:0] encode_hw_cta_size(input logic [dice_pkg::DICE_TID_WIDTH:0] size);
+    if (size <= ThreadWidth) return 2'b00;
+    else if (size <= 2 * ThreadWidth) return 2'b01;
+    else return 2'b11;
+  endfunction
+
+  // Helper function to compute entries_needed from encoding
+  function automatic logic [2:0] decode_entries(input logic [1:0] encoded);
+    case (encoded)
+      2'b00:   return 3'd1;
+      2'b01:   return 3'd2;
+      2'b11:   return 3'd4;
+      default: return 3'd1;
+    endcase
+  endfunction
+
+  active_cta_table u_dut (
       .clk_i                 (clk),
       .rst_i                 (rst),
       .add_ready_o           (add_ready_o),
       .add_valid_i           (add_valid_i),
       .add_cta_info_i        (add_cta_info_i),
-      .add_cta_size_i        (add_cta_size_i),
+      .add_hw_cta_size_i     (add_hw_cta_size_i),
+      .add_entries_needed_i  (add_entries_needed_i),
       .pop_valid_i           (pop_valid_i),
       .pop_hw_cta_id_i       (pop_hw_cta_id_i),
       .pop_ready_o           (pop_ready_o),
@@ -116,32 +134,37 @@ module active_cta_table_tb;
   // ===========================================================================
 
   task automatic reset_dut();
-    rst             = 1'b1;
-    add_valid_i     = 1'b0;
-    add_cta_info_i  = '0;
-    add_cta_size_i  = '0;
-    pop_valid_i     = 1'b0;
-    pop_hw_cta_id_i = '0;
-    out_ready_i     = 1'b1;
+    rst                  = 1'b1;
+    add_valid_i          = 1'b0;
+    add_cta_info_i       = '0;
+    add_hw_cta_size_i    = 2'b00;
+    add_entries_needed_i = 3'd1;
+    pop_valid_i          = 1'b0;
+    pop_hw_cta_id_i      = '0;
+    out_ready_i          = 1'b1;
     repeat (10) @(posedge clk);
     rst = 1'b0;
     @(posedge clk);
   endtask
 
   task automatic drive_idle();
-    add_valid_i     = 1'b0;
-    add_cta_info_i  = '0;
-    add_cta_size_i  = '0;
-    pop_valid_i     = 1'b0;
-    pop_hw_cta_id_i = '0;
-    out_ready_i     = 1'b1;
+    add_valid_i          = 1'b0;
+    add_cta_info_i       = '0;
+    add_hw_cta_size_i    = 2'b00;
+    add_entries_needed_i = 3'd1;
+    pop_valid_i          = 1'b0;
+    pop_hw_cta_id_i      = '0;
+    out_ready_i          = 1'b1;
   endtask
 
   task automatic add_cta(input dice_pkg::dice_cta_desc_t desc,
                          input logic [dice_pkg::DICE_TID_WIDTH:0] size);
-    add_cta_info_i = desc;
-    add_cta_size_i = size;
-    add_valid_i    = 1'b1;
+    logic [1:0] encoded_size;
+    encoded_size         = encode_hw_cta_size(size);
+    add_cta_info_i       = desc;
+    add_hw_cta_size_i    = encoded_size;
+    add_entries_needed_i = decode_entries(encoded_size);
+    add_valid_i          = 1'b1;
     @(posedge clk);
     // Wait for handshake
     while (add_ready_o != 1'b1) @(posedge clk);

@@ -73,11 +73,11 @@ package dice_pkg;
   typedef struct packed {
     logic unresolved_control_divergence;
     logic [DICE_ADDR_WIDTH-1:0] predict_pc;
-    logic has_pending_eblock; // was still_pending_in_BRT
-    logic is_return; // was return_pending
-    logic is_barrier; // New
-    logic prefetch_cleared; // New
-    logic is_prefetch; // New (used in cta_scheduler)
+    logic has_pending_eblock;  // was still_pending_in_BRT
+    logic is_return;  // was return_pending
+    logic is_barrier;  // New
+    logic prefetch_cleared;  // New
+    logic is_prefetch;  // New (used in cta_scheduler)
   } dice_cta_status_t;  // CTA status descriptor
 
   typedef struct packed {

@@ -22,11 +22,11 @@ module cta_schedule_stage
     input logic [EBLOCK_ID_WIDTH-1:0] eblock_commit_id_i,
 
     // Branch handler / predictor interface (from FDR/execution)
-    branch_handler_if.slave status_table_bh_if,
 
+          branch_handler_if.slave status_table_bh_if,
     // Block Retire Table interface
-    input block_retire_status_t brt_info_i,
-    input logic                 brt_info_write_enable_i,
+    input block_retire_status_t   brt_info_i,
+    input logic                   brt_info_write_enable_i,
 
     // SIMT Stack Update Interface (now includes hw_cta_id/size)
     dice_bh_simt_if.slave simt_stack_update,
@@ -63,7 +63,8 @@ module cta_schedule_stage
   logic active_table_add_ready;
   logic active_table_add_valid;
   dice_cta_desc_t active_table_cta_desc;
-  logic [DICE_TID_WIDTH:0] active_table_cta_size;
+  logic [1:0] active_table_hw_cta_size;
+  logic [2:0] active_table_entries_needed;
   logic active_table_pop_valid;
   logic [DICE_HW_CTA_ID_WIDTH-1:0] active_table_pop_hw_id;
   logic active_table_pop_ready;
@@ -121,7 +122,8 @@ module cta_schedule_stage
       .add_valid_o            (active_table_add_valid),
       .add_ready_i            (active_table_add_ready),
       .add_cta_info_o         (active_table_cta_desc),
-      .add_cta_size_o         (active_table_cta_size),
+      .add_hw_cta_size_o      (active_table_hw_cta_size),
+      .add_entries_needed_o   (active_table_entries_needed),
       .next_empty_cta_index_i (active_table_next_empty_idx),
       .pop_valid_o            (active_table_pop_valid),
       .pop_hw_cta_id_o        (active_table_pop_hw_id),
@@ -147,7 +149,8 @@ module cta_schedule_stage
       .add_ready_o           (active_table_add_ready),
       .add_valid_i           (active_table_add_valid),
       .add_cta_info_i        (active_table_cta_desc),
-      .add_cta_size_i        (active_table_cta_size[DICE_TID_WIDTH-1:0]),
+      .add_hw_cta_size_i     (active_table_hw_cta_size),
+      .add_entries_needed_i  (active_table_entries_needed),
       .pop_valid_i           (active_table_pop_valid),
       .pop_hw_cta_id_i       (active_table_pop_hw_id),
       .pop_ready_o           (active_table_pop_ready),

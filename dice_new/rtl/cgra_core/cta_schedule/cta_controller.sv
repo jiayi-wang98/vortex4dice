@@ -30,7 +30,7 @@ module cta_controller
     output logic [DICE_ADDR_WIDTH-1:0] init_pc_o,
     output logic [DICE_ADDR_WIDTH-1:0] init_reconvergence_pc_o,
 
-    //cta status table
+    //cta status table -- NEED TO BE ABLE TO ADD TO IT
     input dice_cta_status_t [DICE_NUM_MAX_CTA_PER_CORE-1:0] cta_status_table_i, //THIS NEEDS TO BE CHANGED TO JUST SHOW THE IMPORTANT INFORMATION
     output logic clear_entry_valid_o,
     output logic [DICE_HW_CTA_ID_WIDTH-1:0] clear_entry_hw_id_o
