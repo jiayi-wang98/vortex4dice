@@ -222,23 +222,23 @@ Selection-LineWidth = 1
 [FSM_Dlg-Print]
 Orientation = Landscape
 [FileBrowser]
+nWaveOpenFsdbDirHistory = "\"/data/thatton9/vortex4dice/dice_new/tb/cgra_core/ldst_unit/temporal_coalescing_unit/cache_testing/tb_vx_cache_with_temporal.fsdb\""
 LoadSimulationResults = "\"/data/thatton9/vortex4dice/dice_new/tb/cgra_core/ldst_unit/temporal_coalescing_unit/cache_testing/tb_vx_cache_with_temporal.fsdb\"" "\"/data/thatton9/vortex4dice/dice_new/tb/cgra_core/ldst_unit/temporal_coalescing_unit/cache_testing/tb_vx_cache_with_tem\
 poral.fsdb.fsdb\""
-nWaveOpenFsdbDirHistory = "\"/data/thatton9/vortex4dice/dice_new/tb/cgra_core/ldst_unit/temporal_coalescing_unit/cache_testing/tb_vx_cache_with_temporal.fsdb\""
 [Form]
 version = Verdi_X-2025.06
 [General]
 autoSaveSession = FALSE
 TclAutoSource = 
 cmd_enter_form = FALSE
-ColorThemeModern = bright
 SyncBrowserDir = TRUE
-version = Verdi_X-2025.06
-recent_commands_Verdi = tbvDebugStop,tbvDebugRunContinue,hbInvokeWave,tbvRunDebugMode,hbImpDsg,hbReload,hbOpenLogFile,hbLoadFsdbFile,hbCloseFsdbFile
 recent_commands_nWave = zoomAll,openFile,openFile,openFile
+FindBarVisible = 
+ColorThemeModern = bright
+version = Verdi_X-2025.06
+recent_commands_Verdi = hbReload,srcCompile,hbLoadFsdbFile,tbvDebugStop,tbvDebugRunContinue,hbInvokeWave,tbvRunDebugMode,hbImpDsg,hbOpenLogFile,hbCloseFsdbFile
 prevColorThemeModern = bright
 SignalCaseInSensitive = FALSE
-FindBarVisible = 
 [GlobalProp]
 ErrWindow_Font = Helvetica_M_R_12
 [Globals]
@@ -273,10 +273,10 @@ import_filter_vhdl = *.vhd; *.vhdl; *.f
 import_filter_verilog = *.v; *.vc; *.f
 PrefetchViewableAnnot = TRUE
 designTreeBgColor = ID_WHITE
-simulation_file_type = *.fsdb;*.vf;*.jf;*.zwd*
-ShowFileListView = FALSE
 import_default_language = SystemVerilog
 import_from = source
+simulation_file_type = *.fsdb;*.vf;*.jf;*.zwd*
+ShowFileListView = FALSE
 [Hier]
 filterTimeout = 1500
 [ImportLiberty]
@@ -290,12 +290,12 @@ bScpecifyCellNameCase = False
 bSpecifyPinNameCase = False
 [InteractiveDebug]
 tbvLocalWatchArrayLimit = 50
-Watch_0 = 150 80 80 0 
-Watch_1 = 150 80 80 200 
-Watch_2 = 150 80 80 200 
-Watch_3 = 150 80 80 200 
-Watch_4 = 150 80 80 200 
-Watch_5 = 150 80 80 200 
+Watch_0 = 150 80 80 0
+Watch_1 = 150 80 80 200
+Watch_2 = 150 80 80 200
+Watch_3 = 150 80 80 200
+Watch_4 = 150 80 80 200
+Watch_5 = 150 80 80 200
 [Language]
 EditWindow_Font = COURIER12
 Background = ID_WHITE
@@ -344,6 +344,16 @@ containerHeight = 800
 HB_designTreeFont = *-adobe-courier-medium-r-*-*-12-*-*-*-*-*-iso8859-*
 Text_font = COURIER12
 nMemory_font = Fixed 14
+Wave_legend_window_font = -f COURIER12 -c ID_CYAN5
+Wave_value_window_font = -f COURIER12 -c ID_CYAN5
+Wave_curve_window_font = -f COURIER12 -c ID_CYAN5
+Wave_group_name_font = -f COURIER12 -c ID_GREEN5
+Wave_ruler_value_font = -f COURIER12 -c ID_CYAN5
+Wave_analog_ruler_value_font = -f COURIER12 -c ID_CYAN5
+Wave_comment_string_font = -f COURIER12 -c ID_RED5
+Wave_getsignal_form_font = -f COURIER12
+Text_annotFont = FIXED12
+schematics_fixFontSize = False
 [OtherEditor]
 cmd1 = "xterm -font 9x15 -fg black -bg gray -e"
 name = "vi"
@@ -390,10 +400,11 @@ savePropDtl = TRUE
 [QtDialog]
 openFileDlg = 419,168,602,483
 QwInfoMsgDlg = 335,300,750,250
-QwWarnMsgDlg = 410,300,600,250
-loadFile = 205,163,614,432
 importDesignForm = 362,85,715,574
-QwUserAskDlg = 558,383,324,128
+loadFile = 413,193,614,432
+CompileDesignUi = 934,474,691,410
+QwWarnMsgDlg = 410,337,600,250
+QwUserAskDlg = 1118,653,324,128
 [Safety]
 RegisterObject = ID_RED4
 CoreObject = ID_ORANGE5
@@ -435,13 +446,15 @@ vcs_mixPath = simv
 vcs_mixOption = -vhdlrun "-vhpi debussy:FSDBDumpCmd"
 scs_mixPath = scsim
 scs_mixOption = -vhpi debussy:FSDBDumpCmd
-interactiveDebugging = {True, False}
-KeepBreakPoints = False
 ScsDebugAll = False
 simType = {vcssv, xl, nc, vcs, mti, mti_vlog, vhnc, scs, mixnc}
 thirdpartyIdx = -1
 iscCmdSep = FALSE
 NoAppendOption = False
+bSVTBMode = TRUE
+SimMode = TRUE
+interactiveDebugging = TRUE
+KeepBreakPoints = FALSE
 [SimulationPlus]
 xlPath = verilog
 xlOption = 
@@ -465,20 +478,22 @@ vcs_mixPath = simv
 vcs_mixOption = -vhdlrun "-vhpi debussy:FSDBDumpCmd"
 scs_mixPath = scsim
 scs_mixOption = -vhpi debussy:FSDBDumpCmd
-vcs_svPath = simv
-simType = vcssv
 thirdpartyIdx = -1
-interactiveDebugging = FALSE
-KeepBreakPoints = FALSE
 iscCmdSep = FALSE
 ScsDebugAll = FALSE
 NoAppendOption = FALSE
 invokeSimPath = work
-vcs_svOption =  -sml=verdi
+vcs_svOption = -sml=verdi
 smartlog = TRUE
+simType = vcssv
+bSVTBMode = TRUE
+SimMode = TRUE
+interactiveDebugging = TRUE
+KeepBreakPoints = FALSE
+vcs_svPath = /data/thatton9/vortex4dice/dice_new/tb/cgra_core/ldst_unit/temporal_coalescing_unit/cache_testing/simv
 [SimulationPlus2]
-eventDumpUnfinish = FALSE
 dumpPowerRoot = FALSE
+eventDumpUnfinish = FALSE
 [Source]
 wordWrapOn = TRUE
 viewReuse = TRUE
@@ -510,8 +525,8 @@ nLineSize = 1024
 [Test]
 verbose_progress = FALSE
 [TestBenchBrowser]
--showUVMDynamicHierTreeWin = FALSE
 DataViewTooltip = TRUE
+-showUVMDynamicHierTreeWin = FALSE
 [Text]
 hdlTypeName = blue4
 hdlLibrary = blue4
@@ -595,7 +610,7 @@ pdmlMacro = ID_BLACK
 font = COURIER12
 annotFont = FIXED12
 [Text.1]
-viewport = 0 27 1440 765 45
+viewport = 0 27 2560 1305 45
 [TextPrinter]
 Orientation = Landscape
 Indicator = FALSE
@@ -677,8 +692,8 @@ Button3 = "Next ? Time" "#${Arg:Next Time} $stop;.\n"
 Button2 = "Next 1000 Time" "#1000 $stop;.\n"
 Button1 = "Dump All Signals" "$fsdbDumpvars;\n"
 [VIA]
-viaLogViewerDefaultRuleOneSearchForm = "share/VIA/Apps/PredefinedRules/Misc/Onesearch_rule.rc"
 viaLogViewerDefaultRuleInterForm = "share/VIA/Apps/PredefinedRules/UVM_OVM_i_rule.rc"
+viaLogViewerDefaultRuleOneSearchForm = "share/VIA/Apps/PredefinedRules/Misc/Onesearch_rule.rc"
 [VIA.interactiveDebug.preference]
 DefaultDisplayTimeUnit = "1.000000ns"
 DefaultLogTimeUnit = "1.000000ns"
@@ -750,45 +765,45 @@ isHidden = FALSE
 isUserChangeColumnVisible = FALSE
 isColFilterColorCoding = FALSE
 [VIA.oneSearch.preference.vgifColumnSettingRC.setting0.column1]
-name = "Type"
-width = 60
-visualIndex = 4
-isHidden = TRUE
-isUserChangeColumnVisible = FALSE
-isColFilterColorCoding = FALSE
-[VIA.oneSearch.preference.vgifColumnSettingRC.setting0.column2]
-name = "Message"
-width = 2000
-visualIndex = 5
-isHidden = FALSE
-isUserChangeColumnVisible = FALSE
-isColFilterColorCoding = FALSE
-[VIA.oneSearch.preference.vgifColumnSettingRC.setting0.column3]
-name = "Time"
-width = 60
-visualIndex = 0
-isHidden = FALSE
-isUserChangeColumnVisible = FALSE
-isColFilterColorCoding = FALSE
-[VIA.oneSearch.preference.vgifColumnSettingRC.setting0.column4]
-name = "Code"
-width = 60
-visualIndex = 3
-isHidden = TRUE
-isUserChangeColumnVisible = FALSE
-isColFilterColorCoding = FALSE
-[VIA.oneSearch.preference.vgifColumnSettingRC.setting0.column5]
 name = "Block's First Line"
 width = 120
 visualIndex = 1
 isHidden = TRUE
 isUserChangeColumnVisible = FALSE
 isColFilterColorCoding = FALSE
+[VIA.oneSearch.preference.vgifColumnSettingRC.setting0.column2]
+name = "Time"
+width = 60
+visualIndex = 0
+isHidden = FALSE
+isUserChangeColumnVisible = FALSE
+isColFilterColorCoding = FALSE
+[VIA.oneSearch.preference.vgifColumnSettingRC.setting0.column3]
+name = "Code"
+width = 60
+visualIndex = 3
+isHidden = TRUE
+isUserChangeColumnVisible = FALSE
+isColFilterColorCoding = FALSE
+[VIA.oneSearch.preference.vgifColumnSettingRC.setting0.column4]
+name = "Type"
+width = 60
+visualIndex = 4
+isHidden = TRUE
+isUserChangeColumnVisible = FALSE
+isColFilterColorCoding = FALSE
+[VIA.oneSearch.preference.vgifColumnSettingRC.setting0.column5]
+name = "Message"
+width = 2000
+visualIndex = 5
+isHidden = FALSE
+isUserChangeColumnVisible = FALSE
+isColFilterColorCoding = FALSE
 [VIA.parRule]
 parRulePathInterForm = ""
 [VIA.ruleHistory]
-/data/eda_tools/synopsys/tools/verdi/X-2025.06/share/VIA/Apps/PredefinedRules/UVM_OVM_i_rule.rc = 
 /data/eda_tools/synopsys/tools/verdi/X-2025.06/share/VIA/Apps/PredefinedRules/Misc/Onesearch_rule.rc = 
+/data/eda_tools/synopsys/tools/verdi/X-2025.06/share/VIA/Apps/PredefinedRules/UVM_OVM_i_rule.rc = 
 [Vi]
 ViFont = "Clean 14"
 ViBG = white
@@ -860,8 +875,11 @@ ShowDeltaTime = TRUE
 WaveExtendLastTick = TRUE
 displayMessageLabelOnly = TRUE
 AutoApplySeverityColor = TRUE
+scope_to_save_with_macro
+open_file_dir
+open_rc_file_dir
 getSignalForm = 0 0 800 479 100 30 100 30
-viewPort = 0 11 956 330 100 65
+viewPort = 0 11 1702 565 100 65
 legendBackground = -c ID_BLACK
 valueBackground = -c ID_BLACK
 curveBackground = -c ID_BLACK
@@ -1001,7 +1019,6 @@ displayDeltaY = FALSE
 signal_rc_abspath = TRUE
 signal_rc_no_natural_bus_range = FALSE
 save_scope_with_macro = FALSE
-scope_to_save_with_macro
 FitAnaByBusSize = FALSE
 DisplayVerticalZoomTools = FALSE
 DisplayIndicateBar = FALSE
@@ -1028,12 +1045,10 @@ printBasic = 1 0 0 TRUE FALSE
 printDest = -printer {}
 printSignature = {%f %h %t} {}
 curveWindow_Drag&Drop_Mode = TRUE
-RecentFile1 = "\"/data/thatton9/vortex4dice/dice_new/tb/cgra_core/ldst_unit/temporal_coalescing_unit/cache_testing/inter.fsdb\""
-RecentFile2 = "\"/data/thatton9/vortex4dice/dice_new/tb/cgra_core/ldst_unit/temporal_coalescing_unit/cache_testing/tb_vx_cache_with_temporal.fsdb\""
+RecentFile1 = "\"/data/thatton9/vortex4dice/dice_new/tb/cgra_core/ldst_unit/temporal_coalescing_unit/cache_testing/tb_vx_cache_with_temporal.fsdb\""
+RecentFile2 = "\"/data/thatton9/vortex4dice/dice_new/tb/cgra_core/ldst_unit/temporal_coalescing_unit/cache_testing/inter.fsdb\""
 RecentFile3 = "\"/data/thatton9/vortex4dice/dice_new/tb/cgra_core/ldst_unit/temporal_coalescing_unit/cache_testing/tb_vx_cache_with_temporal.fsdb.fsdb\""
 open_file_time_range = FALSE
-open_file_dir
-open_rc_file_dir
 legend_window_font = -f COURIER12 -c ID_CYAN5
 value_window_font = -f COURIER12 -c ID_CYAN5
 curve_window_font = -f COURIER12 -c ID_CYAN5
@@ -1041,18 +1056,18 @@ group_name_font = -f COURIER12 -c ID_GREEN5
 ruler_value_font = -f COURIER12 -c ID_CYAN5
 analog_ruler_value_font = -f COURIER12 -c ID_CYAN5
 comment_string_font = -f COURIER12 -c ID_RED5
-getsignal_form_font = -f COURIER12
+getsignal_form_font = -f COURIER12 
 SigsCheckNum = on 1000
 filter_synthesized_net = off n
 filterOutNet = on
 exclude_signal_with_prefix = off n
 synthesizeNetOnly = on
-filter_synthesized_instance = off
+filter_synthesized_instance = off 
 filterOutInstance = on
 showGroupTree = TRUE
 hierGroupDelim = /
 MsgSeverityColor = {y \"Severity\"==\"1\" ID_RED5} {y \"Severity\"==\"2\" ID_RED6} {y \"Severity\"==\"3\" ID_RED7} {y \"Severity\"==\"4\" ID_RED8} {y \"Severity\"==\"5\" ID_ORANGE5} {y \"Severity\"==\"6\" ID_ORANGE6} {y \"Severity\"==\"7\" ID_ORANGE7} {y \"Severity\"==\"8\" \
-ID_GREEN7} {y \"Severity\"==\"9\" ID_GREEN6} {y \"Severity\"==\"10\" ID_GREEN5}
+ID_GREEN7} {y \"Severity\"==\"9\" ID_GREEN6} {y \"Severity\"==\"10\" ID_GREEN5} 
 waveDblClkActiveTrace = on
 SEQShowComparisonIcon = TRUE
 SEQAddDriverLoadInSameGroup = TRUE
@@ -1065,6 +1080,8 @@ maskFsaCoreRule = TRUE
 maskFsaSfsmRule = TRUE
 maskFsaEcrRule = TRUE
 maskTPropagation = TRUE
+[compile_design]
+DefaultLang = Verilog
 [cov_hier_name_column]
 justify = TRUE
 [coverageColors]
@@ -1132,6 +1149,7 @@ ShowMergeMenuItem = FALSE
 fsmScoreMode = Transition
 lazyLoadingPrompt = TRUE
 [eco]
+NameRule = 
 IsFreezeSilicon = FALSE
 cellQuantityManagement = FALSE
 ManageMode = INSTANCE_NAME
@@ -1139,11 +1157,10 @@ SpareCellsPinsManagement = TRUE
 LogCommitReport = FALSE
 InputPinStatus = 1
 OutputPinStatus = 2
-NameRule = 
 RevisedComponentColor = ID_BLUE5
 SpareCellColor = ID_RED5
 UserName = thatton9
-CommentFormat = Novas ECO updated by ${UserName} ${Date} ${Time}
+CommentFormat = Novas ECO updated by ${UserName} ${Date} ${Time} 
 PrefixN = eco_n
 PrefixP = eco_p
 PrefixI = eco_i
@@ -1669,7 +1686,7 @@ AddImportArgument = FALSE
 LineBreakWithScope = TRUE
 StopAfterCompileOption = -s
 [wave.0]
-viewPort = 0 11 956 330 100 65
+viewPort = 0 11 1702 565 100 65
 [wave.1]
 viewPort = 127 219 960 332 100 65
 [wave.2]

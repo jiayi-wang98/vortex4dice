@@ -122,7 +122,7 @@ module tb_vx_cache_with_temporal;
         // Issue the write
         incmd_valid        = 1;
         incmd_block_id     = 4'd1;
-        incmd_tid          = i + 512;
+        incmd_tid          = i;
         incmd_write_enable = 1;
         incmd_write_data   = write_data_temp + i;  // 1,2,3,4
         incmd_write_mask   = 8'h00;
@@ -131,12 +131,43 @@ module tb_vx_cache_with_temporal;
         incmd_ld_dest_reg  = 7'd0;
         outcmd_ready = 1'b1;
         incmd_ready = 1'b1;
-        
+        outcmd_valid = 1'b1;
         @(posedge clk);
+        @(posedge clk);
+        @(posedge clk);
+        @(posedge clk);
+        //incmd_write_enable = 0; @(posedge clk);
+        @(posedge clk);
+        @(posedge clk);
+        @(posedge clk);
+         if (i == 65) begin
+        incmd_write_enable = 0; @(posedge clk);
+        @(posedge clk);
+        @(posedge clk);
+        @(posedge clk);
+        @(posedge clk);
+        @(posedge clk);
+        @(posedge clk);
+        @(posedge clk);
+        @(posedge clk);
+        @(posedge clk);
+        @(posedge clk);
+        @(posedge clk);
+        @(posedge clk);
+        @(posedge clk);
+        @(posedge clk);
+        @(posedge clk);
+        @(posedge clk);
+        @(posedge clk);
+        @(posedge clk);
+    end
+    
+      
+    // Wait a few cycles to let the command propagate
         //incmd_valid = 0; incmd_write_enable = 0; outcmd_ready = 0; @(posedge clk);
     end
-        outcmd_write_enable = 0; @(posedge clk);
-
+        incmd_write_enable = 0; @(posedge clk);
+        
         #10000
 
        
