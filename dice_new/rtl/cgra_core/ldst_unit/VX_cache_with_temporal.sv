@@ -28,7 +28,19 @@ module VX_cache_with_temporal #(
     input logic [MAX_REG_WIDTH-1:0] incmd_ld_dest_reg,    // Load destination register
     input logic outcmd_ready,
     
+    input logic [DATA_WIDTH-1:0] incmd_mem_data,
     
+    input logic mem_req_ready,
+
+    output logic mem_req_valid,
+    output logic mem_req_rw,
+    output logic [CACHE_LINE_SIZE-1:0] mem_req_byteen,
+    output logic [26:0] mem_req_addr,
+    output logic [255:0] mem_req_data,
+    output logic [47:0] mem_req_tag,
+    
+    output logic mem_rsp_ready,
+
     output logic [DATA_WIDTH-1:0] cache_data,
     output logic cache_valid
     
@@ -48,6 +60,7 @@ module VX_cache_with_temporal #(
     logic [MAX_REG_WIDTH-1:0] outcmd_ld_dest_reg;  // Load destination register
     logic [NUMBER_OF_MAX_COALESCED_COMMANDS-1:0][BASE_ADDRESS_OFFSET-1:0] outcmd_address_map; //map from tid bitmap to address_offset
     
+    logic mem_rsp_valid;
     
     typedef struct packed {
     logic [EBLOCK_ID_WIDTH-1:0] outcmd_block_id;
@@ -60,6 +73,8 @@ module VX_cache_with_temporal #(
 
     outcmd_tag_t core_tag_req;
     outcmd_tag_t core_tag_rsp;
+    outcmd_tag_t mem_tag_rsp;
+    assign mem_tag_rsp = mem_req_tag;
     assign core_tag_req = {outcmd_block_id, outcmd_base_tid, outcmd_tid_bitmap, outcmd_ld_dest_reg, outcmd_address_map};
     
 
@@ -105,7 +120,13 @@ module VX_cache_with_temporal #(
         .outcmd_ready(outcmd_ready) 
     );
 
-   VX_cache_top #(
+    always_comb begin
+    mem_rsp_valid = 0; // Default value to avoid latches
+    if (mem_req_valid && mem_req_ready) begin
+        mem_rsp_valid = 1; // Blocking assignment
+    end
+end
+    VX_cache_top #(
     .NUM_REQS(NUM_REQS),
     .LINE_SIZE(CACHE_LINE_SIZE),
     .NUM_BANKS(NUM_BANKS),
@@ -129,18 +150,18 @@ module VX_cache_with_temporal #(
     .core_rsp_tag('{core_tag_rsp}),
     .core_rsp_ready('{incmd_ready}), 
 
-    .mem_req_valid(),
-    .mem_req_rw(),
-    .mem_req_byteen(),
-    .mem_req_addr(),
-    .mem_req_data(),
-    .mem_req_tag(),
-    .mem_req_ready('{default: 0}), 
+    .mem_req_valid('{mem_req_valid}),
+    .mem_req_rw('{mem_req_rw}),
+    .mem_req_byteen('{mem_req_byteen}),
+    .mem_req_addr('{mem_req_addr}),
+    .mem_req_data('{mem_req_data}),
+    .mem_req_tag('{mem_req_tag}),
+    .mem_req_ready('{mem_req_ready}), 
 
-    .mem_rsp_valid('{default: 0}), 
-    .mem_rsp_data('{default: 0}),
-    .mem_rsp_tag('{default: 0}),
-    .mem_rsp_ready() 
+    .mem_rsp_valid('{mem_rsp_valid}), 
+    .mem_rsp_data('{incmd_mem_data}),
+    .mem_rsp_tag('{core_tag_req}),
+    .mem_rsp_ready('{mem_rsp_ready}) 
 );
 
 

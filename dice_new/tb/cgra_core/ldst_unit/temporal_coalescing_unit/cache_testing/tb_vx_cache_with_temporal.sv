@@ -32,6 +32,10 @@ module tb_vx_cache_with_temporal;
     bit [1:0] incmd_size;
     bit [MAX_REG_WIDTH-1:0] incmd_ld_dest_reg;
     bit outcmd_ready;
+    bit [DATA_WIDTH-1:0] incmd_mem_data;
+    bit mem_req_ready;
+    
+
     
     // DUT output signals
     logic incmd_ready;
@@ -46,10 +50,18 @@ module tb_vx_cache_with_temporal;
     logic [1:0] outcmd_size;
     logic [MAX_REG_WIDTH-1:0] outcmd_ld_dest_reg;
     logic [NUMBER_OF_MAX_COALESCED_COMMANDS-1:0][BASE_ADDRESS_OFFSET-1:0] outcmd_address_map;
+
+    logic mem_req_valid;
+    logic mem_req_rw;
+    logic [CACHE_LINE_SIZE-1:0] mem_req_byteen;
+    logic [26:0] mem_req_addr;
+    logic [255:0] mem_req_data;
+    logic [47:0] mem_req_tag;
+    
+    logic mem_rsp_ready;
     
     logic [DATA_WIDTH-1:0] cache_data;
     logic cache_valid;
-    logic incmd_ready;
      // Clock generation
     initial begin
         clk = 0;
@@ -84,7 +96,15 @@ module tb_vx_cache_with_temporal;
         .incmd_size(incmd_size),
         .incmd_ld_dest_reg(incmd_ld_dest_reg),
         .outcmd_ready(outcmd_ready),
-        
+        .incmd_mem_data(incmd_mem_data),
+        .mem_req_ready(mem_req_ready),
+        .mem_req_valid(mem_req_valid),
+        .mem_req_rw(mem_req_rw),
+        .mem_req_byteen(mem_req_byteen),
+        .mem_req_addr(mem_req_addr),
+        .mem_req_data(mem_req_data),
+        .mem_req_tag(mem_req_tag),
+        .mem_rsp_ready(mem_rsp_ready),
         
         .cache_data(cache_data),
         .cache_valid(cache_valid)
@@ -100,7 +120,14 @@ module tb_vx_cache_with_temporal;
         rst = 0;
     end 
 
+    
+    
     initial begin
+        for (int i = 0; i < 128; i++) begin
+            incmd_mem_data = 256'd0 + i;
+            mem_req_ready = 1;
+        end
+        //#10000;
     // Initialize inputs
     incmd_valid        = 0;
     incmd_block_id     = 0;
@@ -112,7 +139,7 @@ module tb_vx_cache_with_temporal;
     incmd_size         = 0;
     incmd_ld_dest_reg  = 0;
     
-
+    
         // Send 4 words to fill cache line
     for (i = 0; i < 128; i = i + 1) begin   
         @(posedge clk);
