@@ -29,9 +29,9 @@ import dice_pkg::*;
     , input logic                             rd_tid_valid_i
     , output logic                            rd_tid_ready_i
 
-
-    , input logic [NUM_PORTS-1:0]        rd_en_i
-    , input logic [(4*RF_ADDR_WIDTH)-1:0]     rd_tid_i
+    // some signal for unrolling factor to select
+    , input logic                             rd_en_i
+    , input logic [(4*TID_WIDTH)-1:0]         rd_tid_i
     , input logic [NUM_PORTS-1:0]             rd_bitmap_i
     , output logic [NUM_PORTS*DATA_WIDTH-1:0] rd_data_o
 
@@ -40,21 +40,20 @@ import dice_pkg::*;
     // ldst unit will give me write packets packaged by bank!
     , input reg_wr_cmd [NUM_PORTS-1:0]      cgra_wr_i
     , input logic                           cgra_valid_i
-    , output logic                          cgra_ready_o
-    
+
     , input reg_wr_cmd [NUM_PORTS-1:0]      ldst_wr_i
     , input logic                           ldst_valid_i
     , output logic                          ldst_ready_o
 );
 
-    logic [NUM_PORTS-1] rd_en;
-    logic [NUM_PORTS*ADDR_WIDTH-1:0] rd_addr;
-    logic [NUM_PORTS*DATA_WIDTH-1:0] rd_data;
+    logic [NUM_PORTS-1] rf_rd_en;
+    logic [NUM_PORTS*ADDR_WIDTH-1:0] rf_rd_addr;
+    logic [NUM_PORTS*DATA_WIDTH-1:0] rf_rd_data;
 
     // Write port
-    logic [NUM_BANK-1:0]    wr_en;
-    logic [NUM_BANK*ADDR_WIDTH-1:0] wr_addr;
-    logic [NUM_BANK*DATA_WIDTH-1:0] wr_data;
+    logic [NUM_BANK-1:0]    rf_wr_en;
+    logic [NUM_BANK*ADDR_WIDTH-1:0] rf_wr_addr;
+    logic [NUM_BANK*DATA_WIDTH-1:0] rf_wr_data;
 
     dice_register_file#
     (
@@ -65,13 +64,13 @@ import dice_pkg::*;
     ) registers (
           .clk (clk_i)
 
-        , .rd_en   (rd_en)
-        , .rd_addr (rd_addr)
-        , .rd_data (rd_data)
+        , .rd_en   (rf_rd_en)
+        , .rd_addr (rf_rd_addr)
+        , .rd_data (rf_rd_data)
 
-        , .wr_en   (wr_en)
-        , .wr_addr (wr_addr)
-        , .wr_data (wr_data)
+        , .wr_en   (rf_wr_en)
+        , .wr_addr (rf_wr_addr)
+        , .wr_data (rf_wr_data)
     );
 
 
