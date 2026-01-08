@@ -30,7 +30,6 @@ module dice_core
   prf_if prf_if ();  //between branch handler and predicated register files
   cgra_cm_if cm0_if ();  //between bitstream fetch and cgra buffer #0
   cgra_cm_if cm1_if ();  //between bitstream fetch and cgra buffer #1
-  branch_control_if     branch_ctrl_if ();//branch handler and status table -> may be redundant and internal cta schedule logic could be changed
 
   // CTA Dispatcher interfaces (internal, wired to flat top-level ports)
   cta_dispatch_if cta_dispatch_if_inst ();
@@ -57,8 +56,7 @@ module dice_core
       .brt_info_i(),
       .brt_info_write_enable_i(),
       .simt_stack_update(simt_stack_update_if),
-      .simt_status_if(simt_status_if),
-      .branch_ctrl_if(branch_ctrl_if) //branch handler and status table -> may be redundant and internal cta schedule logic could be changed
+      .simt_status_if(simt_status_if)
   );
 
   fdr_top u_fdr_top (
@@ -72,7 +70,6 @@ module dice_core
       .simt_stack_update_if(simt_stack_update_if),
       .prf_if(prf_if),
       .bh_if(bh_if),
-      .branch_ctrl_if           (branch_ctrl_if), //branch handler and status table -> may be redundant and internal cta schedule logic could be changed
       .cm0_if(cm0_if),  //these intercaes could be combined into one
       .cm1_if(cm1_if)
   );

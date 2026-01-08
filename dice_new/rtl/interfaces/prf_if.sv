@@ -18,7 +18,7 @@ interface prf_if
   logic [DICE_NUM_MAX_THREADS_PER_CORE-1:0]   rsp_data;
 
   // FDR requests predicate data
-  modport requester (
+  modport master (
     output req_valid,
     input  req_ready,
     output req_addr,
@@ -28,7 +28,7 @@ interface prf_if
   );
 
   // PRF provides predicate data
-  modport responder (
+  modport slave (
     input  req_valid,
     output req_ready,
     input  req_addr,

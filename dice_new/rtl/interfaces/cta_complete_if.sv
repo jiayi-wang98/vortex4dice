@@ -1,6 +1,3 @@
-`ifndef CTA_COMPLETE_IF_SV
-`define CTA_COMPLETE_IF_SV
-
 interface cta_complete_if
   import dice_pkg::*;
 ();
@@ -14,5 +11,3 @@ interface cta_complete_if
   modport slave(input valid, input cta_id, output ready);
 
 endinterface
-
-`endif  // CTA_COMPLETE_IF_SV

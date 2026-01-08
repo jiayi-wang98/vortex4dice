@@ -32,10 +32,7 @@ module cta_schedule_stage
     dice_bh_simt_if.slave simt_stack_update,
 
     // SIMT Stack Status Interface (NEW - replaces individual outputs)
-    simt_stack_status_if.master simt_status_if,
-
-    // Branch Control Interface (NEW)
-    branch_control_if.slave branch_ctrl_if
+    simt_stack_status_if.master simt_status_if
 
 );
 

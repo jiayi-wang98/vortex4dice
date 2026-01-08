@@ -27,13 +27,11 @@ module fdr_top
     dice_bh_simt_if.master simt_stack_update_if,
 
     // Predicate Register File Interface (NEW)
-    prf_if.requester prf_if,
+    prf_if.master prf_if,
 
     // Branch Handler Interface (prediction to CTA Status Table)
     branch_handler_if.master bh_if,
 
-    // Branch Control Interface (NEW - divergence/prefetch clearing)
-    branch_control_if.master branch_ctrl_if,
 
     // CGRA Configuration Memory Interfaces (NEW)
     cgra_cm_if.master cm0_if,
@@ -119,10 +117,6 @@ module fdr_top
   assign fdr_if.data.schedule_smem_per_cta = schedule_if.data.schedule_smem_per_cta;
   assign fdr_if.data.real_active_mask      = branch_mask_internal;
 
-  // Branch Control Interface Assignments
-  assign branch_ctrl_if.ctrl.clear_prefetch_valid     = clear_prefetch_internal;
-  assign branch_ctrl_if.ctrl.clear_prefetch_hw_cta_id = current_hw_cta_id;
-  assign branch_ctrl_if.ctrl.predict_miss_flush       = predict_miss_internal;
 
   // PRF Interface Wiring
   logic prf_req_internal;
@@ -197,12 +191,9 @@ module fdr_top
   assign bh_if.bh_data = predict_interface_internal;
   assign bh_if.branch_predict_info_write_enable = predict_we_internal;
 
-  // Divergence clearing through branch_ctrl_if
+  // Divergence clearing signals (from divergence_monitor, not currently consumed)
   logic [CtaIdWidth-1:0] clear_divergence_cta_id_internal;
   logic clear_divergence_valid_internal;
-  assign branch_ctrl_if.ctrl.clear_divergence_cta_id = clear_divergence_cta_id_internal;
-  assign branch_ctrl_if.ctrl.clear_divergence_valid  = clear_divergence_valid_internal;
-
   // Meta Fetch
   meta_fetch #(
       .TAG_WIDTH(TAG_WIDTH)

@@ -1,6 +1,3 @@
-`ifndef CTA_DISPATCH_IF_SV
-`define CTA_DISPATCH_IF_SV
-
 interface cta_dispatch_if
   import dice_pkg::*;
 ();
@@ -14,5 +11,3 @@ interface cta_dispatch_if
   modport slave(input valid, input data, output ready);
 
 endinterface
-
-`endif  // CTA_DISPATCH_IF_SV
