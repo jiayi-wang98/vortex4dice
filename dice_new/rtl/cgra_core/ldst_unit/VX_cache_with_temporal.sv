@@ -12,7 +12,9 @@ module VX_cache_with_temporal #(
     parameter int TID_BITMAP_WIDTH = NUMBER_OF_MAX_COALESCED_COMMANDS,
     parameter int NUM_REQS = 1,
     parameter int MEM_PORTS = 1, 
-    parameter int NUM_BANKS = 1
+    parameter int NUM_BANKS = 1,
+    parameter int OUTCMD_TAG_WIDTH = NUMBER_OF_MAX_COALESCED_COMMANDS * BASE_ADDRESS_OFFSET + EBLOCK_ID_WIDTH +
+        TID_WIDTH + TID_BITMAP_WIDTH + MAX_REG_WIDTH
 )(
     input logic clk,
     input logic rst,
@@ -28,9 +30,10 @@ module VX_cache_with_temporal #(
     input logic [MAX_REG_WIDTH-1:0] incmd_ld_dest_reg,    // Load destination register
     input logic outcmd_ready,
     
-    input logic [DATA_WIDTH-1:0] incmd_mem_data,
-    
-    input logic mem_req_ready,
+    output logic [DATA_WIDTH-1:0] core_rsp_data,
+    output logic core_rsp_valid,
+    output logic [OUTCMD_TAG_WIDTH-1:0] core_rsp_tag,
+    input  logic core_rsp_ready,
 
     output logic mem_req_valid,
     output logic mem_req_rw,
@@ -38,16 +41,16 @@ module VX_cache_with_temporal #(
     output logic [26:0] mem_req_addr,
     output logic [255:0] mem_req_data,
     output logic [47:0] mem_req_tag,
+    input logic mem_req_ready,
     
-    output logic mem_rsp_ready,
+    input logic mem_rsp_valid,
+    input logic [DATA_WIDTH-1:0] mem_rsp_data,
+    input logic [OUTCMD_TAG_WIDTH-1:0] mem_rsp_tag,
+    output logic mem_rsp_ready
 
-    output logic [DATA_WIDTH-1:0] cache_data,
-    output logic cache_valid
     
 );  
-    logic core_req_ready;
     logic incmd_ready;           // Ready signal for input command
-    logic cache_perf;
     logic outcmd_valid;              // Output command valid signal
     logic [EBLOCK_ID_WIDTH-1:0] outcmd_block_id;    // Output command block ID
     logic [TID_WIDTH-1:0] outcmd_base_tid;     // Output command thread ID
@@ -60,7 +63,6 @@ module VX_cache_with_temporal #(
     logic [MAX_REG_WIDTH-1:0] outcmd_ld_dest_reg;  // Load destination register
     logic [NUMBER_OF_MAX_COALESCED_COMMANDS-1:0][BASE_ADDRESS_OFFSET-1:0] outcmd_address_map; //map from tid bitmap to address_offset
     
-    logic mem_rsp_valid;
     
     typedef struct packed {
     logic [EBLOCK_ID_WIDTH-1:0] outcmd_block_id;
@@ -74,9 +76,8 @@ module VX_cache_with_temporal #(
     outcmd_tag_t core_tag_req;
     outcmd_tag_t core_tag_rsp;
     outcmd_tag_t mem_tag_rsp;
-    assign mem_tag_rsp = mem_req_tag;
-    assign core_tag_req = {outcmd_block_id, outcmd_base_tid, outcmd_tid_bitmap, outcmd_ld_dest_reg, outcmd_address_map};
     
+    assign core_tag_req = {outcmd_block_id, outcmd_base_tid, outcmd_tid_bitmap, outcmd_ld_dest_reg, outcmd_address_map};
 
     typedef struct packed {
     logic [EBLOCK_ID_WIDTH-1:0] incmd_block_id;
@@ -87,10 +88,6 @@ module VX_cache_with_temporal #(
           [BASE_ADDRESS_OFFSET-1:0] incmd_address_map;
     } incmd_tag_t;
 
-
-    localparam int OUTCMD_TAG_WIDTH = $bits(outcmd_tag_t);
-
-    
 
     // Temporal instantiation 
     temporal_coalescing_unit temporal_inst (
@@ -120,12 +117,6 @@ module VX_cache_with_temporal #(
         .outcmd_ready(outcmd_ready) 
     );
 
-    always_comb begin
-    mem_rsp_valid = 0; // Default value to avoid latches
-    if (mem_req_valid && mem_req_ready) begin
-        mem_rsp_valid = 1; // Blocking assignment
-    end
-end
     VX_cache_top #(
     .NUM_REQS(NUM_REQS),
     .LINE_SIZE(CACHE_LINE_SIZE),
@@ -144,9 +135,8 @@ end
     .core_req_tag('{core_tag_req}),
     .core_req_ready('{core_req_ready}),
 
-
-    .core_rsp_valid('{cache_valid}),
-    .core_rsp_data('{cache_data}),
+    .core_rsp_valid('{core_rsp_valid}),
+    .core_rsp_data('{core_rsp_data}),
     .core_rsp_tag('{core_tag_rsp}),
     .core_rsp_ready('{incmd_ready}), 
 
@@ -159,8 +149,8 @@ end
     .mem_req_ready('{mem_req_ready}), 
 
     .mem_rsp_valid('{mem_rsp_valid}), 
-    .mem_rsp_data('{incmd_mem_data}),
-    .mem_rsp_tag('{core_tag_req}),
+    .mem_rsp_data('{mem_rsp_data}),
+    .mem_rsp_tag('{mem_rsp_tag}),
     .mem_rsp_ready('{mem_rsp_ready}) 
 );
 
