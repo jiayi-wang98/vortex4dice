@@ -9,7 +9,7 @@ module active_cta_table
     output logic                 add_ready_o,
     input  logic                 add_valid_i,
     input  dice_cta_desc_t       add_cta_info_i,
-    input  logic           [1:0] add_hw_cta_size_i, // 00=1 slot, 01=2, 11=4
+    input  logic [1:0]           add_hw_cta_size_i, // 00=1 slot, 01=2, 11=4
 
     // Pop interface
     input  logic                            pop_valid_i,
@@ -17,11 +17,11 @@ module active_cta_table
     output logic                            pop_ready_o,
 
     // Output popped CTA interface (table is master)
-    output logic                                    out_valid_o,
-    input  logic                                    out_ready_i,
-    output dice_cta_id_t                            out_cta_id_o,
-    output logic         [      DICE_TID_WIDTH-1:0] out_cta_size_o,
-    output logic         [DICE_KERNEL_ID_WIDTH-1:0] out_kernel_id_o,
+    output logic                            out_valid_o,
+    input  logic                            out_ready_i,
+    output dice_cta_id_t                    out_cta_id_o,
+    output logic [DICE_TID_WIDTH-1:0]       out_cta_size_o,
+    output logic [DICE_KERNEL_ID_WIDTH-1:0] out_kernel_id_o,
 
     // Status outputs
     output active_cta_t [DICE_NUM_MAX_CTA_PER_CORE-1:0] active_cta_entries_o,
@@ -36,29 +36,29 @@ module active_cta_table
 
   // CTA table entry structure
   typedef struct packed {
-    logic is_primary;  // True for the first entry of a multi-entry CTA
-    logic [$clog2(DICE_NUM_MAX_CTA_PER_CORE):0] entries_used;  // Number of entries used by this CTA
-    active_cta_t entry_info;
+    logic                             is_primary;  // True for the first entry of a multi-entry CTA
+    logic [DICE_HW_CTA_ID_WIDTH:0]    entries_used;  // Number of entries used by this CTA
+    active_cta_t                      entry_info;
   } cta_entry_t;
 
-
   // CTA table storage
-  cta_entry_t                              cta_table_q               [DICE_NUM_MAX_CTA_PER_CORE];
+  cta_entry_t cta_table_q[DICE_NUM_MAX_CTA_PER_CORE];
 
-  // Output buffer for popped entries (flip-flops)
-  logic                                    output_buffer_valid_q;
-  dice_cta_id_t                            output_buffer_cta_id_q;
-  logic         [      DICE_TID_WIDTH-1:0] output_buffer_cta_size_q;
-  logic         [DICE_KERNEL_ID_WIDTH-1:0] output_buffer_kernel_id_q;
+  // Output buffer for popped entries
+  logic                            output_buffer_valid_q;
+  dice_cta_id_t                    output_buffer_cta_id_q;
+  logic [DICE_HW_CTA_ID_WIDTH-1:0] output_buffer_cta_size_q;
+  logic [DICE_KERNEL_ID_WIDTH-1:0] output_buffer_kernel_id_q;
 
   // Internal combinational signals
-  logic         [DICE_HW_CTA_ID_WIDTH-1:0] empty_index;
-  logic                                    found_empty;
-  logic         [  DICE_HW_CTA_ID_WIDTH:0] entries_needed;
-  logic         [  DICE_HW_CTA_ID_WIDTH:0] entries_to_clear;
+  logic [DICE_HW_CTA_ID_WIDTH-1:0] empty_index;
+  logic                            found_empty;
+  logic [DICE_HW_CTA_ID_WIDTH:0]   entries_needed;
+  logic [DICE_HW_CTA_ID_WIDTH:0]   entries_to_clear;
 
   // Use entries_needed from cta_controller (1, 2, or 4 slots)
-  assign entries_needed   = (DICE_HW_CTA_ID_WIDTH + 1)'(add_entries_needed_i);
+  assign entries_needed   = (DICE_HW_CTA_ID_WIDTH + 1)'(add_hw_cta_size_i) + 1;
+
   assign entries_to_clear = cta_table_q[pop_hw_cta_id_i].entries_used;
 
   // Find next empty entry - Contiguous Block Search
@@ -67,15 +67,15 @@ module active_cta_table
     empty_index = '0;
 
     // Search for a contiguous block of 'entries_needed' slots
-    for (int i = 0; i <= DICE_NUM_MAX_CTA_PER_CORE - 1; i++) begin
+    for (int i = 0; i < DICE_NUM_MAX_CTA_PER_CORE; i++) begin
       logic block_valid;
       block_valid = 1'b1;
 
       // Check if the block fits within the table bounds
-      if ((i + 32'(entries_needed)) <= DICE_NUM_MAX_CTA_PER_CORE) begin
+      if ((i + entries_needed) <= DICE_NUM_MAX_CTA_PER_CORE) begin
         // Check if all slots in the block are empty
         for (int k = 0; k < DICE_NUM_MAX_CTA_PER_CORE; k++) begin
-          if (k >= i && k < (i + 32'(entries_needed))) begin
+          if (k >= i && k < (i + entries_needed)) begin
             if (cta_table_q[k].entry_info.cta_valid == 1'b1) begin
               block_valid = 1'b0;
             end
