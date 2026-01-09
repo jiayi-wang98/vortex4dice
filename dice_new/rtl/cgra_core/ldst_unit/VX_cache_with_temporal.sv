@@ -50,6 +50,7 @@ module VX_cache_with_temporal #(
 
     
 );  
+
     logic incmd_ready;           // Ready signal for input command
     logic outcmd_valid;              // Output command valid signal
     logic [EBLOCK_ID_WIDTH-1:0] outcmd_block_id;    // Output command block ID
@@ -63,7 +64,8 @@ module VX_cache_with_temporal #(
     logic [MAX_REG_WIDTH-1:0] outcmd_ld_dest_reg;  // Load destination register
     logic [NUMBER_OF_MAX_COALESCED_COMMANDS-1:0][BASE_ADDRESS_OFFSET-1:0] outcmd_address_map; //map from tid bitmap to address_offset
     
-    
+    logic core_req_ready;
+
     typedef struct packed {
     logic [EBLOCK_ID_WIDTH-1:0] outcmd_block_id;
     logic [TID_WIDTH-1:0]       outcmd_base_tid;
@@ -114,7 +116,7 @@ module VX_cache_with_temporal #(
         .outcmd_size(outcmd_size),
         .outcmd_ld_dest_reg(outcmd_ld_dest_reg),
         .outcmd_address_map(outcmd_address_map),
-        .outcmd_ready(outcmd_ready) 
+        .outcmd_ready(core_req_ready) 
     );
 
     VX_cache_top #(

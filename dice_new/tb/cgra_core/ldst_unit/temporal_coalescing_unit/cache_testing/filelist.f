@@ -32,6 +32,7 @@ $DICE_HOME/rtl/cgra_core/ldst_unit/memory_cmd_coalesce_buffer.sv
 $DICE_HOME/rtl/cgra_core/dispatcher/sync_fifo_read_unreg.sv
 $HW_HOME/rtl/cache/VX_cache.sv
 $DICE_HOME/rtl/cgra_core/ldst_unit/VX_cache_with_temporal.sv
+$DICE_HOME/rtl/cgra_core/ldst_unit/smem.sv
 
 
 ./tb_vx_cache_with_temporal.sv
