@@ -61,11 +61,11 @@ module simt_stack_controller
   // Divergence Case Classification
   // Classifies branch divergence into one of 5 cases for stack operations
   typedef enum logic [2:0] {
-    DIV_NONE,        // No operation needed
-    DIV_POP,         // Pop stack (reached reconvergence point)
-    DIV_MODIFY_ONLY, // Update top PC only
-    DIV_PUSH_ONE,    // Modify top + push 1 entry
-    DIV_PUSH_TWO     // Modify top + push 2 entries (full divergence)
+    DIV_NONE,         // No operation needed
+    DIV_POP,          // Pop stack (reached reconvergence point)
+    DIV_MODIFY_ONLY,  // Update top PC only
+    DIV_PUSH_ONE,     // Modify top + push 1 entry
+    DIV_PUSH_TWO      // Modify top + push 2 entries (full divergence)
   } divergence_case_e;
 
   // ===========================================================================
@@ -111,16 +111,16 @@ module simt_stack_controller
   // Per-stack data signals
   logic [DICE_ADDR_WIDTH-1:0] stack_push_next_pc[DICE_NUM_MAX_CTA_PER_CORE];
   logic [DICE_ADDR_WIDTH-1:0] stack_push_reconvergence_pc[DICE_NUM_MAX_CTA_PER_CORE];
-  logic [ThreadWidth-1:0] stack_push_active_mask[DICE_NUM_MAX_CTA_PER_CORE];
+  logic [ThreadWidth-1:0]     stack_push_active_mask[DICE_NUM_MAX_CTA_PER_CORE];
   logic [DICE_ADDR_WIDTH-1:0] stack_top_next_pc_int[DICE_NUM_MAX_CTA_PER_CORE];
   logic [DICE_ADDR_WIDTH-1:0] stack_top_reconvergence_pc_int[DICE_NUM_MAX_CTA_PER_CORE];
-  logic [ThreadWidth-1:0] stack_top_active_mask_int[DICE_NUM_MAX_CTA_PER_CORE];
+  logic [ThreadWidth-1:0]     stack_top_active_mask_int[DICE_NUM_MAX_CTA_PER_CORE];
 
   // Combined stack output signals
-  logic combined_stack_out_valid;
+  logic                       combined_stack_out_valid;
   logic [DICE_ADDR_WIDTH-1:0] combined_stack_top_next_pc;
   logic [DICE_ADDR_WIDTH-1:0] combined_stack_top_reconvergence_pc;
-  thread_mask_t combined_stack_top_active_mask;
+  thread_mask_t               combined_stack_top_active_mask;
 
   // Divergence analysis signals
   thread_mask_t taken_active_mask;
@@ -154,11 +154,11 @@ module simt_stack_controller
 
   // Output status signals - direct pass-through
   assign stack_empty_o = stack_empty_individual;
-  assign stack_full_o  = stack_full_individual;
+  assign stack_full_o = stack_full_individual;
 
   // Handshake ready signals
   assign update_ready_o = (current_state_q == StateIdle) && (init_valid_i == 1'b0);
-  assign init_ready_o   = (current_state_q == StateIdle);
+  assign init_ready_o = (current_state_q == StateIdle);
 
   // ===========================================================================
   // SIMT STACK INSTANTIATION
@@ -193,15 +193,16 @@ module simt_stack_controller
 
   // Extract effective mask based on CTA size
   // Operates on the COMBINED mask already aggregated from stacks [hw_cta_id : hw_cta_id + n]
-  function automatic thread_mask_t get_effective_mask(
-    input logic [1:0] cta_size,
-    input thread_mask_t full_mask
-  );
+  function automatic thread_mask_t get_effective_mask(input logic [1:0] cta_size,
+                                                      input thread_mask_t full_mask);
     case (cta_size)
-      2'b00:   return {{(DICE_NUM_MAX_CTA_PER_CORE-1)*ThreadWidth{1'b0}}, full_mask[ThreadWidth-1:0]};
-      2'b01:   return {{(DICE_NUM_MAX_CTA_PER_CORE-2)*ThreadWidth{1'b0}}, full_mask[2*ThreadWidth-1:0]};
-      2'b11:   return full_mask;
-      default: return {{(DICE_NUM_MAX_CTA_PER_CORE-1)*ThreadWidth{1'b0}}, full_mask[ThreadWidth-1:0]};
+      2'b00:
+      return {{(DICE_NUM_MAX_CTA_PER_CORE - 1) * ThreadWidth{1'b0}}, full_mask[ThreadWidth-1:0]};
+      2'b01:
+      return {{(DICE_NUM_MAX_CTA_PER_CORE - 2) * ThreadWidth{1'b0}}, full_mask[2*ThreadWidth-1:0]};
+      2'b11: return full_mask;
+      default:
+      return {{(DICE_NUM_MAX_CTA_PER_CORE - 1) * ThreadWidth{1'b0}}, full_mask[ThreadWidth-1:0]};
     endcase
   endfunction
 
@@ -215,12 +216,9 @@ module simt_stack_controller
   // Accesses module-level signals: update_with_divergence_q, update_next_pc_q,
   // branch_not_taken_pc_q, all_taken, all_not_taken
   function automatic logic [DICE_ADDR_WIDTH-1:0] compute_new_top_pc();
-    if (!update_with_divergence_q || all_taken)
-      return update_next_pc_q;
-    else if (all_not_taken)
-      return branch_not_taken_pc_q;
-    else
-      return branch_reconvergence_pc_q;
+    if (!update_with_divergence_q || all_taken) return update_next_pc_q;
+    else if (all_not_taken) return branch_not_taken_pc_q;
+    else return branch_reconvergence_pc_q;
   endfunction
 
   // ============================================================
@@ -240,15 +238,10 @@ module simt_stack_controller
   // ============================================================
 
   function automatic divergence_case_e classify_divergence(
-    input logic with_divergence,
-    input logic [DICE_ADDR_WIDTH-1:0] next_pc,
-    input logic [DICE_ADDR_WIDTH-1:0] not_taken_pc,
-    input logic [DICE_ADDR_WIDTH-1:0] reconv_pc,
-    input logic [DICE_ADDR_WIDTH-1:0] stack_reconv_pc,
-    input logic in_all_taken,
-    input logic in_all_not_taken,
-    input logic in_has_divergence
-  );
+      input logic with_divergence, input logic [DICE_ADDR_WIDTH-1:0] next_pc,
+      input logic [DICE_ADDR_WIDTH-1:0] not_taken_pc, input logic [DICE_ADDR_WIDTH-1:0] reconv_pc,
+      input logic [DICE_ADDR_WIDTH-1:0] stack_reconv_pc, input logic in_all_taken,
+      input logic in_all_not_taken, input logic in_has_divergence);
     logic reached_reconvergence;
     logic three_distinct_pcs;
     logic taken_equals_reconv;
@@ -256,28 +249,22 @@ module simt_stack_controller
     // No divergence flag set
     if (!with_divergence) begin
       reached_reconvergence = (next_pc == stack_reconv_pc);
-      if (reached_reconvergence)
-        return DIV_POP;
-      else
-        return DIV_MODIFY_ONLY;
+      if (reached_reconvergence) return DIV_POP;
+      else return DIV_MODIFY_ONLY;
     end
 
     // All threads take branch
     if (in_all_taken) begin
       reached_reconvergence = (next_pc == stack_reconv_pc);
-      if (reached_reconvergence)
-        return DIV_POP;
-      else
-        return DIV_MODIFY_ONLY;
+      if (reached_reconvergence) return DIV_POP;
+      else return DIV_MODIFY_ONLY;
     end
 
     // All threads don't take branch
     if (in_all_not_taken) begin
       reached_reconvergence = (not_taken_pc == stack_reconv_pc);
-      if (reached_reconvergence)
-        return DIV_POP;
-      else
-        return DIV_MODIFY_ONLY;
+      if (reached_reconvergence) return DIV_POP;
+      else return DIV_MODIFY_ONLY;
     end
 
     // Real divergence - threads split
@@ -285,12 +272,10 @@ module simt_stack_controller
       three_distinct_pcs = (next_pc != reconv_pc) &&
                            (not_taken_pc != reconv_pc) &&
                            (reconv_pc != stack_reconv_pc);
-      if (three_distinct_pcs)
-        return DIV_PUSH_TWO;
+      if (three_distinct_pcs) return DIV_PUSH_TWO;
 
       taken_equals_reconv = (next_pc == reconv_pc) && (reconv_pc != stack_reconv_pc);
-      if (taken_equals_reconv)
-        return DIV_PUSH_ONE;
+      if (taken_equals_reconv) return DIV_PUSH_ONE;
 
       return DIV_MODIFY_ONLY;
     end
@@ -340,7 +325,7 @@ module simt_stack_controller
   end
 
   // Extract effective active mask based on CTA size
-  assign effective_active_mask = get_effective_mask(hw_cta_size_q, combined_stack_top_active_mask);
+  assign effective_active_mask = get_effective_mask(hw_cta_size_q, combined_stack_top_active_mask); //this may bne 
 
   // ===========================================================================
   // COMBINATIONAL LOGIC: DIVERGENCE ANALYSIS
@@ -401,11 +386,11 @@ module simt_stack_controller
           need_push_first_next = 1'b1;
         end
         DIV_PUSH_TWO: begin
-          need_modify_top_next = 1'b1;
-          need_push_first_next = 1'b1;
+          need_modify_top_next  = 1'b1;
+          need_push_first_next  = 1'b1;
           need_push_second_next = 1'b1;
         end
-        default: ; // DIV_NONE - no operation
+        default: ;  // DIV_NONE - no operation
       endcase
     end
   end
@@ -419,8 +404,8 @@ module simt_stack_controller
   always_comb begin
     // -------- Default Values --------
     new_top_entry_next = '0;
-    push_entry_1_next = '0;
-    push_entry_2_next = '0;
+    push_entry_1_next  = '0;
+    push_entry_2_next  = '0;
 
     if ((current_state_q == StateReadTop) && (combined_stack_out_valid == 1'b1)) begin
       case (current_div_case)
@@ -450,7 +435,7 @@ module simt_stack_controller
           push_entry_2_next.reconvergence_pc = branch_reconvergence_pc_q;
           push_entry_2_next.active_mask = not_taken_active_mask;
         end
-        default: ; // DIV_POP, DIV_NONE - no entry modification
+        default: ;  // DIV_POP, DIV_NONE - no entry modification
       endcase
     end
   end
