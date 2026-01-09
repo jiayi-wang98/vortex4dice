@@ -212,7 +212,7 @@ module tb_vx_cache_with_temporal;
     end
         incmd_write_enable = 0; @(posedge clk);
         
-        #10000
+        #1000
 
        
     $finish;
