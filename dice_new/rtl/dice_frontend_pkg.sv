@@ -159,13 +159,19 @@ package dice_frontend_pkg;
 
 
   // =========================================================
+  // SIMT Stack Structures
+  // =========================================================
+
+  typedef struct packed {
+    logic [DICE_ADDR_WIDTH-1:0]        pc;
+    logic [DICE_ADDR_WIDTH-1:0]        reconvergence_pc;
+    logic [SIMT_STACK_THREAD_WIDTH-1:0] active_mask;
+  } stack_entry_t;
+
+  // =========================================================
   // Interface Support Structures
   // =========================================================
 
-  /**
-   * SIMT Stack Status Entry
-   * Per-CTA status from the SIMT stack controller.
-   */
   typedef struct packed {
     logic                              valid;
     logic [DICE_ADDR_WIDTH-1:0]        next_pc;
@@ -175,10 +181,6 @@ package dice_frontend_pkg;
     logic                              full;
   } simt_stack_status_entry_t;
 
-  /**
-   * Branch Control Structure
-   * Aggregates divergence and prefetch clearing signals from FDR.
-   */
   typedef struct packed {
     logic                            clear_divergence_valid;
     logic [DICE_HW_CTA_ID_WIDTH-1:0] clear_divergence_cta_id;

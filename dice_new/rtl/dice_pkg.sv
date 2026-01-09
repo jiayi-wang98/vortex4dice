@@ -88,6 +88,14 @@ package dice_pkg;
     logic                            is_barrier;
   } branch_predict_interface_t;  // Branch prediction interface descriptor
 
+  // CTA size encoding for SIMT stack allocation
+  // Represents number of stacks a CTA spans: 1, 2, or 4
+  typedef enum logic [1:0] {
+    CTA_SIZE_1_STACK  = 2'b00,  // 1 stack
+    CTA_SIZE_2_STACKS = 2'b01,  // 2 stacks
+    CTA_SIZE_4_STACKS = 2'b11   // 4 stacks
+  } cta_size_e;
+
   typedef struct packed {
     logic [DICE_NUM_MAX_CTA_PER_CORE-1:0] hw_cta_pending;
   } block_retire_status_t;  // Block retire status descriptor
