@@ -35,26 +35,37 @@ import dice_pkg::*;
 
     // Extract first TID from packed input
     logic [TID_WIDTH-1:0] tid;
-    logic [$clog2(DICE_NUM_BANKS)-1:0] bank_idx;
-
-    // Grab the first TID and compute its bank index
     assign tid = rd_tid_i[0 +: TID_WIDTH];
-    assign bank_idx = bank_select(tid, rd_bitmap_i[$clog2(DICE_NUM_REGS)-1:0]);
+
+    // Compute shift amount from tid (tid mod NUM_PORTS)
+    logic [$clog2(NUM_PORTS)-1:0] shift_amt;
+    assign shift_amt = tid[$clog2(NUM_PORTS)-1:0];
+
+    // Circular left shift of bitmap by shift_amt
+    // result = (bitmap << shift_amt) | (bitmap >> (NUM_PORTS - shift_amt))
+    logic [NUM_PORTS-1:0] shifted_bitmap;
+    assign shifted_bitmap = (rd_bitmap_i << shift_amt) 
+                          | (rd_bitmap_i >> (NUM_PORTS - shift_amt));
 
     // Ready when enabled
     assign rd_tid_ready_o = rd_en_i;
 
-    // Swizzle logic: route TID to its calculated bank position
+    // Swizzle logic: route TID to banks where shifted bitmap has 1s
     always_comb begin
         // Initialize outputs to zero
         rd_sel_o = '0;
         rd_valid_o = '0;
 
         if (rd_en_i && rd_tid_valid_i) begin
-            // Insert TID at the bank position in output vector
-            rd_sel_o[bank_idx*TID_WIDTH +: TID_WIDTH] = tid;
-            // Set valid bit for this bank
-            rd_valid_o[bank_idx] = 1'b1;
+            // Set valid bits from shifted bitmap
+            rd_valid_o = shifted_bitmap;
+
+            // For each bank with valid bit set, place the TID
+            for (int i = 0; i < NUM_PORTS; i++) begin
+                if (shifted_bitmap[i]) begin
+                    rd_sel_o[i*TID_WIDTH +: TID_WIDTH] = tid;
+                end
+            end
         end
     end
 
