@@ -176,11 +176,7 @@ module decode_tb;
     $display(" ALL TESTS PASSED: decode_tb");
     $display("=============================================================");
 
-`ifdef MODELSIM
-    $stop;
-`else
     $finish;
-`endif
   end
 
   // ===========================================================================

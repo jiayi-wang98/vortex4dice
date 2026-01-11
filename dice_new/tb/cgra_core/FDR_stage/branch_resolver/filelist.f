@@ -19,5 +19,5 @@ ${DICE_HOME}/dice_new/rtl/interfaces/prf_if.sv
 ${DICE_HOME}/dice_new/rtl/interfaces/fdr_if.sv
 ${DICE_HOME}/dice_new/rtl/dice_ram/dice_ram_1w1r.sv
 ${DICE_HOME}/dice_new/rtl/dice_ram/dice_ram_1rw.sv
-${DICE_HOME}/dice_new/rtl/cgra_core/cta_schedule/simt_stack_controller.sv
-simt_stack_controller_tb.sv
+${DICE_HOME}/dice_new/rtl/cgra_core/fetch_stage/branch_resolver.sv
+branch_resolver_tb.sv

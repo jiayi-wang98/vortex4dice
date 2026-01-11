@@ -45,18 +45,18 @@ module active_cta_table_tb;
   logic                                                                     add_ready_o;
   logic                                                                     add_valid_i;
   dice_pkg::dice_cta_desc_t                                                 add_cta_info_i;
-  logic                           [                                    1:0] add_hw_cta_size_i;
-  logic                           [                                    2:0] add_entries_needed_i;
+  logic                           [1:0] add_hw_cta_size_i;
+// logic                           [2:0] add_entries_needed_i; // Removed: Logic internal to DUT
 
-  logic                                                                     pop_valid_i;
-  logic                           [     dice_pkg::DICE_HW_CTA_ID_WIDTH-1:0] pop_hw_cta_id_i;
-  logic                                                                     pop_ready_o;
+  logic                                                                    pop_valid_i;
+  logic                           [dice_pkg::DICE_HW_CTA_ID_WIDTH-1:0] pop_hw_cta_id_i;
+  logic                                                                    pop_ready_o;
 
-  logic                                                                     out_valid_o;
-  logic                                                                     out_ready_i;
+  logic                                                                    out_valid_o;
+  logic                                                                    out_ready_i;
   dice_pkg::dice_cta_id_t                                                   out_cta_id_o;
-  logic                           [           dice_pkg::DICE_TID_WIDTH-1:0] out_cta_size_o;
-  logic                           [     dice_pkg::DICE_KERNEL_ID_WIDTH-1:0] out_kernel_id_o;
+  logic                           [dice_pkg::DICE_TID_WIDTH-1:0] out_cta_size_o;
+  logic                           [dice_pkg::DICE_KERNEL_ID_WIDTH-1:0] out_kernel_id_o;
 
   dice_frontend_pkg::active_cta_t [dice_pkg::DICE_NUM_MAX_CTA_PER_CORE-1:0] active_cta_entries_o;
 
@@ -107,7 +107,7 @@ module active_cta_table_tb;
       .add_valid_i           (add_valid_i),
       .add_cta_info_i        (add_cta_info_i),
       .add_hw_cta_size_i     (add_hw_cta_size_i),
-      .add_entries_needed_i  (add_entries_needed_i),
+      // .add_entries_needed_i  (add_entries_needed_i), // Removed
       .pop_valid_i           (pop_valid_i),
       .pop_hw_cta_id_i       (pop_hw_cta_id_i),
       .pop_ready_o           (pop_ready_o),
@@ -138,7 +138,8 @@ module active_cta_table_tb;
     add_valid_i          = 1'b0;
     add_cta_info_i       = '0;
     add_hw_cta_size_i    = 2'b00;
-    add_entries_needed_i = 3'd1;
+    add_hw_cta_size_i    = 2'b00;
+    // add_entries_needed_i = 3'd1;
     pop_valid_i          = 1'b0;
     pop_hw_cta_id_i      = '0;
     out_ready_i          = 1'b1;
@@ -151,7 +152,7 @@ module active_cta_table_tb;
     add_valid_i          = 1'b0;
     add_cta_info_i       = '0;
     add_hw_cta_size_i    = 2'b00;
-    add_entries_needed_i = 3'd1;
+    // add_entries_needed_i = 3'd1;
     pop_valid_i          = 1'b0;
     pop_hw_cta_id_i      = '0;
     out_ready_i          = 1'b1;
@@ -163,11 +164,14 @@ module active_cta_table_tb;
     encoded_size         = encode_hw_cta_size(size);
     add_cta_info_i       = desc;
     add_hw_cta_size_i    = encoded_size;
-    add_entries_needed_i = decode_entries(encoded_size);
+    // add_entries_needed_i = decode_entries(encoded_size);
     add_valid_i          = 1'b1;
     @(posedge clk);
     // Wait for handshake
-    while (add_ready_o != 1'b1) @(posedge clk);
+    while (add_ready_o != 1'b1) begin
+        $display("[%0t] Waiting for add_ready_o...", $time);
+        @(posedge clk);
+    end
     @(posedge clk);
     add_valid_i = 1'b0;
   endtask
@@ -177,7 +181,10 @@ module active_cta_table_tb;
     pop_valid_i     = 1'b1;
     @(posedge clk);
     // Wait for handshake
-    while (pop_ready_o != 1'b1) @(posedge clk);
+    while (pop_ready_o != 1'b1) begin
+         $display("[%0t] Waiting for pop_ready_o...", $time);
+         @(posedge clk);
+    end
     @(posedge clk);
     pop_valid_i = 1'b0;
   endtask
@@ -188,6 +195,8 @@ module active_cta_table_tb;
   initial begin
     int rand_val;
     dice_pkg::dice_cta_desc_t test_desc;
+    logic [dice_pkg::DICE_TID_WIDTH:0] rand_size;
+    logic [1:0] encoded_rand_size;
 
     $display("=============================================================");
     $display(" active_cta_table Testbench");
@@ -246,7 +255,8 @@ module active_cta_table_tb;
     test_desc = '0;
     test_desc.kernel_desc.kernel_id = 2;
     add_cta_info_i = test_desc;
-    add_cta_size_i = 32;
+    // add_cta_size_i = 32; // Error variable
+    add_hw_cta_size_i = 2'b00; // Fixed: using correct input signal and value
     add_valid_i    = 1'b1;
     @(posedge clk);
     add_valid_i = 1'b0;  // Deassert before handshake
@@ -267,12 +277,25 @@ module active_cta_table_tb;
     rand_val = RandSeed;
     for (int i = 0; i < 20; i++) begin
       rand_val = rand_val * 1103515245 + 12345;
-      if ((rand_val[7:0] % 2) == 0 && full_o != 1'b1) begin
+      
+      // Determine potential size for this iteration
+      rand_size = rand_val[dice_pkg::DICE_TID_WIDTH:0];
+      encoded_rand_size = encode_hw_cta_size(rand_size); // Helper function
+      
+      // Drive size tentatively to check ready
+      add_hw_cta_size_i = encoded_rand_size;
+      #1; // Allow combinatorial logic to settle
+      
+      if ((rand_val[7:0] % 2) == 0 && add_ready_o == 1'b1) begin
         test_desc = '0;
         test_desc.kernel_desc.kernel_id = rand_val[dice_pkg::DICE_KERNEL_ID_WIDTH-1:0];
-        add_cta(test_desc, rand_val[dice_pkg::DICE_TID_WIDTH:0]);
+        $display("[%0t] Loop %0d: Testing add_cta", $time, i);
+        add_cta(test_desc, rand_size);
       end else if (pop_ready_o == 1'b1) begin
+        $display("[%0t] Loop %0d: Testing pop_cta", $time, i);
         pop_cta(rand_val[dice_pkg::DICE_HW_CTA_ID_WIDTH-1:0]);
+      end else begin
+        $display("[%0t] Loop %0d: Skipped (add_ready=%b, pop_ready=%b)", $time, i, add_ready_o, pop_ready_o);
       end
     end
     $display("[%0t] PASS: Random smoke test complete", $time);

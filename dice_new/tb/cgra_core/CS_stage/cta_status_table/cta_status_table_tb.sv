@@ -268,11 +268,7 @@ module cta_status_table_tb;
     $display(" ALL TESTS PASSED: cta_status_table_tb");
     $display("=============================================================");
 
-`ifdef MODELSIM
-    $stop;
-`else
     $finish;
-`endif
   end
 
   // ===========================================================================

@@ -48,10 +48,7 @@ module simt_stack_tb;
     end
   end
 
-  simt_stack #(
-      .STACK_DEPTH (StackDepth),
-      .THREAD_WIDTH(ThreadWidth)
-  ) u_dut (
+  simt_stack u_dut (
       .clk_i                  (clk),
       .rst_i                  (rst),
       .push_i                 (push_i),

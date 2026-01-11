@@ -198,7 +198,6 @@ module fdr_top
       .rst_i               (rst_i),
       .schedule_valid_i    (schedule_if.valid),
       .fdr_next_pc_i       (schedule_if.data.schedule_next_pc),
-      .schedule_eblock_id_i(schedule_if.data.schedule_eblock_id),
       .schedule_ready_o    (schedule_ready_internal),
       .meta_fetch_bus_if   (metacache_mem_if),
       .outgoing_meta_o     (meta_internal),
@@ -243,10 +242,10 @@ module fdr_top
   // Valid Checker
   valid_check u_valid_check (
       .barrier_indicator_i(is_barrier_internal),
-      .mask_valid_i       (branch_mask_valid),
+      .decode_done_i      (branch_mask_valid), // Renamed from mask_valid_i
       .eblock_pc_i        (schedule_if.data.schedule_next_pc),
       .prefetch_block_i   (schedule_if.data.schedule_prefetch_block),
-      .hw_cta_id_i        (current_hw_cta_id),
+      // .hw_cta_id_i        (current_hw_cta_id), // Removed
       .simt_stack_pc_i    (simt_stack_pc),
       .bitstream_loaded_i (done_streaming_internal),
       .unresolved_div_i   (bh_if.cta_status_data[current_hw_cta_id].unresolved_control_divergence),

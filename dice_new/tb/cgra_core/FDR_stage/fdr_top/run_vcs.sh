@@ -1,7 +1,10 @@
 #!/bin/bash
-vcs -full64 -timescale=1ns/1ps -sverilog -f filelist.f \
-    -debug_access+all -kdb -lca +vpi \
-    +define+FSDB \
+vcs -full64 -sverilog -dd -debug_access+all -kdb -lca -f filelist.f \
+    +vcs+initreg+random \
+    +define+NO_SRAM \
+    -timescale=1ns/1ps \
     -o simv
 
-./simv
+if [ $? -eq 0 ]; then
+    ./simv -gui=verdi &
+fi

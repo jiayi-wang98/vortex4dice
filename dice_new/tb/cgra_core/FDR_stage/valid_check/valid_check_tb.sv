@@ -52,10 +52,10 @@ module valid_check_tb;
   // DUT Signals
   // ===========================================================================
   logic                       barrier_indicator_i;
-  logic                       mask_valid_i;
-  logic [DICE_ADDR_WIDTH-1:0] eblock_pc_i;
-  logic                       prefetch_block_i;
-  logic [DICE_HW_CTA_ID_WIDTH-1:0] hw_cta_id_i;
+  logic                       decode_done_i; // Renamed from mask_valid_i
+  logic [DICE_ADDR_WIDTH-1:0] eblock_pc_i; // Added missing declaration
+  logic                       prefetch_block_i; // Added missing declaration
+  // logic [DICE_HW_CTA_ID_WIDTH-1:0] hw_cta_id_i; // Removed
   logic [DICE_ADDR_WIDTH-1:0] simt_stack_pc_i;
   logic                       bitstream_loaded_i;
   logic                       unresolved_div_i;
@@ -72,10 +72,10 @@ module valid_check_tb;
   // ===========================================================================
   valid_check u_dut (
       .barrier_indicator_i(barrier_indicator_i),
-      .mask_valid_i       (mask_valid_i),
+      .decode_done_i      (decode_done_i), // Renamed
       .eblock_pc_i        (eblock_pc_i),
       .prefetch_block_i   (prefetch_block_i),
-      .hw_cta_id_i        (hw_cta_id_i),
+      // .hw_cta_id_i        (hw_cta_id_i), // Removed
       .simt_stack_pc_i    (simt_stack_pc_i),
       .bitstream_loaded_i (bitstream_loaded_i),
       .unresolved_div_i   (unresolved_div_i),
@@ -94,10 +94,11 @@ module valid_check_tb;
   task automatic reset_dut();
     rst                 = 1'b1;
     barrier_indicator_i = 1'b0;
-    mask_valid_i        = 1'b0;
+    barrier_indicator_i = 1'b0;
+    decode_done_i       = 1'b0;
     eblock_pc_i         = '0;
     prefetch_block_i    = 1'b0;
-    hw_cta_id_i         = '0;
+    // hw_cta_id_i         = '0;
     simt_stack_pc_i     = '0;
     bitstream_loaded_i  = 1'b0;
     unresolved_div_i    = 1'b0;
@@ -125,7 +126,8 @@ module valid_check_tb;
 
     // Set all enabling conditions
     bitstream_loaded_i  = 1'b1;  // Bitstream loaded
-    mask_valid_i        = 1'b1;  // Decode done
+    bitstream_loaded_i  = 1'b1;  // Bitstream loaded
+    decode_done_i       = 1'b1;  // Decode done
     barrier_indicator_i = 1'b0;  // No barrier required
     prefetch_block_i    = 1'b0;  // Not a prefetch block
     unresolved_div_i    = 1'b0;  // No unresolved divergence
@@ -145,7 +147,8 @@ module valid_check_tb;
     reset_dut();
 
     bitstream_loaded_i  = 1'b0;  // NOT loaded
-    mask_valid_i        = 1'b1;
+    bitstream_loaded_i  = 1'b0;  // NOT loaded
+    decode_done_i       = 1'b1;
     barrier_indicator_i = 1'b0;
     prefetch_block_i    = 1'b0;
     unresolved_div_i    = 1'b0;
@@ -163,7 +166,8 @@ module valid_check_tb;
     reset_dut();
 
     bitstream_loaded_i  = 1'b1;
-    mask_valid_i        = 1'b1;
+    bitstream_loaded_i  = 1'b1;
+    decode_done_i       = 1'b1;
     prefetch_block_i    = 1'b1;  // IS a prefetch block
     prefetch_cleared_i  = 1'b0;  // Prefetch NOT cleared yet
     unresolved_div_i    = 1'b0;  // Divergence resolved

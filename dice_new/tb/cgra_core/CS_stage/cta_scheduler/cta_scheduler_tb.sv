@@ -50,6 +50,7 @@ module cta_scheduler_tb;
   dice_frontend_pkg::cta_status_t [dice_pkg::DICE_NUM_MAX_CTA_PER_CORE-1:0] cta_status_entries_i;
 
   logic [dice_pkg::DICE_NUM_MAX_CTA_PER_CORE-1:0][dice_pkg::DICE_ADDR_WIDTH-1:0] cta_next_pc_i;
+  logic [dice_pkg::DICE_NUM_MAX_CTA_PER_CORE-1:0][dice_pkg::DICE_NUM_MAX_THREADS_PER_CORE/dice_pkg::DICE_NUM_MAX_CTA_PER_CORE-1:0] stack_top_active_mask_i; // Added
 
   logic eblock_commit_valid_i;
   logic [dice_frontend_pkg::EBLOCK_ID_WIDTH-1:0] eblock_commit_id_i;
@@ -76,16 +77,14 @@ module cta_scheduler_tb;
   // ===========================================================================
   // DUT Instantiation
   // ===========================================================================
-  cta_scheduler #(
-      .MAX_EBLOCK  (MaxEblock),
-      .THREAD_WIDTH(ThreadWidth)
-  ) u_dut (
+  cta_scheduler u_dut (
       .clk_i                (clk),
       .rst_i                (rst),
       .enable_i             (enable_i),
       .active_cta_entries_i (active_cta_entries_i),
       .cta_status_entries_i (cta_status_entries_i),
       .cta_next_pc_i        (cta_next_pc_i),
+      .stack_top_active_mask_i(stack_top_active_mask_i), // Added
       .eblock_commit_valid_i(eblock_commit_valid_i),
       .eblock_commit_id_i   (eblock_commit_id_i),
       .scheduled_eblock     (scheduled_eblock)
@@ -108,7 +107,9 @@ module cta_scheduler_tb;
     enable_i               = 1'b1;
     active_cta_entries_i   = '0;
     cta_status_entries_i   = '0;
+    cta_status_entries_i   = '0;
     cta_next_pc_i          = '0;
+    stack_top_active_mask_i = '0; // Added
     eblock_commit_valid_i  = 1'b0;
     eblock_commit_id_i     = '0;
     scheduled_eblock.ready = 1'b1;
