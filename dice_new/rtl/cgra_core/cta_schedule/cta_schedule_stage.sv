@@ -64,7 +64,7 @@ module cta_schedule_stage
   logic active_table_add_valid;
   dice_cta_desc_t active_table_cta_desc;
   logic [1:0] active_table_hw_cta_size;
-  logic [2:0] active_table_entries_needed;
+
   logic active_table_pop_valid;
   logic [DICE_HW_CTA_ID_WIDTH-1:0] active_table_pop_hw_id;
   logic active_table_pop_ready;
@@ -123,7 +123,6 @@ module cta_schedule_stage
       .add_ready_i            (active_table_add_ready),
       .add_cta_info_o         (active_table_cta_desc),
       .add_hw_cta_size_o      (active_table_hw_cta_size),
-      .add_entries_needed_o   (active_table_entries_needed),
       .next_empty_cta_index_i (active_table_next_empty_idx),
       .pop_valid_o            (active_table_pop_valid),
       .pop_hw_cta_id_o        (active_table_pop_hw_id),
@@ -150,8 +149,9 @@ module cta_schedule_stage
       .add_valid_i           (active_table_add_valid),
       .add_cta_info_i        (active_table_cta_desc),
       .add_hw_cta_size_i     (active_table_hw_cta_size),
-      .add_entries_needed_i  (active_table_entries_needed),
+
       .pop_valid_i           (active_table_pop_valid),
+
       .pop_hw_cta_id_i       (active_table_pop_hw_id),
       .pop_ready_o           (active_table_pop_ready),
       .out_valid_o           (active_table_out_valid),

@@ -125,7 +125,7 @@ module cta_scheduler_tb;
 
   task automatic set_active_cta(input int idx, input logic [dice_pkg::DICE_ADDR_WIDTH-1:0] next_pc);
     active_cta_entries_i[idx].cta_valid = 1'b1;
-    active_cta_entries_i[idx].hw_cta_id = idx[dice_pkg::DICE_CTA_ID_WIDTH:0];
+
     active_cta_entries_i[idx].kernel_id = 1;
     cta_next_pc_i[idx] = next_pc;
     // Set is_prefetch to 0 so it can be scheduled

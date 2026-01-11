@@ -2,38 +2,37 @@ module cta_controller
   import dice_pkg::*;
   import dice_frontend_pkg::*;
 (
-    input logic clk_i,
-    input logic rst_i,
+    input  logic                                            clk_i,
+    input  logic                                            rst_i,
 
-    //cta dispatcher interface
-    cta_dispatch_if.slave  dispatch_if,
-    cta_complete_if.master complete_if,
+    // CTA Dispatcher Interface
+    cta_dispatch_if.slave                                   dispatch_if,
+    cta_complete_if.master                                  complete_if,
 
-    //active cta table
-    output logic pop_valid_o,
-    output logic [DICE_HW_CTA_ID_WIDTH-1:0] pop_hw_cta_id_o,
-    input logic pop_ready_i,  // Backpressure from active_cta_table
-    input logic add_ready_i,
-    output logic add_valid_o,
-    output dice_cta_desc_t add_cta_info_o,
-    output logic [1:0] add_hw_cta_size_o,  // 00=1 slot, 01=2 slots, 11=4 slots
-    input logic [DICE_HW_CTA_ID_WIDTH-1:0] next_empty_cta_index_i,
-    input logic [DICE_NUM_MAX_CTA_PER_CORE-1:0] active_cta_status_i,  // Validity bitmap
-    input logic pop_out_valid_i,
-    input dice_cta_id_t pop_out_cta_id_i,
+    // Active CTA Table
+    output logic                                            pop_valid_o,
+    output logic [DICE_HW_CTA_ID_WIDTH-1:0]                 pop_hw_cta_id_o,
+    input  logic                                            pop_ready_i,            // Backpressure from active_cta_table
+    input  logic                                            add_ready_i,
+    output logic                                            add_valid_o,
+    output dice_cta_desc_t                                  add_cta_info_o,
+    output logic [1:0]                                      add_hw_cta_size_o,      // 00=1 slot, 01=2 slots, 11=4 slots
+    input  logic [DICE_HW_CTA_ID_WIDTH-1:0]                 next_empty_cta_index_i,
+    input  logic [DICE_NUM_MAX_CTA_PER_CORE-1:0]            active_cta_status_i,    // Validity bitmap
+    input  logic                                            pop_out_valid_i,
+    input  dice_cta_id_t                                    pop_out_cta_id_i,
 
-    //SIMT Stack Controller
-    output logic init_valid_o,
-    input logic init_ready_i,
-    output logic [DICE_HW_CTA_ID_WIDTH-1:0] init_hw_cta_id_o,
-    output logic [DICE_HW_CTA_ID_WIDTH-1:0]     init_hw_cta_size_o,  // 00=1 stack, 01=2 stacks, 11=4 stacks
-    output logic [DICE_ADDR_WIDTH-1:0] init_pc_o,
-    output logic [DICE_ADDR_WIDTH-1:0] init_reconvergence_pc_o,
+    // SIMT Stack Controller
+    output logic                                            init_valid_o,
+    input  logic                                            init_ready_i,
+    output logic [DICE_HW_CTA_ID_WIDTH-1:0]                 init_hw_cta_id_o,
+    output logic [DICE_HW_CTA_ID_WIDTH-1:0]                 init_hw_cta_size_o,     // 00=1 stack, 01=2 stacks, 11=4 stacks
+    output logic [DICE_ADDR_WIDTH-1:0]                      init_pc_o,
+    output logic [DICE_ADDR_WIDTH-1:0]                      init_reconvergence_pc_o,
 
-    //cta status table -- NEED TO BE ABLE TO ADD TO IT
-    input dice_cta_status_t [DICE_NUM_MAX_CTA_PER_CORE-1:0] cta_status_table_i, //THIS NEEDS TO BE CHANGED TO JUST SHOW THE IMPORTANT INFORMATION
-    output logic clear_entry_valid_o,
-    output logic [DICE_HW_CTA_ID_WIDTH-1:0] clear_entry_hw_id_o
+    input  dice_cta_status_t [DICE_NUM_MAX_CTA_PER_CORE-1:0]cta_status_table_i,
+    output logic                                            clear_entry_valid_o,
+    output logic [DICE_HW_CTA_ID_WIDTH-1:0]                 clear_entry_hw_id_o
 );
 
   // Threads per CTA slot (threads that fit in one stack)
@@ -104,9 +103,9 @@ module cta_controller
     // We need to check all slots
     for (int i = 0; i < DICE_NUM_MAX_CTA_PER_CORE; i++) begin
       idx = completion_ptr_q + i;
-      if ((active_cta_status_i[idx] == 1'b1) && 
-          (cta_status_table_i[idx].has_pending_eblock == 1'b0) && 
-          (victim_found == 1'b0) && 
+      if ((active_cta_status_i[idx] == 1'b1) &&
+          (cta_status_table_i[idx].has_pending_eblock == 1'b0) &&
+          (victim_found == 1'b0) &&
           (cta_status_table_i[idx].is_return == 1'b1)) begin
         victim_found = 1'b1;
         victim_id = idx;

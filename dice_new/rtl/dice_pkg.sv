@@ -9,19 +9,20 @@ package dice_pkg;
   // Derived parameters (computed from configuration)
   // =========================================================
   parameter int DICE_NUM_MAX_THREADS_PER_CORE = `DICE_NUM_MAX_THREADS_PER_CORE;
-  parameter int DICE_NUM_MAX_CTA_PER_CORE = `DICE_NUM_MAX_CTA_PER_CORE;
+  parameter int DICE_NUM_MAX_CTA_PER_CORE     = `DICE_NUM_MAX_CTA_PER_CORE;
+  parameter int DICE_METADATA_WIDTH           = `DICE_METADATA_WIDTH;
 
-  parameter int DICE_ADDR_WIDTH = `DICE_ADDR_WIDTH;
-  parameter int DICE_KERNEL_ID_WIDTH = $clog2(`DICE_MAX_KERNEL_ID);
-  parameter int DICE_CTA_ID_WIDTH = $clog2(`DICE_MAX_GRID_SIZE);
-  parameter int DICE_TID_WIDTH = $clog2(`DICE_NUM_MAX_THREADS_PER_CORE);
-  parameter int DICE_HW_CTA_ID_WIDTH = $clog2(`DICE_NUM_MAX_CTA_PER_CORE);
-  parameter int DICE_HW_CTA_SIZE_WIDTH = $clog2(`DICE_NUM_MAX_THREADS_PER_CORE) + 1;
-  parameter int DICE_EBLOCK_ID_WIDTH = `DICE_NUM_RETIRE_TABLE_ENTRIES + 4;
-  parameter int DICE_CLUSTER_ID_WIDTH = $clog2(`DICE_NUM_CGRA_CLUSTERS);
-  parameter int DICE_CORE_ID_WIDTH = $clog2(`DICE_NUM_CGRA_CORES);
-  parameter int DICE_SMEM_SIZE_WIDTH = $clog2(`DICE_SMEM_SIZE_PER_CORE);
-  parameter int DICE_BITSTREAM_SIZE = 2048;  // 256 bytes max bitstream size
+  parameter int DICE_ADDR_WIDTH               = `DICE_ADDR_WIDTH;
+  parameter int DICE_KERNEL_ID_WIDTH          = $clog2(`DICE_MAX_KERNEL_ID);
+  parameter int DICE_CTA_ID_WIDTH             = $clog2(`DICE_MAX_GRID_SIZE);
+  parameter int DICE_TID_WIDTH                = $clog2(`DICE_NUM_MAX_THREADS_PER_CORE);
+  parameter int DICE_HW_CTA_ID_WIDTH          = $clog2(`DICE_NUM_MAX_CTA_PER_CORE);
+  parameter int DICE_HW_CTA_SIZE_WIDTH        = $clog2(`DICE_NUM_MAX_THREADS_PER_CORE) + 1;
+  parameter int DICE_EBLOCK_ID_WIDTH          = `DICE_NUM_RETIRE_TABLE_ENTRIES + 4;
+  parameter int DICE_CLUSTER_ID_WIDTH         = $clog2(`DICE_NUM_CGRA_CLUSTERS);
+  parameter int DICE_CORE_ID_WIDTH            = $clog2(`DICE_NUM_CGRA_CORES);
+  parameter int DICE_SMEM_SIZE_WIDTH          = $clog2(`DICE_SMEM_SIZE_PER_CORE);
+  parameter int DICE_BITSTREAM_SIZE           = 2048;  // 256 bytes max bitstream size
 
   // =========================================================
   // Type definitions

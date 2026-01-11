@@ -14,34 +14,26 @@ module cta_scheduler
     input logic enable_i, // Enable signal for scheduler operation
 
     // Active CTA Table
-    input active_cta_t [DICE_NUM_MAX_CTA_PER_CORE-1:0]
-        active_cta_entries_i,
+    input active_cta_t [DICE_NUM_MAX_CTA_PER_CORE-1:0] active_cta_entries_i,
 
     //CTA STATUS TABLE
-    input cta_status_t [DICE_NUM_MAX_CTA_PER_CORE-1:0]
-        cta_status_entries_i,
+    input cta_status_t [DICE_NUM_MAX_CTA_PER_CORE-1:0] cta_status_entries_i,
 
     //SIMT STACK
-    //do i need this: stack_top_valid
-    input logic [DICE_NUM_MAX_CTA_PER_CORE-1:0][DICE_ADDR_WIDTH-1:0]
-        cta_next_pc_i,
+    // input logic [DICE_NUM_MAX_CTA_PER_CORE-1:0] stack_top_valid_i,
+    input logic [DICE_NUM_MAX_CTA_PER_CORE-1:0][DICE_ADDR_WIDTH-1:0] cta_next_pc_i,
     input logic [DICE_NUM_MAX_CTA_PER_CORE-1:0][DICE_NUM_MAX_THREADS_PER_CORE/DICE_NUM_MAX_CTA_PER_CORE-1:0] stack_top_active_mask_i,
 
-
     // External interface to invalidate committed e-blocks
-    input logic                                      eblock_commit_valid_i,
+    input logic                            eblock_commit_valid_i,
     input logic [DICE_EBLOCK_ID_WIDTH-1:0] eblock_commit_id_i,
 
     // Scheduler outputs
     cta_sched_if.master scheduled_eblock
 );
 
-  // Local Parameters (derived from packages)
-  localparam int MaxEblock = MAX_EBLOCK;  // From dice_frontend_pkg
-  localparam int ThreadWidth = DICE_NUM_MAX_THREADS_PER_CORE / DICE_NUM_MAX_CTA_PER_CORE;
-
   // E-block tracking table
-  logic [MaxEblock-1:0] eblock_live_q;
+  logic [MAX_EBLOCK-1:0]            eblock_live_q;
   logic [DICE_EBLOCK_ID_WIDTH-1:0] eblock_ptr_q;  // Circular pointer for e-block alloc
 
   // PC history for locality scheduling
@@ -199,7 +191,7 @@ module cta_scheduler
           (scheduled_eblock.ready == 1'b1)) begin
         // Allocate current e-block and advance pointer
         eblock_live_q[eblock_ptr_q] <= 1'b1;
-        if (eblock_ptr_q == MaxEblock - 1) begin
+        if (eblock_ptr_q == MAX_EBLOCK - 1) begin
           eblock_ptr_q <= '0;
         end else begin
           eblock_ptr_q <= eblock_ptr_q + 1;

@@ -30,7 +30,7 @@ module tb_bitstream_fetch_load;
   // ===========================================================================
   // Parameters
   // ===========================================================================
-  localparam int TagWidth = 48;
+  localparam int TagWidth = dice_pkg::DICE_ADDR_WIDTH;
   localparam int BitstreamSize = 2056;
   localparam int ChunkSize = VX_gpu_pkg::VX_MEM_DATA_WIDTH;
   localparam int NumChunks = (BitstreamSize + ChunkSize - 1) / ChunkSize;
@@ -48,6 +48,7 @@ module tb_bitstream_fetch_load;
 
   // DUT I/O
   logic                                 meta_valid_i;
+  logic                                 flush_i;
   logic [dice_pkg::DICE_ADDR_WIDTH-1:0] bitstream_addr_i;
   logic [                ChunkSize-1:0] cm0_data_o;
   logic [                NumChunks-1:0] cm0_chunk_en_o;
@@ -71,6 +72,7 @@ module tb_bitstream_fetch_load;
   ) u_dut (
       .clk_i           (clk),
       .rst_i           (rst),
+      .flush_i         (flush_i),
       .meta_valid_i    (meta_valid_i),
       .bitstream_addr_i(bitstream_addr_i),
       .cm0_data_o      (cm0_data_o),
@@ -110,6 +112,7 @@ module tb_bitstream_fetch_load;
   task automatic reset_dut();
     rst                        = 1'b1;
     meta_valid_i               = 1'b0;
+    flush_i                    = 1'b0;
     bitstream_addr_i           = '0;
     cache_bus_if.req_ready     = 1'b1;
     cache_bus_if.rsp_valid     = 1'b0;
@@ -122,6 +125,7 @@ module tb_bitstream_fetch_load;
 
   task automatic drive_idle();
     meta_valid_i     = 1'b0;
+    flush_i          = 1'b0;
     bitstream_addr_i = '0;
   endtask
 
@@ -245,6 +249,87 @@ module tb_bitstream_fetch_load;
     drive_idle();
     repeat (5) @(posedge clk);
     $display("[%0t] Test 5 PASSED: Random smoke test completed", $time);
+
+    // -------------------------------------------------------------------------
+    // Test 6: Tag Verification
+    // -------------------------------------------------------------------------
+    $display("[%0t] Test 6: Tag Verification", $time);
+    reset_dut();
+    cache_bus_if.req_ready = 1'b1;
+
+    send_meta_request(32'h0000_A000);
+    repeat (3) @(posedge clk);
+
+    // Check that request tag matches address
+    if (cache_bus_if.req_valid) begin
+      assert (cache_bus_if.req_data.tag[dice_pkg::DICE_ADDR_WIDTH-1:0] == u_dut.addr_q)
+      else $error("[%0t] Tag mismatch: expected 0x%0h, got 0x%0h", $time,
+                  u_dut.addr_q, cache_bus_if.req_data.tag[dice_pkg::DICE_ADDR_WIDTH-1:0]);
+      // Provide matching tag response
+      provide_cache_response({ChunkSize{1'b1}}, TagWidth'(u_dut.addr_q));
+    end
+
+    repeat (5) @(posedge clk);
+    $display("[%0t] Test 6 PASSED: Tag verification completed", $time);
+
+    // -------------------------------------------------------------------------
+    // Test 7: Flush During Streaming
+    // -------------------------------------------------------------------------
+    $display("[%0t] Test 7: Flush During Streaming", $time);
+    reset_dut();
+    cache_bus_if.req_ready = 1'b1;
+
+    send_meta_request(32'h0000_B000);
+    repeat (3) @(posedge clk);
+
+    // Assert flush mid-streaming (state_q == StateStreaming is 2'b01)
+    if (u_dut.state_q == 2'b01) begin
+      flush_i = 1'b1;
+      @(posedge clk);
+      flush_i = 1'b0;
+      @(posedge clk);
+      // Should be back in idle now (StateIdle is 2'b00)
+      assert (u_dut.state_q == 2'b00)
+      else $error("[%0t] Expected StateIdle after flush, got %0d", $time, u_dut.state_q);
+    end
+
+    repeat (5) @(posedge clk);
+    $display("[%0t] Test 7 PASSED: Flush during streaming completed", $time);
+
+    // -------------------------------------------------------------------------
+    // Test 8: Flush Recovery with Buffer Hit
+    // -------------------------------------------------------------------------
+    $display("[%0t] Test 8: Flush Recovery with Buffer Hit", $time);
+    reset_dut();
+    cache_bus_if.req_ready = 1'b1;
+
+    // Load buffer A completely
+    send_meta_request(32'h0000_C000);
+    for (int i = 0; i < NumChunks; i++) begin
+      // Wait for request
+      while (!cache_bus_if.req_valid) @(posedge clk);
+      provide_cache_response({ChunkSize{1'b1}}, TagWidth'(u_dut.addr_q));
+    end
+    repeat (3) @(posedge clk);
+
+    // Start loading buffer B
+    send_meta_request(32'h0000_D000);
+    repeat (3) @(posedge clk);
+
+    // Flush mid-load of B
+    flush_i = 1'b1;
+    @(posedge clk);
+    flush_i = 1'b0;
+    @(posedge clk);
+
+    // Request A again - should hit cached buffer
+    send_meta_request(32'h0000_C000);
+    @(posedge clk);
+    assert (done_streaming_o == 1'b1)
+    else $error("[%0t] Expected buffer hit for addr 0x%0h", $time, 32'h0000_C000);
+
+    repeat (5) @(posedge clk);
+    $display("[%0t] Test 8 PASSED: Flush recovery with buffer hit completed", $time);
 
     // -------------------------------------------------------------------------
     // All Tests Complete

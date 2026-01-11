@@ -1,67 +1,49 @@
-// Module: branch_resolver.sv
-// Foreground branch resolution path. Handles immediate branch resolution for:
-// - Uniform branches (all threads same direction)
-// - Conditional branches with resolved dependencies (no pending eblocks)
-//
-// When dependencies are unresolved, stores branch info in pending_branch_table
-// and signals the CTA status table for later resolution by divergence_monitor.
-
-`include "dice_define.vh"
-
 module branch_resolver
   import dice_pkg::*;
   import dice_frontend_pkg::*;
-#(
-    parameter int PcWidth     = DICE_ADDR_WIDTH,
-    parameter int ThreadWidth = DICE_NUM_MAX_THREADS_PER_CORE,
-    parameter int NumCta      = DICE_NUM_MAX_CTA_PER_CORE,
-    parameter int NumPredRegs = DICE_PR_NUM
-) (
-    input logic clk_i,
-    input logic rst_i,
+(
+    input  logic                                          clk_i,
+    input  logic                                          rst_i,
+    input  logic                                          flush_i,
 
     // From Decoder
-    input branch_meta_t               branch_metadata_i,
-    input logic                       branch_req_valid_i,
-    input logic         [PcWidth-1:0] current_pc_i,
-    input logic                       ret_i,
+    input  branch_meta_t                                  branch_metadata_i,
+    input  logic                                          branch_req_valid_i,
+    input  logic [DICE_ADDR_WIDTH-1:0]                    current_pc_i,
 
     // From CS Stage
-    input logic         [$clog2(NumCta)-1:0] hw_cta_id_i,
-    input thread_mask_t                      init_thread_mask_i,
+    input  logic [DICE_HW_CTA_ID_WIDTH-1:0]               hw_cta_id_i,
+    input  thread_mask_t                                  init_thread_mask_i,
 
     // CTA Status (read-only for current CTA)
-    input dice_cta_status_t cta_status_i,
+    input  dice_cta_status_t                              cta_status_i,
 
     // Predicate RF Interface
     output logic                                          prf_req_o,
-    output logic [$clog2(NumCta)+$clog2(NumPredRegs)-1:0] prf_raddr_o,
-    input  logic [                       ThreadWidth-1:0] prf_rdata_i,
+    output logic [DICE_HW_CTA_ID_WIDTH+$clog2(DICE_PR_NUM)-1:0] prf_raddr_o,
+    input  logic [DICE_NUM_MAX_THREADS_PER_CORE-1:0]      prf_rdata_i,
 
     // SIMT Stack Controller Interface
-    output logic                      update_valid_o,
-    output logic                      update_with_divergence_o,
-    output logic [       PcWidth-1:0] update_next_pc_o,
-    output logic [       PcWidth-1:0] branch_not_taken_pc_o,
-    output logic [       PcWidth-1:0] branch_reconvergence_pc_o,
-    output logic [   ThreadWidth-1:0] predicate_regs_value_o,
-    output logic [$clog2(NumCta)-1:0] update_hw_cta_id_o,
-    input  logic                      update_ready_i,
+    output logic                                          update_valid_o,
+    output logic                                          update_with_divergence_o,
+    output logic [DICE_ADDR_WIDTH-1:0]                    update_next_pc_o,
+    output logic [DICE_ADDR_WIDTH-1:0]                    branch_not_taken_pc_o,
+    output logic [DICE_ADDR_WIDTH-1:0]                    branch_reconvergence_pc_o,
+    output logic [DICE_NUM_MAX_THREADS_PER_CORE-1:0]      predicate_regs_value_o,
+    output logic [DICE_HW_CTA_ID_WIDTH-1:0]               update_hw_cta_id_o,
+    input  logic                                          update_ready_i,
 
     // To Decoder (mask output)
-    output thread_mask_t real_active_thread_mask_o,
-    output logic         mask_valid_o,
+    output thread_mask_t                                  real_active_thread_mask_o,
+    output logic                                          mask_valid_o,
 
     // To CTA Status Table (branch prediction)
-    output branch_predict_interface_t predict_interface_o,
-    output logic                      predict_we_o,
+    output branch_predict_interface_t                     predict_interface_o,
+    output logic                                          predict_we_o,
 
     // Pending Branch Table (exposed for divergence_monitor read)
-    output pending_branch_info_t [NumCta-1:0] pending_branch_table_o
+    output pending_branch_info_t [DICE_NUM_MAX_CTA_PER_CORE-1:0] pending_branch_table_o
 );
-
-  // Local Parameters
-  localparam int PcInc = 4;  // PC increment per instruction - SHOULD BE THE LENGTH OF THE METADATA
 
   // FSM States
   typedef enum logic [2:0] {
@@ -74,31 +56,35 @@ module branch_resolver
   state_e current_state_q, next_state;
 
   // Internal Signals
-  logic                                      is_branch_op;
-  logic                                      is_uniform;
-  logic                                      is_conditional;
-  logic                                      dependency_resolved;
+  logic  is_branch_op;
+  logic  is_uniform;
+  logic  is_conditional;
+  logic  is_return;
+  logic  dependency_resolved;
+
+  // Return instruction detection (from metadata)
+  assign is_return = branch_metadata_i.is_return;
 
   // Computed PC values
-  logic                 [       PcWidth-1:0] fallthrough_pc;
-  logic                 [       PcWidth-1:0] jump_target_pc;
-  logic                 [       PcWidth-1:0] reconv_target_pc;
+  logic                 [DICE_ADDR_WIDTH-1:0]        fallthrough_pc;
+  logic                 [DICE_ADDR_WIDTH-1:0]        jump_target_pc;
+  logic                 [DICE_ADDR_WIDTH-1:0]        reconv_target_pc;
 
   // Registered values for multi-cycle operation
-  logic                 [$clog2(NumCta)-1:0] hw_cta_id_q;
+  logic         [DICE_HW_CTA_ID_WIDTH-1:0]   hw_cta_id_q;
   branch_meta_t                              branch_metadata_q;
-  logic                 [       PcWidth-1:0] current_pc_q;
-  logic                                      ret_q;
+  logic         [DICE_ADDR_WIDTH-1:0]        current_pc_q;
+  logic                                      is_return_q;
   thread_mask_t                              init_thread_mask_q;
   logic                                      is_uniform_q;
   logic                                      is_conditional_q;
   logic                                      dependency_resolved_q;
-  logic                 [       PcWidth-1:0] fallthrough_pc_q;
-  logic                 [       PcWidth-1:0] jump_target_pc_q;
-  logic                 [       PcWidth-1:0] reconv_target_pc_q;
+  logic         [DICE_ADDR_WIDTH-1:0]        fallthrough_pc_q;
+  logic         [DICE_ADDR_WIDTH-1:0]        jump_target_pc_q;
+  logic         [DICE_ADDR_WIDTH-1:0]        reconv_target_pc_q;
 
   // Pending branch table storage
-  pending_branch_info_t                      pending_branch_table_q[NumCta];
+  pending_branch_info_t                              pending_branch_table_q[DICE_NUM_MAX_CTA_PER_CORE];
 
   // Branch Type Detection
   assign is_branch_op = branch_req_valid_i && branch_metadata_i.branch_ena;
@@ -109,51 +95,55 @@ module branch_resolver
   assign dependency_resolved = !cta_status_i.has_pending_eblock;
 
   // PC Calculations
-  assign fallthrough_pc = current_pc_i + PcInc;
-  assign jump_target_pc  = current_pc_i + (PcWidth'(branch_metadata_i.branch_jump_target_offset) * PcInc);
-  assign reconv_target_pc = current_pc_i + (PcWidth'(branch_metadata_i.branch_reconv_offset) * PcInc);
+  assign fallthrough_pc   = current_pc_i + DICE_METADATA_WIDTH;
+  assign jump_target_pc   = current_pc_i + (DICE_ADDR_WIDTH'(branch_metadata_i.branch_jump_target_offset) * DICE_METADATA_WIDTH);
+  assign reconv_target_pc = current_pc_i + (DICE_ADDR_WIDTH'(branch_metadata_i.branch_reconv_offset) * DICE_METADATA_WIDTH);
 
   // FSM Next State Logic
   always_comb begin
     next_state = current_state_q;
 
-    case (current_state_q)
-      StateIdle: begin
-        if (branch_req_valid_i) begin
-          next_state = StateCheckDeps;
+    if (flush_i) begin
+      next_state = StateIdle;
+    end else begin
+      case (current_state_q)
+        StateIdle: begin
+          if (branch_req_valid_i) begin
+            next_state = StateCheckDeps;
+          end
         end
-      end
 
-      StateCheckDeps: begin
-        if (ret_q) begin
-          // Return instruction - no stack update needed, just pass mask
-          next_state = StateDone;
-        end else if (is_uniform_q || (is_conditional_q && dependency_resolved_q)) begin
-          // Can resolve immediately - wait for stack
-          next_state = StateWaitStack;
-        end else if (is_conditional_q && !dependency_resolved_q) begin
-          // Must defer - store and predict
-          next_state = StateDone;
-        end else begin
-          // No branch - just pass through
-          next_state = StateDone;
+        StateCheckDeps: begin
+          if (is_return_q) begin
+            // Return instruction - no stack update needed, just pass mask
+            next_state = StateDone;
+          end else if (is_uniform_q || (is_conditional_q && dependency_resolved_q)) begin
+            // Can resolve immediately - wait for stack
+            next_state = StateWaitStack;
+          end else if (is_conditional_q && !dependency_resolved_q) begin
+            // Must defer - store and predict
+            next_state = StateDone;
+          end else begin
+            // No branch - just pass through
+            next_state = StateDone;
+          end
         end
-      end
 
-      StateWaitStack: begin
-        if (update_ready_i) begin
-          next_state = StateDone;
+        StateWaitStack: begin
+          if (update_ready_i) begin
+            next_state = StateDone;
+          end
         end
-      end
 
-      StateDone: begin
-        next_state = StateIdle;
-      end
+        StateDone: begin
+          next_state = StateIdle;
+        end
 
-      default: begin
-        next_state = StateIdle;
-      end
-    endcase
+        default: begin
+          next_state = StateIdle;
+        end
+      endcase
+    end
   end
 
   // FSM Sequential Logic
@@ -163,7 +153,7 @@ module branch_resolver
       hw_cta_id_q           <= '0;
       branch_metadata_q     <= '0;
       current_pc_q          <= '0;
-      ret_q                 <= 1'b0;
+      is_return_q           <= 1'b0;
       init_thread_mask_q    <= '0;
       is_uniform_q          <= 1'b0;
       is_conditional_q      <= 1'b0;
@@ -172,7 +162,7 @@ module branch_resolver
       jump_target_pc_q      <= '0;
       reconv_target_pc_q    <= '0;
 
-      for (int i = 0; i < NumCta; i++) begin
+      for (int i = 0; i < DICE_NUM_MAX_CTA_PER_CORE; i++) begin
         pending_branch_table_q[i] <= '0;
       end
     end else begin
@@ -183,7 +173,7 @@ module branch_resolver
         hw_cta_id_q           <= hw_cta_id_i;
         branch_metadata_q     <= branch_metadata_i;
         current_pc_q          <= current_pc_i;
-        ret_q                 <= ret_i;
+        is_return_q           <= is_return;
         init_thread_mask_q    <= init_thread_mask_i;
         is_uniform_q          <= is_uniform;
         is_conditional_q      <= is_conditional;
@@ -227,7 +217,8 @@ module branch_resolver
     predicate_regs_value_o    = '0;
     update_hw_cta_id_o        = '0;
 
-    if (current_state_q == StateWaitStack) begin
+    // Don't send stack updates during flush
+    if (current_state_q == StateWaitStack && !flush_i) begin
       update_valid_o     = 1'b1;
       update_hw_cta_id_o = hw_cta_id_q;
 
@@ -252,7 +243,8 @@ module branch_resolver
     real_active_thread_mask_o = init_thread_mask_q;
     mask_valid_o              = 1'b0;
 
-    if (current_state_q == StateDone) begin
+    // Don't assert mask valid during flush
+    if (current_state_q == StateDone && !flush_i) begin
       mask_valid_o = 1'b1;
       // For non-divergence cases, use the init mask
       // For deferred branches, also use init mask (prediction)
@@ -265,9 +257,10 @@ module branch_resolver
     predict_interface_o = '0;
     predict_we_o        = 1'b0;
 
-    if (current_state_q == StateCheckDeps) begin
+    // Don't write prediction during flush
+    if (current_state_q == StateCheckDeps && !flush_i) begin
       predict_interface_o.hw_cta_id  = hw_cta_id_q;
-      predict_interface_o.is_return  = ret_q;
+      predict_interface_o.is_return  = is_return_q;
       predict_interface_o.is_barrier = 1'b0;
 
       if (is_conditional_q && !dependency_resolved_q) begin
@@ -275,7 +268,7 @@ module branch_resolver
         predict_we_o = 1'b1;
         predict_interface_o.unresolved_control_divergence = 1'b1;
         predict_interface_o.predict_pc = fallthrough_pc_q;
-      end else if (ret_q) begin
+      end else if (is_return_q) begin
         // Return instruction
         predict_we_o = 1'b1;
       end
@@ -284,7 +277,7 @@ module branch_resolver
 
   // Pending Branch Table Output
   always_comb begin
-    for (int i = 0; i < NumCta; i++) begin
+    for (int i = 0; i < DICE_NUM_MAX_CTA_PER_CORE; i++) begin
       pending_branch_table_o[i] = pending_branch_table_q[i];
     end
   end

@@ -34,5 +34,6 @@
 `define DICE_PR_NUM                  8     // Predicate Registers
 `define DICE_CR_NUM                  8     // Constant Registers
 `define DICE_CGRA_MEM_PORTS          4     // Available CGRA memory ports
+`define DICE_METADATA_WIDTH          64    // Metadata width ---- DETERMINE WHAT THIS SHOULD BE
 
 `endif // DICE_CONFIG_VH

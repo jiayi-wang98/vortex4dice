@@ -33,6 +33,7 @@ package dice_frontend_pkg;
     logic branch_uni;  // Universal branch: if set, ignore branch_pred_reg
     logic [$clog2(DICE_PR_NUM)-1:0] branch_pred_reg;  // Predicate register dependency index
     logic branch_neg_pred;  // Polarity: 1 = jump if pred is 0; 0 = jump if pred is 1
+    logic is_return;  // Return instruction: CTA will complete after all pending e-blocks finish
 
     // Jump Target Calculation:
     // Actual PC = Current_PC + (branch_jump_target_offset * Metadata_Length)
@@ -114,7 +115,6 @@ package dice_frontend_pkg;
 
   // CTA table entry structure
   typedef struct packed {
-    logic [DICE_CTA_ID_WIDTH:0] hw_cta_id;  //may not need if it is indexed by this
     logic cta_valid;
     dice_cta_id_t cta_id;
     dice_grid_size_t grid_size;
