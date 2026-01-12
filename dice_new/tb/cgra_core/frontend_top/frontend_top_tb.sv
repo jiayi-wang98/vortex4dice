@@ -143,13 +143,7 @@ module frontend_top_tb;
     test_desc = '0;
     test_desc.kernel_desc.start_pc = 32'h1000;
     dispatch_cta(test_desc);
-    
-    // Wait for internal schedule?
-    // We expect fdr_valid to eventually go high if we mock memory responses
-    // But currently memory responses are 0/invalid.
-    // Fetch stage will stall waiting for metadata.
-    // Scheduler should have accepted CTA.
-    
+
     repeat (20) @(posedge clk);
     
     $display("TEST 3: Check Scheduler accepted CTA");
@@ -158,18 +152,21 @@ module frontend_top_tb;
     assert(complete_if.valid == 1'b0);
     
     $display("ALL TESTS PASSED: frontend_top_tb");
-    `ifdef MODELSIM
-        $stop;
-    `else
+    // `ifdef MODELSIM
+        // $stop;
+    // `else
         $finish;
-    `endif
+    // `endif
   end
 
-`ifdef VCD
+// `ifdef VCD
   initial begin
-    $dumpfile("frontend_top_tb.vcd");
-    $dumpvars(0, frontend_top_tb);
+    // $dumpfile("frontend_top_tb.fsdb");
+    // $dumpvars(0, frontend_top_tb);
+    $fsdbDumpfile("frontend_top_tb.fsdb");
+    $fsdbDumpvars("+all");
+
   end
-`endif
+// `endif
 
 endmodule

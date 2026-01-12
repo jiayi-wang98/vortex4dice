@@ -5,9 +5,8 @@ module bitstream_fetch_load
   import dice_frontend_pkg::*;
 #(
     parameter int TAG_WIDTH = DICE_ADDR_WIDTH,
-    parameter int BITSTREAM_SIZE = 2056,
     parameter int CHUNK_SIZE = VX_gpu_pkg::VX_MEM_DATA_WIDTH,
-    parameter int NUM_CHUNKS = (BITSTREAM_SIZE + CHUNK_SIZE - 1) / CHUNK_SIZE
+    parameter int NUM_CHUNKS = (DICE_BITSTREAM_SIZE + CHUNK_SIZE - 1) / CHUNK_SIZE
 ) (
     input logic clk_i,
     input logic rst_i,

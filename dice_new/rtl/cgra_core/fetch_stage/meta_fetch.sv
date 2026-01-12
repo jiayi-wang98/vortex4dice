@@ -47,7 +47,7 @@ module meta_fetch
   localparam int AddrShift = $clog2(
       VX_gpu_pkg::VX_MEM_DATA_WIDTH / 8
   );
-  assign meta_cache_req_addr_d = fdr_next_pc_i[AddrShift+:VX_gpu_pkg::ICACHE_ADDR_WIDTH];
+  assign meta_cache_req_addr_d = (fdr_next_pc_i >> AddrShift);
   // 4-byte aligned addresses
   //DIRECTLY FROM VORTEX======================================================
 

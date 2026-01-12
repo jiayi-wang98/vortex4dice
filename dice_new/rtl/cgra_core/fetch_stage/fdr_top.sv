@@ -222,8 +222,7 @@ module fdr_top
 
   // Bitstream Fetch/Load
   bitstream_fetch_load #(
-      .TAG_WIDTH     (TAG_WIDTH),
-      .BITSTREAM_SIZE(BITSTREAM_SIZE)
+      .TAG_WIDTH     (TAG_WIDTH)
   ) u_bitstream_fetch_load (
       .clk_i           (clk_i),
       .rst_i           (rst_i),
