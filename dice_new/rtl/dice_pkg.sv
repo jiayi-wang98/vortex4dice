@@ -9,19 +9,20 @@ package dice_pkg;
   // Derived parameters (computed from configuration)
   // =========================================================
   parameter int DICE_NUM_MAX_THREADS_PER_CORE = `DICE_NUM_MAX_THREADS_PER_CORE;
-  parameter int DICE_NUM_MAX_CTA_PER_CORE = `DICE_NUM_MAX_CTA_PER_CORE;
+  parameter int DICE_NUM_MAX_CTA_PER_CORE     = `DICE_NUM_MAX_CTA_PER_CORE;
+  parameter int DICE_METADATA_WIDTH           = `DICE_METADATA_WIDTH;
 
-  parameter int DICE_ADDR_WIDTH = `DICE_ADDR_WIDTH;
-  parameter int DICE_KERNEL_ID_WIDTH = $clog2(`DICE_MAX_KERNEL_ID);
-  parameter int DICE_CTA_ID_WIDTH = $clog2(`DICE_MAX_GRID_SIZE);
-  parameter int DICE_TID_WIDTH = $clog2(`DICE_NUM_MAX_THREADS_PER_CORE);
-  parameter int DICE_HW_CTA_ID_WIDTH = $clog2(`DICE_NUM_MAX_CTA_PER_CORE);
-  parameter int DICE_HW_CTA_SIZE_WIDTH = $clog2(`DICE_NUM_MAX_THREADS_PER_CORE) + 1;
-  parameter int DICE_EBLOCK_ID_WIDTH = `DICE_NUM_RETIRE_TABLE_ENTRIES + 4;
-  parameter int DICE_CLUSTER_ID_WIDTH = $clog2(`DICE_NUM_CGRA_CLUSTERS);
-  parameter int DICE_CORE_ID_WIDTH = $clog2(`DICE_NUM_CGRA_CORES);
-  parameter int DICE_SMEM_SIZE_WIDTH = $clog2(`DICE_SMEM_SIZE_PER_CORE);
-  parameter int DICE_BITSTREAM_SIZE = 2048;  // 256 bytes max bitstream size
+  parameter int DICE_ADDR_WIDTH               = `DICE_ADDR_WIDTH;
+  parameter int DICE_KERNEL_ID_WIDTH          = $clog2(`DICE_MAX_KERNEL_ID);
+  parameter int DICE_CTA_ID_WIDTH             = $clog2(`DICE_MAX_GRID_SIZE);
+  parameter int DICE_TID_WIDTH                = $clog2(`DICE_NUM_MAX_THREADS_PER_CORE);
+  parameter int DICE_HW_CTA_ID_WIDTH          = $clog2(`DICE_NUM_MAX_CTA_PER_CORE);
+  parameter int DICE_HW_CTA_SIZE_WIDTH        = $clog2(`DICE_NUM_MAX_THREADS_PER_CORE) + 1;
+  parameter int DICE_EBLOCK_ID_WIDTH          = `DICE_NUM_RETIRE_TABLE_ENTRIES + 4;
+  parameter int DICE_CLUSTER_ID_WIDTH         = $clog2(`DICE_NUM_CGRA_CLUSTERS);
+  parameter int DICE_CORE_ID_WIDTH            = $clog2(`DICE_NUM_CGRA_CORES);
+  parameter int DICE_SMEM_SIZE_WIDTH          = $clog2(`DICE_SMEM_SIZE_PER_CORE);
+  parameter int DICE_BITSTREAM_SIZE           = 2048;  // 256 bytes max bitstream size
 
   // =========================================================
   // Type definitions
@@ -73,11 +74,11 @@ package dice_pkg;
   typedef struct packed {
     logic unresolved_control_divergence;
     logic [DICE_ADDR_WIDTH-1:0] predict_pc;
-    logic has_pending_eblock; // was still_pending_in_BRT
-    logic is_return; // was return_pending
-    logic is_barrier; // New
-    logic prefetch_cleared; // New
-    logic is_prefetch; // New (used in cta_scheduler)
+    logic has_pending_eblock;  // was still_pending_in_BRT
+    logic is_return;  // was return_pending
+    logic is_barrier;  // New
+    logic prefetch_cleared;  // New
+    logic is_prefetch;  // New (used in cta_scheduler)
   } dice_cta_status_t;  // CTA status descriptor
 
   typedef struct packed {
@@ -87,6 +88,14 @@ package dice_pkg;
     logic                            is_return;
     logic                            is_barrier;
   } branch_predict_interface_t;  // Branch prediction interface descriptor
+
+  // CTA size encoding for SIMT stack allocation
+  // Represents number of stacks a CTA spans: 1, 2, or 4
+  typedef enum logic [1:0] {
+    CTA_SIZE_1_STACK  = 2'b00,  // 1 stack
+    CTA_SIZE_2_STACKS = 2'b01,  // 2 stacks
+    CTA_SIZE_4_STACKS = 2'b11   // 4 stacks
+  } cta_size_e;
 
   typedef struct packed {
     logic [DICE_NUM_MAX_CTA_PER_CORE-1:0] hw_cta_pending;

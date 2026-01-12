@@ -6,75 +6,59 @@ module active_cta_table
     input logic rst_i,
 
     // Add new entry interface (table is slave)
-    output logic                                             add_ready_o,
-    input  logic                                             add_valid_i,
-    input  dice_cta_desc_t                         add_cta_info_i,
-    input  logic           [DICE_TID_WIDTH-1:0]    add_cta_size_i,
+    output logic                 add_ready_o,
+    input  logic                 add_valid_i,
+    input  dice_cta_desc_t       add_cta_info_i,
+    input  logic [1:0]           add_hw_cta_size_i, // 00=1 slot, 01=2, 11=4
 
     // Pop interface
-    input  logic                                             pop_valid_i,
-    input  logic [DICE_HW_CTA_ID_WIDTH-1:0]        pop_hw_cta_id_i,
-    output logic                                             pop_ready_o,
+    input  logic                            pop_valid_i,
+    input  logic [DICE_HW_CTA_ID_WIDTH-1:0] pop_hw_cta_id_i,
+    output logic                            pop_ready_o,
 
     // Output popped CTA interface (table is master)
-    output logic                                             out_valid_o,
-    input  logic                                             out_ready_i,
-    output dice_cta_id_t                           out_cta_id_o,
-    output logic         [DICE_TID_WIDTH-1:0]      out_cta_size_o,
-    output logic         [DICE_KERNEL_ID_WIDTH-1:0] out_kernel_id_o,
+    output logic                            out_valid_o,
+    input  logic                            out_ready_i,
+    output dice_cta_id_t                    out_cta_id_o,
+    output logic [DICE_TID_WIDTH-1:0]       out_cta_size_o,
+    output logic [DICE_KERNEL_ID_WIDTH-1:0] out_kernel_id_o,
 
     // Status outputs
-    output active_cta_t [DICE_NUM_MAX_CTA_PER_CORE-1:0]
-        active_cta_entries_o,
+    output active_cta_t [DICE_NUM_MAX_CTA_PER_CORE-1:0] active_cta_entries_o,
 
     // Output flags
-    output logic                                             full_o,
-    output logic [DICE_HW_CTA_ID_WIDTH-1:0]        next_empty_cta_index_o
+    output logic                            full_o,
+    output logic [DICE_HW_CTA_ID_WIDTH-1:0] next_empty_cta_index_o
 );
 
   // Local Parameters (derived from packages)
   localparam int ThreadWidth = DICE_NUM_MAX_THREADS_PER_CORE / DICE_NUM_MAX_CTA_PER_CORE;
 
-  // Calculate number of entries needed for a CTA
-  // Optimized for power-of-2 ThreadWidth using bit shifts
-  function automatic logic [DICE_HW_CTA_ID_WIDTH:0] calc_entries_needed(
-      input logic [DICE_TID_WIDTH-1:0] cta_size);
-    // For power-of-2 ThreadWidth, we can use bit shifts
-    // entries_needed = ceil(cta_size / ThreadWidth) = (cta_size + ThreadWidth - 1) >> log2(ThreadWidth)
-    logic [DICE_TID_WIDTH:0] adjusted_size;
-    adjusted_size = (DICE_TID_WIDTH + 1)'(cta_size) + ThreadWidth - 1;
-    return (DICE_HW_CTA_ID_WIDTH + 1)'(adjusted_size >>
-        (DICE_TID_WIDTH'($clog2(ThreadWidth))));
-  endfunction
-
-
-
   // CTA table entry structure
   typedef struct packed {
-    logic is_primary;  // True for the first entry of a multi-entry CTA
-    logic [$clog2(DICE_NUM_MAX_CTA_PER_CORE):0]
-        entries_used;  // Number of entries used by this CTA
-    active_cta_t entry_info;
+    logic                             is_primary;  // True for the first entry of a multi-entry CTA
+    logic [DICE_HW_CTA_ID_WIDTH:0]    entries_used;  // Number of entries used by this CTA
+    active_cta_t                      entry_info;
   } cta_entry_t;
-
 
   // CTA table storage
   cta_entry_t cta_table_q[DICE_NUM_MAX_CTA_PER_CORE];
 
-  // Output buffer for popped entries (flip-flops)
-  logic                                        output_buffer_valid_q;
-  dice_cta_id_t                      output_buffer_cta_id_q;
-  logic [DICE_TID_WIDTH-1:0]         output_buffer_cta_size_q;
-  logic [DICE_KERNEL_ID_WIDTH-1:0]   output_buffer_kernel_id_q;
+  // Output buffer for popped entries
+  logic                            output_buffer_valid_q;
+  dice_cta_id_t                    output_buffer_cta_id_q;
+  logic [DICE_HW_CTA_ID_WIDTH-1:0] output_buffer_cta_size_q;
+  logic [DICE_KERNEL_ID_WIDTH-1:0] output_buffer_kernel_id_q;
 
   // Internal combinational signals
   logic [DICE_HW_CTA_ID_WIDTH-1:0] empty_index;
-  logic found_empty;
-  logic [DICE_HW_CTA_ID_WIDTH:0] entries_needed;
-  logic [DICE_HW_CTA_ID_WIDTH:0] entries_to_clear;
+  logic                            found_empty;
+  logic [DICE_HW_CTA_ID_WIDTH:0]   entries_needed;
+  logic [DICE_HW_CTA_ID_WIDTH:0]   entries_to_clear;
 
-  // Calculate entries needed for incoming CTA
-  assign entries_needed = calc_entries_needed(add_cta_size_i);
+  // Use entries_needed from cta_controller (1, 2, or 4 slots)
+  assign entries_needed   = (DICE_HW_CTA_ID_WIDTH + 1)'(add_hw_cta_size_i) + 1;
+
   assign entries_to_clear = cta_table_q[pop_hw_cta_id_i].entries_used;
 
   // Find next empty entry - Contiguous Block Search
@@ -83,19 +67,19 @@ module active_cta_table
     empty_index = '0;
 
     // Search for a contiguous block of 'entries_needed' slots
-    for (int i = 0; i <= DICE_NUM_MAX_CTA_PER_CORE - 1; i++) begin
+    for (int i = 0; i < DICE_NUM_MAX_CTA_PER_CORE; i++) begin
       logic block_valid;
       block_valid = 1'b1;
 
       // Check if the block fits within the table bounds
-      if ((i + 32'(entries_needed)) <= DICE_NUM_MAX_CTA_PER_CORE) begin
+      if ((i + entries_needed) <= DICE_NUM_MAX_CTA_PER_CORE) begin
         // Check if all slots in the block are empty
         for (int k = 0; k < DICE_NUM_MAX_CTA_PER_CORE; k++) begin
-           if (k >= i && k < (i + 32'(entries_needed))) begin
-              if (cta_table_q[k].entry_info.cta_valid == 1'b1) begin
-                  block_valid = 1'b0;
-              end
-           end
+          if (k >= i && k < (i + entries_needed)) begin
+            if (cta_table_q[k].entry_info.cta_valid == 1'b1) begin
+              block_valid = 1'b0;
+            end
+          end
         end
 
         if ((block_valid == 1'b1) && (found_empty == 1'b0)) begin
@@ -166,8 +150,7 @@ module active_cta_table
 
         // Clear all entries used by this CTA
         for (int j = 0; j < DICE_NUM_MAX_CTA_PER_CORE; j++) begin
-          if (j >= 32'(pop_hw_cta_id_i) &&
-              j < (32'(pop_hw_cta_id_i) + 32'(entries_to_clear))) begin
+          if (j >= 32'(pop_hw_cta_id_i) && j < (32'(pop_hw_cta_id_i) + 32'(entries_to_clear))) begin
             cta_table_q[j] <= '0;
           end
         end
@@ -181,8 +164,7 @@ module active_cta_table
 
         // Clear all entries used by this CTA
         for (int j = 0; j < DICE_NUM_MAX_CTA_PER_CORE; j++) begin
-          if (j >= 32'(pop_hw_cta_id_i) &&
-              j < (32'(pop_hw_cta_id_i) + 32'(entries_to_clear))) begin
+          if (j >= 32'(pop_hw_cta_id_i) && j < (32'(pop_hw_cta_id_i) + 32'(entries_to_clear))) begin
             cta_table_q[j] <= '0;
           end
         end
@@ -208,8 +190,7 @@ module active_cta_table
               cta_table_q[j].entry_info.cta_size <= add_cta_info_i.kernel_desc.cta_size;
               cta_table_q[j].entry_info.kernel_id <= add_cta_info_i.kernel_desc.kernel_id;
               cta_table_q[j].entry_info.smem_per_cta <= add_cta_info_i.kernel_desc.smem_per_cta;
-              cta_table_q[j].entry_info.hw_cta_size <=
-                  (DICE_HW_CTA_SIZE_WIDTH)'(add_cta_size_i);
+              cta_table_q[j].entry_info.hw_cta_size <= (DICE_HW_CTA_SIZE_WIDTH)'(add_hw_cta_size_i);
             end else begin
               cta_table_q[j] <= '0;
             end
@@ -224,7 +205,7 @@ module active_cta_table
 
 
 
-  `ifndef SYNTHESIS
+`ifndef SYNTHESIS
   always_ff @(posedge clk_i) begin
     if (rst_i == 1'b0) begin
       if ((add_valid_i == 1'b1) && (add_ready_o == 1'b1)) begin
@@ -243,6 +224,6 @@ module active_cta_table
       end
     end
   end
-  `endif
+`endif
 
 endmodule

@@ -10,9 +10,7 @@ module fdr_top
     input logic clk_i,
     input logic rst_i,
 
-
     // Memory Bus Interfaces
-
     VX_mem_bus_if.master metacache_mem_if,
     VX_mem_bus_if.master bitstream_cache_mem_if,
 
@@ -20,22 +18,19 @@ module fdr_top
     cta_sched_if.slave schedule_if,
     fdr_if.master      fdr_if,
 
-    // SIMT Stack Status Interface (NEW - from CTA Schedule Stage)
+    // SIMT Stack Status Interface
     simt_stack_status_if.slave simt_status_if,
 
-    // SIMT Stack Update Interface (to CTA Schedule Stage)
+    // SIMT Stack Update Interface
     dice_bh_simt_if.master simt_stack_update_if,
 
-    // Predicate Register File Interface (NEW)
-    prf_if.requester prf_if,
+    // Predicate Register File Interface
+    prf_if.master prf_if,
 
-    // Branch Handler Interface (prediction to CTA Status Table)
+    // Branch Handler Interface
     branch_handler_if.master bh_if,
 
-    // Branch Control Interface (NEW - divergence/prefetch clearing)
-    branch_control_if.master branch_ctrl_if,
-
-    // CGRA Configuration Memory Interfaces (NEW)
+    // CGRA Configuration Memory Interfaces
     cgra_cm_if.master cm0_if,
     cgra_cm_if.master cm1_if
 );
@@ -47,63 +42,63 @@ module fdr_top
   localparam int CtaIdWidth = $clog2(DICE_NUM_MAX_CTA_PER_CORE);
 
   // Internal Signals - Meta Fetch / Decoder
-  pgraph_meta_t                                             meta_internal;
-  logic                                                     meta_valid_internal;
-  logic                                                     fire_eblock_internal;
-  logic                                                     schedule_ready_internal;
+  pgraph_meta_t meta_internal;
+  logic         meta_valid_internal;
+  logic         fire_eblock_internal;
+  logic         schedule_ready_internal;
 
   // Internal Signals - Bitstream
-  logic                 [              DICE_ADDR_WIDTH-1:0] bitstream_addr;
-  logic                 [       BITSTREAM_LENGTH_WIDTH-1:0] bitstream_length;
-  logic                                                     bitstream_addr_valid_internal;
-  logic                                                     done_streaming_internal;
+  logic [DICE_ADDR_WIDTH-1:0]        bitstream_addr;
+  logic [BITSTREAM_LENGTH_WIDTH-1:0] bitstream_length;
+  logic                              bitstream_addr_valid_internal;
+  logic                              done_streaming_internal;
 
-  // Internal Signals - Branch Handler
-  thread_mask_t                                             branch_mask_internal;
-  branch_meta_t                                             branch_meta_internal;
-  logic                                                     branch_mask_valid;
-  logic                                                     branch_req_valid_internal;
-  logic                                                     is_barrier_internal;
+  // Internal Signals - Branch Handle
+  thread_mask_t branch_mask_internal;
+  branch_meta_t branch_meta_internal;
+  logic         branch_mask_valid;
+  logic         branch_req_valid_internal;
+  logic         is_barrier_internal;
 
   // Pending branch table (shared between resolver and monitor)
-  pending_branch_info_t [    DICE_NUM_MAX_CTA_PER_CORE-1:0] pending_branch_table;
+  pending_branch_info_t [DICE_NUM_MAX_CTA_PER_CORE-1:0] pending_branch_table;
 
   // Foreground (branch_resolver) signals
-  logic                                                     fg_prf_req;
-  logic                 [                 PrfAddrWidth-1:0] fg_prf_raddr;
-  logic                                                     fg_update_valid;
-  logic                                                     fg_update_with_divergence;
-  logic                 [              DICE_ADDR_WIDTH-1:0] fg_update_next_pc;
-  logic                 [              DICE_ADDR_WIDTH-1:0] fg_branch_not_taken_pc;
-  logic                 [              DICE_ADDR_WIDTH-1:0] fg_branch_reconv_pc;
-  logic                 [DICE_NUM_MAX_THREADS_PER_CORE-1:0] fg_predicate_values;
-  logic                 [                   CtaIdWidth-1:0] fg_update_hw_cta_id;
-  logic                                                     fg_update_ready;
+  logic                                     fg_prf_req;
+  logic [PrfAddrWidth-1:0]                  fg_prf_raddr;
+  logic                                     fg_update_valid;
+  logic                                     fg_update_with_divergence;
+  logic [DICE_ADDR_WIDTH-1:0]               fg_update_next_pc;
+  logic [DICE_ADDR_WIDTH-1:0]               fg_branch_not_taken_pc;
+  logic [DICE_ADDR_WIDTH-1:0]               fg_branch_reconv_pc;
+  logic [DICE_NUM_MAX_THREADS_PER_CORE-1:0] fg_predicate_values;
+  logic [CtaIdWidth-1:0]                    fg_update_hw_cta_id;
+  logic                                     fg_update_ready;
 
   // Background (divergence_monitor) signals
-  logic                                                     bg_prf_req;
-  logic                 [                 PrfAddrWidth-1:0] bg_prf_raddr;
-  logic                                                     bg_update_valid;
-  logic                                                     bg_update_with_divergence;
-  logic                 [              DICE_ADDR_WIDTH-1:0] bg_update_next_pc;
-  logic                 [              DICE_ADDR_WIDTH-1:0] bg_branch_not_taken_pc;
-  logic                 [              DICE_ADDR_WIDTH-1:0] bg_branch_reconv_pc;
-  logic                 [DICE_NUM_MAX_THREADS_PER_CORE-1:0] bg_predicate_values;
-  logic                 [                   CtaIdWidth-1:0] bg_update_hw_cta_id;
-  logic                                                     bg_update_ready;
-  logic                                                     bg_grant;
+  logic                                     bg_prf_req;
+  logic [PrfAddrWidth-1:0]                  bg_prf_raddr;
+  logic                                     bg_update_valid;
+  logic                                     bg_update_with_divergence;
+  logic [DICE_ADDR_WIDTH-1:0]               bg_update_next_pc;
+  logic [DICE_ADDR_WIDTH-1:0]               bg_branch_not_taken_pc;
+  logic [DICE_ADDR_WIDTH-1:0]               bg_branch_reconv_pc;
+  logic [DICE_NUM_MAX_THREADS_PER_CORE-1:0] bg_predicate_values;
+  logic [CtaIdWidth-1:0]                    bg_update_hw_cta_id;
+  logic                                     bg_update_ready;
+  logic                                     bg_grant;
 
   // Internal Signals - Valid Checker
-  logic                                                     clear_prefetch_internal;
-  logic                                                     predict_miss_internal;
+  logic                                       clear_prefetch_internal;
+  logic                                       predict_miss_internal;
 
   // CTA status lookup for current CTA
-  logic                 [         DICE_HW_CTA_ID_WIDTH-1:0] current_hw_cta_id;
-  assign current_hw_cta_id = schedule_if.data.schedule_hw_cta_id;
+  logic [DICE_HW_CTA_ID_WIDTH-1:0]            current_hw_cta_id;
+  assign current_hw_cta_id                    = schedule_if.data.schedule_hw_cta_id;
 
   // SIMT Stack PC for current CTA (from simt_status_if)
-  logic                 [              DICE_ADDR_WIDTH-1:0] simt_stack_pc;
-  assign simt_stack_pc = simt_status_if.status[current_hw_cta_id].next_pc;
+  logic [DICE_ADDR_WIDTH-1:0]                 simt_stack_pc;
+  assign simt_stack_pc                        = simt_status_if.status[current_hw_cta_id].next_pc;
 
   // Scheduler Ready Handshake
   assign schedule_if.ready = schedule_ready_internal;
@@ -119,10 +114,6 @@ module fdr_top
   assign fdr_if.data.schedule_smem_per_cta = schedule_if.data.schedule_smem_per_cta;
   assign fdr_if.data.real_active_mask      = branch_mask_internal;
 
-  // Branch Control Interface Assignments
-  assign branch_ctrl_if.ctrl.clear_prefetch_valid     = clear_prefetch_internal;
-  assign branch_ctrl_if.ctrl.clear_prefetch_hw_cta_id = current_hw_cta_id;
-  assign branch_ctrl_if.ctrl.predict_miss_flush       = predict_miss_internal;
 
   // PRF Interface Wiring
   logic prf_req_internal;
@@ -140,23 +131,22 @@ module fdr_top
   assign bg_grant           = !fg_update_valid;
 
   // SIMT Stack Update Interface Wiring
-  logic simt_update_valid_internal;
-  logic simt_update_with_divergence_internal;
-  logic [DICE_ADDR_WIDTH-1:0] simt_update_next_pc_internal;
-  logic [DICE_ADDR_WIDTH-1:0] simt_branch_not_taken_pc_internal;
-  logic [DICE_ADDR_WIDTH-1:0] simt_branch_reconv_pc_internal;
-  logic [DICE_NUM_MAX_THREADS_PER_CORE-1:0] simt_predicate_values_internal;
-  logic [CtaIdWidth-1:0] simt_update_hw_cta_id_internal;
+  logic                                       simt_update_valid_internal;
+  logic                                       simt_update_with_divergence_internal;
+  logic [DICE_ADDR_WIDTH-1:0]                 simt_update_next_pc_internal;
+  logic [DICE_ADDR_WIDTH-1:0]                 simt_branch_not_taken_pc_internal;
+  logic [DICE_ADDR_WIDTH-1:0]                 simt_branch_reconv_pc_internal;
+  logic [DICE_NUM_MAX_THREADS_PER_CORE-1:0]   simt_predicate_values_internal;
+  logic [CtaIdWidth-1:0]                      simt_update_hw_cta_id_internal;
 
-  assign simt_stack_update_if.update_valid = simt_update_valid_internal;
-  assign simt_stack_update_if.update_stack_data.update_with_divergence = simt_update_with_divergence_internal;
-  assign simt_stack_update_if.update_stack_data.update_next_pc = simt_update_next_pc_internal;
-  assign simt_stack_update_if.update_stack_data.predicate_regs_value =
-      {{(SIMT_STACK_COUNT*SIMT_STACK_THREAD_WIDTH - DICE_NUM_MAX_THREADS_PER_CORE){1'b0}}, simt_predicate_values_internal};
-  assign simt_stack_update_if.update_stack_data.branch_not_taken_pc = simt_branch_not_taken_pc_internal;
-  assign simt_stack_update_if.update_stack_data.branch_reconvergence_pc = simt_branch_reconv_pc_internal;
-  assign simt_stack_update_if.hw_cta_id = simt_update_hw_cta_id_internal;
-  assign simt_stack_update_if.hw_cta_size = schedule_if.data.schedule_hw_cta_size[1:0];
+  assign simt_stack_update_if.update_valid                                = simt_update_valid_internal;
+  assign simt_stack_update_if.update_stack_data.update_with_divergence    = simt_update_with_divergence_internal;
+  assign simt_stack_update_if.update_stack_data.update_next_pc            = simt_update_next_pc_internal;
+  assign simt_stack_update_if.update_stack_data.predicate_regs_value      = {{(SIMT_STACK_COUNT*SIMT_STACK_THREAD_WIDTH - DICE_NUM_MAX_THREADS_PER_CORE){1'b0}}, simt_predicate_values_internal};
+  assign simt_stack_update_if.update_stack_data.branch_not_taken_pc       = simt_branch_not_taken_pc_internal;
+  assign simt_stack_update_if.update_stack_data.branch_reconvergence_pc   = simt_branch_reconv_pc_internal;
+  assign simt_stack_update_if.hw_cta_id                                   = simt_update_hw_cta_id_internal;
+  assign simt_stack_update_if.hw_cta_size                                 = schedule_if.data.schedule_hw_cta_size[1:0];
 
   // Arbitrated SIMT update signals
   always_comb begin
@@ -197,12 +187,9 @@ module fdr_top
   assign bh_if.bh_data = predict_interface_internal;
   assign bh_if.branch_predict_info_write_enable = predict_we_internal;
 
-  // Divergence clearing through branch_ctrl_if
+  // Divergence clearing signals (from divergence_monitor, not currently consumed)
   logic [CtaIdWidth-1:0] clear_divergence_cta_id_internal;
   logic clear_divergence_valid_internal;
-  assign branch_ctrl_if.ctrl.clear_divergence_cta_id = clear_divergence_cta_id_internal;
-  assign branch_ctrl_if.ctrl.clear_divergence_valid  = clear_divergence_valid_internal;
-
   // Meta Fetch
   meta_fetch #(
       .TAG_WIDTH(TAG_WIDTH)
@@ -211,12 +198,12 @@ module fdr_top
       .rst_i               (rst_i),
       .schedule_valid_i    (schedule_if.valid),
       .fdr_next_pc_i       (schedule_if.data.schedule_next_pc),
-      .schedule_eblock_id_i(schedule_if.data.schedule_eblock_id),
       .schedule_ready_o    (schedule_ready_internal),
       .meta_fetch_bus_if   (metacache_mem_if),
       .outgoing_meta_o     (meta_internal),
       .meta_valid_o        (meta_valid_internal),
-      .fire_eblock_i       (fire_eblock_internal)
+      .fire_eblock_i       (fire_eblock_internal),
+      .flush_i             (predict_miss_internal)
   );
 
   // Decoder
@@ -235,11 +222,11 @@ module fdr_top
 
   // Bitstream Fetch/Load
   bitstream_fetch_load #(
-      .TAG_WIDTH     (TAG_WIDTH),
-      .BITSTREAM_SIZE(BITSTREAM_SIZE)
+      .TAG_WIDTH     (TAG_WIDTH)
   ) u_bitstream_fetch_load (
       .clk_i           (clk_i),
       .rst_i           (rst_i),
+      .flush_i         (predict_miss_internal),
       .meta_valid_i    (bitstream_addr_valid_internal),
       .bitstream_addr_i(bitstream_addr),
       .cm0_data_o      (cm0_if.data),
@@ -254,10 +241,10 @@ module fdr_top
   // Valid Checker
   valid_check u_valid_check (
       .barrier_indicator_i(is_barrier_internal),
-      .mask_valid_i       (branch_mask_valid),
+      .decode_done_i      (branch_mask_valid), // Renamed from mask_valid_i
       .eblock_pc_i        (schedule_if.data.schedule_next_pc),
       .prefetch_block_i   (schedule_if.data.schedule_prefetch_block),
-      .hw_cta_id_i        (current_hw_cta_id),
+      // .hw_cta_id_i        (current_hw_cta_id), // Removed
       .simt_stack_pc_i    (simt_stack_pc),
       .bitstream_loaded_i (done_streaming_internal),
       .unresolved_div_i   (bh_if.cta_status_data[current_hw_cta_id].unresolved_control_divergence),
@@ -274,10 +261,10 @@ module fdr_top
   branch_resolver u_branch_resolver (
       .clk_i                    (clk_i),
       .rst_i                    (rst_i),
+      .flush_i                  (predict_miss_internal),
       .branch_metadata_i        (branch_meta_internal),
       .branch_req_valid_i       (branch_req_valid_internal),
       .current_pc_i             (schedule_if.data.schedule_next_pc),
-      .ret_i                    (1'b0),
       .hw_cta_id_i              (current_hw_cta_id),
       .init_thread_mask_i       (schedule_if.data.schedule_active_mask),
       .cta_status_i             (bh_if.cta_status_data[current_hw_cta_id]),

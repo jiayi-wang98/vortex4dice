@@ -33,6 +33,7 @@ package dice_frontend_pkg;
     logic branch_uni;  // Universal branch: if set, ignore branch_pred_reg
     logic [$clog2(DICE_PR_NUM)-1:0] branch_pred_reg;  // Predicate register dependency index
     logic branch_neg_pred;  // Polarity: 1 = jump if pred is 0; 0 = jump if pred is 1
+    logic is_return;  // Return instruction: CTA will complete after all pending e-blocks finish
 
     // Jump Target Calculation:
     // Actual PC = Current_PC + (branch_jump_target_offset * Metadata_Length)
@@ -114,7 +115,6 @@ package dice_frontend_pkg;
 
   // CTA table entry structure
   typedef struct packed {
-    logic [DICE_CTA_ID_WIDTH:0] hw_cta_id;  //may not need if it is indexed by this
     logic cta_valid;
     dice_cta_id_t cta_id;
     dice_grid_size_t grid_size;
@@ -159,13 +159,19 @@ package dice_frontend_pkg;
 
 
   // =========================================================
+  // SIMT Stack Structures
+  // =========================================================
+
+  typedef struct packed {
+    logic [DICE_ADDR_WIDTH-1:0]        pc;
+    logic [DICE_ADDR_WIDTH-1:0]        reconvergence_pc;
+    logic [SIMT_STACK_THREAD_WIDTH-1:0] active_mask;
+  } stack_entry_t;
+
+  // =========================================================
   // Interface Support Structures
   // =========================================================
 
-  /**
-   * SIMT Stack Status Entry
-   * Per-CTA status from the SIMT stack controller.
-   */
   typedef struct packed {
     logic                              valid;
     logic [DICE_ADDR_WIDTH-1:0]        next_pc;
@@ -175,10 +181,6 @@ package dice_frontend_pkg;
     logic                              full;
   } simt_stack_status_entry_t;
 
-  /**
-   * Branch Control Structure
-   * Aggregates divergence and prefetch clearing signals from FDR.
-   */
   typedef struct packed {
     logic                            clear_divergence_valid;
     logic [DICE_HW_CTA_ID_WIDTH-1:0] clear_divergence_cta_id;

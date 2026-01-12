@@ -4,16 +4,18 @@ module bitstream_fetch_load
   import dice_pkg::*;
   import dice_frontend_pkg::*;
 #(
-    parameter int TAG_WIDTH = 48,
-    parameter int BITSTREAM_SIZE = 2056,
+    parameter int TAG_WIDTH = DICE_ADDR_WIDTH,
     parameter int CHUNK_SIZE = VX_gpu_pkg::VX_MEM_DATA_WIDTH,
-    parameter int NUM_CHUNKS = (BITSTREAM_SIZE + CHUNK_SIZE - 1) / CHUNK_SIZE
+    parameter int NUM_CHUNKS = (DICE_BITSTREAM_SIZE + CHUNK_SIZE - 1) / CHUNK_SIZE
 ) (
     input logic clk_i,
     input logic rst_i,
 
+    // Flush signal (cancels in-progress load)
+    input logic flush_i,
+
     //from decoder
-    input logic                                 meta_valid_i,
+    input logic                       meta_valid_i,
     input logic [DICE_ADDR_WIDTH-1:0] bitstream_addr_i,
 
     //to cgra buffers
@@ -73,13 +75,18 @@ module bitstream_fetch_load
   assign req_fire = cache_bus_if.req_valid && cache_bus_if.req_ready;
   assign rsp_fire = cache_bus_if.rsp_valid && cache_bus_if.rsp_ready;
 
+  // Tag verification: ensure response matches the address we requested
+  logic tag_match;
+  assign tag_match = (cache_bus_if.rsp_data.tag[DICE_ADDR_WIDTH-1:0] == addr_q);
+
   // Vortex Bus Assignments
   assign cache_bus_if.req_data.flags = '0;
   assign cache_bus_if.req_data.rw = 0;  // Read
   assign cache_bus_if.req_data.byteen = '1;  // All bytes enabled
   assign cache_bus_if.req_data.data = '0;
 
-  assign cache_bus_if.req_data.tag = {TAG_WIDTH{1'b0}};
+  // Use address as tag for request/response correlation
+  assign cache_bus_if.req_data.tag = TAG_WIDTH'(addr_q);
 
   assign cache_bus_if.req_data.addr = addr_q;
 
@@ -152,12 +159,18 @@ module bitstream_fetch_load
         end
       end
       StateStreaming: begin
-        if (!req_sent_q) begin
+        if (flush_i) begin
+          // Cancel in-progress load, return to idle
+          // Buffer valid flag is already 0 (set at streaming start), so partial data is invalid
+          state_d = StateIdle;
+          req_sent_d = 1'b0;
+        end else if (!req_sent_q) begin
           if (req_fire) begin
             req_sent_d = 1'b1;
           end
         end else begin
-          if (rsp_fire) begin
+          // Only accept response if tag matches the address we requested
+          if (rsp_fire && tag_match) begin
             data_chunk_d = cache_bus_if.rsp_data.data;
             load_chunk_en_d = (1'b1 << chunk_count_q);
             chunk_count_d = chunk_count_q + 1'b1;

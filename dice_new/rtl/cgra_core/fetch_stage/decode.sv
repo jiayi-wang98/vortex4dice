@@ -3,23 +3,23 @@ module decode
   import dice_pkg::*;
   import dice_frontend_pkg::*;
 (
-    input pgraph_meta_t metadata_i,
-    input logic                            meta_in_valid_i,
+    input  pgraph_meta_t                      metadata_i,
+    input  logic                              meta_in_valid_i,
 
-    input thread_mask_t real_active_thread_mask_i,
+    input  thread_mask_t                      real_active_thread_mask_i,
 
     //To bitstream Fetcher
-    output logic [DICE_ADDR_WIDTH-1:0]            bitstream_addr_o,
-    output logic                                            bitstream_addr_valid_o,
+    output logic [DICE_ADDR_WIDTH-1:0]        bitstream_addr_o,
+    output logic                              bitstream_addr_valid_o,
     output logic [BITSTREAM_LENGTH_WIDTH-1:0] bitstream_length_o,
 
     //To branch handler
-    output branch_meta_t branch_metadata_o,
-    output logic                            branch_req_valid_o,
+    output branch_meta_t                      branch_metadata_o,
+    output logic                              branch_req_valid_o,
 
     //To valid checker
-    output logic                       is_barrier_o,
-    output fdr_meta_t meta_o
+    output logic                              is_barrier_o,
+    output fdr_meta_t                         meta_o
 );
 
   // Bitstream Fetch
