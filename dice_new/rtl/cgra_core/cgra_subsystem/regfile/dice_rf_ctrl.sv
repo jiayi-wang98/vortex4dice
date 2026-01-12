@@ -3,7 +3,7 @@
 
 
 
-module dice_gprf_ctrl
+module dice_rf_ctrl
 
 import DE_pkg::*;
 import dice_pkg::*;
@@ -14,7 +14,10 @@ import dice_pkg::*;
     parameter int NUM_TID = 512,
     parameter int TID_WIDTH = $clog2(NUM_TID),
     parameter int DEPTH = NUM_TID,
-    parameter int ADDR_WIDTH = $clog2(DEPTH)
+    parameter int ADDR_WIDTH = $clog2(DEPTH),
+    parameter int NUM_SPECIAL_REG = 16,
+    parameter int MAX_CTA_ID = 65535,
+    parameter int CTA_ID_WIDTH = $clog2(MAX_CTA_ID)
 )
 (
       input  logic              clk_i
@@ -30,6 +33,7 @@ import dice_pkg::*;
     , output logic                            rd_tid_ready_o
 
     // some signal for unrolling factor to select
+    , input logic [1:0]                       rd_unroll_factor_i
     , input logic                             rd_en_i
     , input logic [(4*TID_WIDTH)-1:0]         rd_tid_i
     , input logic [NUM_PORTS-1:0]             rd_bitmap_i
@@ -44,6 +48,27 @@ import dice_pkg::*;
     , input reg_wr_cmd [NUM_PORTS-1:0]      ldst_wr_i
     , input logic                           ldst_valid_i
     , output logic                          ldst_ready_o
+
+
+    // special register input
+    , input logic [NUM_SPECIAL_REG-1:0] spec_rd_enable_i
+    , input logic [NUM_SPECIAL_REG*4-1:0] spec_reg_sel_i
+    , input logic [NUM_SPECIAL_REG*DATA_WIDTH-1:0] const_reg_i
+    // tid info
+    , input logic [TID_WIDTH-1:0] tid_x_i
+    , input logic [TID_WIDTH-1:0] tid_y_i
+    , input logic [TID_WIDTH-1:0] tid_z_i
+    , input logic [TID_WIDTH-1:0] ntid_x_i
+    , input logic [TID_WIDTH-1:0] ntid_y_i
+    , input logic [TID_WIDTH-1:0] ntid_z_i
+    , input logic [CTA_ID_WIDTH-1:0] ctaid_x_i
+    , input logic [CTA_ID_WIDTH-1:0] ctaid_y_i
+    , input logic [CTA_ID_WIDTH-1:0] ctaid_z_i
+    , input logic [CTA_ID_WIDTH-1:0] nctaid_x_i
+    , input logic [CTA_ID_WIDTH-1:0] nctaid_y_i
+    , input logic [CTA_ID_WIDTH-1:0] nctaid_z_i
+    // output
+    , output logic [NUM_SPECIAL_REG*DATA_WIDTH-1:0] spec_reg_out_o
 );
 
     logic [NUM_PORTS-1] rf_rd_en;
@@ -113,6 +138,40 @@ import dice_pkg::*;
         end
     endgenerate
 
+    generate 
+        for (i = 0; i < NUM_SPECIAL_REG; i++) begin
+            dice_special_reg#
+            (
+                .DATA_WIDTH (DATA_WIDTH)
+                .NUM_TID (NUM_TID)
+                .TID_WIDTH (TID_WIDTH)
+                .MAX_CTA_ID (MAX_CTA_ID)
+                .CTA_ID_WIDTH (CTA_ID_WIDTH)
+            ) u_special_reg (
+                .clk_i (clk_i)
+                , .reset_i (reset_i)
+                , .clear_i (clear_i)
+                , .rd_en (spec_rd_enable_i[i])
+                , .rd_sel (spec_reg_sel_i[i*4 +: 4])
+                , .const_data (const_reg_i[i*DATA_WIDTH +: DATA_WIDTH])
+                , .tid_x (tid_x_i)
+                , .tid_y (tid_y_i)
+                , .tid_z (tid_z_i)
+                , .ntid_x (ntid_x_i)
+                , .ntid_y (ntid_y_i)
+                , .ntid_z (ntid_z_i)
+                , .ctaid_x (ctaid_x_i)
+                , .ctaid_y (ctaid_y_i)
+                , .ctaid_z (ctaid_z_i)
+                , .nctaid_x (nctaid_x_i)
+                , .nctaid_y (nctaid_y_i)
+                , .nctaid_z (nctaid_z_i)
+                , .out_data (spec_reg_out_o[i*DATA_WIDTH +: DATA_WIDTH])
+            );
+        end
+    endgenerate
+
+
     
     dice_read_org#
     (
@@ -127,7 +186,7 @@ import dice_pkg::*;
         , .reset_i (reset_i)
         , .rd_tid_valid_i (rd_tid_valid_i)
         , .rd_tid_ready_o (rd_tid_ready_o)
-        //  TODO: eventually we will add support for multiple tids with an unrolling factor input
+        , .rd_unroll_factor_i (rd_unroll_factor_i)
         , .rd_en_i (rd_en_i)
         , .rd_tid_i (rd_tid_i)
         , .rd_bitmap_i (rd_bitmap_i)
