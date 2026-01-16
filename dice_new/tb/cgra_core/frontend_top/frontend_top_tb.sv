@@ -120,9 +120,13 @@ module frontend_top_tb;
   task automatic dispatch_cta(input dice_pkg::dice_cta_desc_t desc);
     dispatch_if.data = desc;
     dispatch_if.valid = 1'b1;
-    @(posedge clk);
-    while (dispatch_if.ready !== 1'b1) @(posedge clk);
+    
+    do begin
+      @(posedge clk);
+    end while (dispatch_if.ready !== 1'b1);
+
     dispatch_if.valid = 1'b0;
+
   endtask
 
   // =========================================================================
