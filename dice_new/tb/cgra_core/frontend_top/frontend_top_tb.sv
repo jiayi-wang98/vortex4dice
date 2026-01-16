@@ -8,7 +8,7 @@ module frontend_top_tb;
   // =========================================================================
   // Parameters
   // =========================================================================
-  localparam int TimeoutCycles = 10000;
+  localparam int TimeoutCycles = 1000;
   localparam int ClkPeriod = 10;
   
   // =========================================================================
@@ -104,7 +104,6 @@ module frontend_top_tb;
     bitstream_cache_mem_if.rsp_valid = 1'b0;
     bitstream_cache_mem_if.rsp_data = '0;
     
-    // Backend Not Ready initially? Or Ready?
     fdr_if.ready = 1'b1; // Ready to accept instructions
     
     // Backend Feedback
@@ -142,6 +141,11 @@ module frontend_top_tb;
     $display("TEST 2: Dispatch CTA");
     test_desc = '0;
     test_desc.kernel_desc.start_pc = 32'h1000;
+    test_desc.kernel_desc.cta_size.x = 100;
+    test_desc.kernel_desc.cta_size.y = 1;
+    test_desc.kernel_desc.cta_size.z = 3;
+
+    test_desc.cta_id.y = 13;
     dispatch_cta(test_desc);
 
     repeat (20) @(posedge clk);
