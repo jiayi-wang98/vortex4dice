@@ -46,9 +46,13 @@ class tcu_base_test extends uvm_test;
     tcu_no_coalesce_seq no_coal_seq;
     
     phase.raise_objection(this, "Starting test");
-    
+
     `uvm_info("TEST", "========== TEST STARTING ==========", UVM_LOW)
-    
+
+    // Wait for driver to initialize before starting sequences
+    #1us;
+    `uvm_info("TEST", "Driver initialization complete, starting sequences...", UVM_LOW)
+
     // Run coalescing sequence
     coal_seq = tcu_coalesce_seq::type_id::create("coal_seq");
     coal_seq.start(env.agt.sqr);

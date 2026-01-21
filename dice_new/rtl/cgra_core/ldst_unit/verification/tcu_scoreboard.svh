@@ -30,6 +30,8 @@ class tcu_scoreboard extends uvm_component;
   int unsigned num_outputs;
   int unsigned num_matches;
   int unsigned num_mismatches;
+  int unsigned num_sanity_passes;
+  int unsigned num_sanity_failures;
 
   localparam int CACHE_LINE_SIZE = 32;
   localparam int BASE_ADDR_OFFSET = $clog2(CACHE_LINE_SIZE);
@@ -47,6 +49,8 @@ class tcu_scoreboard extends uvm_component;
     num_outputs = 0;
     num_matches = 0;
     num_mismatches = 0;
+    num_sanity_passes = 0;
+    num_sanity_failures = 0;
   endfunction
 
   // Process input transactions
@@ -95,13 +99,13 @@ class tcu_scoreboard extends uvm_component;
   function void check_output_sanity(tcu_out_item tr);
     if (tr.tid_bitmap == 0) begin
       `uvm_error("SCB", "Output has empty tid_bitmap")
-      num_mismatches++;
+      num_sanity_failures++;
       return;
     end
     
     if (tr.address[4:0] != 0) begin
       `uvm_error("SCB", $sformatf("Output address 0x%h is not cache-line aligned", tr.address))
-      num_mismatches++;
+      num_sanity_failures++;
       return;
     end
     
@@ -109,7 +113,7 @@ class tcu_scoreboard extends uvm_component;
       `uvm_warning("SCB", "Write output has all bytes masked")
     end
     
-    num_matches++;
+    num_sanity_passes++;
     `uvm_info("SCB", "Output passed sanity checks", UVM_HIGH)
   endfunction
 
@@ -216,11 +220,47 @@ class tcu_scoreboard extends uvm_component;
     return match;
   endfunction
 
+  function void compare_expected_to_actual();
+    int min_count;
+    int extra_expected;
+    int extra_actual;
+
+    min_count = (expected_q.size() < actual_outputs.size()) ? expected_q.size() : actual_outputs.size();
+
+    for (int i = 0; i < min_count; i++) begin
+      if (compare_outputs(expected_q[i], actual_outputs[i])) begin
+        num_matches++;
+        `uvm_info("SCB", $sformatf("Output match #%0d", i + 1), UVM_HIGH)
+      end
+      else begin
+        num_mismatches++;
+        `uvm_error("SCB", $sformatf("Output mismatch #%0d exp=%s act=%s",
+                                    i + 1, expected_q[i].convert2string(), actual_outputs[i].convert2string()))
+      end
+    end
+
+    extra_expected = expected_q.size() - min_count;
+    extra_actual = actual_outputs.size() - min_count;
+
+    if (extra_expected > 0) begin
+      num_mismatches += extra_expected;
+      `uvm_error("SCB", $sformatf("Missing %0d actual outputs; expected queue still has items", extra_expected))
+    end
+
+    if (extra_actual > 0) begin
+      num_mismatches += extra_actual;
+      `uvm_error("SCB", $sformatf("Received %0d unexpected extra outputs", extra_actual))
+    end
+  endfunction
+
   function void report_phase(uvm_phase phase);
     int total_coalesced_tids;
     
     super.report_phase(phase);
-    
+
+    flush_buffer();
+    compare_expected_to_actual();
+
     total_coalesced_tids = 0;
     foreach (actual_outputs[i]) begin
       for (int b = 0; b < 8; b++) begin
@@ -233,12 +273,17 @@ class tcu_scoreboard extends uvm_component;
     `uvm_info("SCB", $sformatf("  Total Outputs:         %0d", num_outputs), UVM_LOW)
     `uvm_info("SCB", $sformatf("  Coalescing Ratio:      %.2f:1", 
                                num_outputs > 0 ? real'(total_coalesced_tids)/real'(num_outputs) : 0), UVM_LOW)
-    `uvm_info("SCB", $sformatf("  Sanity Checks Passed:  %0d", num_matches), UVM_LOW)
-    `uvm_info("SCB", $sformatf("  Sanity Checks Failed:  %0d", num_mismatches), UVM_LOW)
+    `uvm_info("SCB", $sformatf("  Sanity Checks Passed:  %0d", num_sanity_passes), UVM_LOW)
+    `uvm_info("SCB", $sformatf("  Sanity Checks Failed:  %0d", num_sanity_failures), UVM_LOW)
+    `uvm_info("SCB", $sformatf("  Functional Matches:    %0d", num_matches), UVM_LOW)
+    `uvm_info("SCB", $sformatf("  Functional Mismatches: %0d", num_mismatches), UVM_LOW)
     `uvm_info("SCB", "=========================================", UVM_LOW)
     
-    if (num_mismatches > 0) begin
-      `uvm_error("SCB", $sformatf("TEST FAILED: %0d sanity check failures", num_mismatches))
+    if (num_sanity_failures > 0) begin
+      `uvm_error("SCB", $sformatf("TEST FAILED: %0d sanity check failures", num_sanity_failures))
+    end
+    else if (num_mismatches > 0) begin
+      `uvm_error("SCB", $sformatf("TEST FAILED: %0d functional mismatches", num_mismatches))
     end
     else if (num_outputs == 0 && num_inputs > 0) begin
       `uvm_error("SCB", "TEST FAILED: No outputs received despite inputs!")

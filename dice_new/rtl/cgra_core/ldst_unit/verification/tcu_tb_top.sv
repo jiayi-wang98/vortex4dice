@@ -1,3 +1,4 @@
+
 `include "uvm_macros.svh"
 import uvm_pkg::*;
 import tcu_pkg::*;
@@ -55,14 +56,23 @@ module tcu_tb_top;
 
   // Clock generation
   initial begin
+    $display("[TB_TOP] Clock generator starting at time=%0t", $realtime);
     clk = 0;
-    forever #5ns clk = ~clk;
+    $display("[TB_TOP] Clock initialized to 0 at time=%0t", $realtime);
+    forever begin
+      #5ns;
+      $display("[TB_TOP] Clock toggle at time=%0t: clk %0b->%0b", $realtime, clk, ~clk);
+      clk = ~clk;
+    end
   end
 
   // Reset generation
   initial begin
+    $display("[TB_TOP] Reset generator starting at time=%0t", $realtime);
     rst_n = 0;
+    $display("[TB_TOP] Reset asserted (rst_n=0) at time=%0t", $realtime);
     #100ns;
+    $display("[TB_TOP] About to release reset at time=%0t", $realtime);
     rst_n = 1;
     `uvm_info("TB_TOP", "Reset released", UVM_LOW)
   end

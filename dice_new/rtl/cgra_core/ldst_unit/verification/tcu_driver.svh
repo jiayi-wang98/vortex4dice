@@ -20,6 +20,13 @@ class tcu_driver extends uvm_driver #(tcu_seq_item);
   task run_phase(uvm_phase phase);
     tcu_seq_item tr;
 
+    `uvm_info("DRIVER", "Driver run_phase started", UVM_LOW)
+
+    // Small delay to avoid time-0 race conditions with testbench initial blocks
+    #1ns;
+    $display("[DRIVER DEBUG] Time=%0t, rst_n=%0b", $realtime, vif.rst_n);
+    `uvm_info("DRIVER", $sformatf("After 1ns delay (time=%0t), rst_n=%0b", $realtime, vif.rst_n), UVM_LOW)
+
     // Initialize outputs
     vif.incmd_valid      <= 0;
     vif.incmd_block_id   <= 0;
@@ -32,10 +39,32 @@ class tcu_driver extends uvm_driver #(tcu_seq_item);
     vif.incmd_ld_dest_reg <= 0;
     vif.outcmd_ready     <= 1;
 
-    // Wait for reset
-    wait(vif.rst_n === 0);
-    wait(vif.rst_n === 1);
-    repeat(2) @(posedge vif.clk);
+    // Wait for a clock edge to ensure all signals are stable
+    $display("[DRIVER DEBUG] Before waiting for clk: Time=%0t, clk=%0b", $realtime, vif.clk);
+    fork
+      begin
+        @(posedge vif.clk);
+        $display("[DRIVER DEBUG] After posedge clk: Time=%0t, rst_n=%0b", $realtime, vif.rst_n);
+      end
+      begin
+        #1000ns;
+        $display("[DRIVER DEBUG] TIMEOUT! Clock never toggled! Time=%0t, clk=%0b", $realtime, vif.clk);
+        `uvm_fatal("DRIVER", "Clock timeout - clock is not running!")
+      end
+    join_any
+    disable fork;
+    `uvm_info("DRIVER", $sformatf("After clock edge (time=%0t), rst_n=%0b", $realtime, vif.rst_n), UVM_LOW)
+
+    // Wait for reset to be released - handle if already released or not
+    if (vif.rst_n === 0) begin
+      `uvm_info("DRIVER", "Waiting for reset release (posedge rst_n)...", UVM_LOW)
+      @(posedge vif.rst_n);
+    end else begin
+      `uvm_info("DRIVER", "Reset already released, skipping wait", UVM_LOW)
+    end
+    `uvm_info("DRIVER", "Reset released, waiting for DUT initialization...", UVM_LOW)
+    repeat(10) @(posedge vif.clk);
+    `uvm_info("DRIVER", "Starting transaction processing", UVM_LOW)
 
     // Main driver loop
     forever begin
@@ -48,8 +77,11 @@ class tcu_driver extends uvm_driver #(tcu_seq_item);
 
   // Drive transaction with valid/ready handshake
   task drive_transaction(tcu_seq_item tr);
+    int timeout_counter;
+    timeout_counter = 0;
+
     @(posedge vif.clk);
-    
+
     vif.incmd_block_id     <= tr.block_id;
     vif.incmd_tid          <= tr.tid;
     vif.incmd_write_enable <= tr.write_enable;
@@ -60,11 +92,25 @@ class tcu_driver extends uvm_driver #(tcu_seq_item);
     vif.incmd_ld_dest_reg  <= tr.ld_dest_reg;
     vif.incmd_valid        <= 1'b1;
 
-    // Wait for handshake
+    `uvm_info("DRIVER", "Waiting for incmd_ready handshake...", UVM_HIGH)
+
+    // Wait for handshake with timeout
     do begin
       @(posedge vif.clk);
+      timeout_counter++;
+
+      if (timeout_counter > 1000) begin
+        `uvm_fatal("DRIVER", $sformatf("TIMEOUT waiting for incmd_ready! incmd_ready=%0b, Transaction: %s",
+                   vif.incmd_ready, tr.convert2string()))
+      end
+
+      if (timeout_counter % 100 == 0) begin
+        `uvm_info("DRIVER", $sformatf("Still waiting for incmd_ready (cycle %0d), incmd_ready=%0b",
+                  timeout_counter, vif.incmd_ready), UVM_MEDIUM)
+      end
     end while (!vif.incmd_ready);
 
+    `uvm_info("DRIVER", $sformatf("Handshake complete after %0d cycles", timeout_counter), UVM_HIGH)
     vif.incmd_valid <= 1'b0;
   endtask
 
