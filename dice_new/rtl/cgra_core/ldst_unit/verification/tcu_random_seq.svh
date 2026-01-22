@@ -59,9 +59,7 @@ class tcu_coalesce_seq extends uvm_sequence #(tcu_seq_item);
       tr.ld_dest_reg  = 7'h0;
       finish_item(tr);
     end
-    
-    #100ns;
-    
+
     // Test 2: Write to different cache line
     `uvm_info("SEQ", "Test 2: Write to different cache line", UVM_LOW)
     tr = tcu_seq_item::type_id::create("tr");

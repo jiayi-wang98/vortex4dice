@@ -83,6 +83,8 @@ module tcu_tb_top;
       null, "uvm_test_top.env.agt.drv", "vif", tcu_vif);
     uvm_config_db#(virtual tcu_if.monitor_mp)::set(
       null, "uvm_test_top.env.agt.mon", "vif", tcu_vif);
+    uvm_config_db#(virtual tcu_if.monitor_mp)::set(
+      null, "uvm_test_top.env.scb", "vif", tcu_vif);
     run_test("tcu_base_test");
   end
 

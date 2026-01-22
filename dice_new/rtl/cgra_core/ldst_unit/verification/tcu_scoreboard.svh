@@ -10,10 +10,13 @@ class tcu_scoreboard extends uvm_component;
   uvm_analysis_imp_in  #(tcu_seq_item, tcu_scoreboard) in_imp;
   uvm_analysis_imp_out #(tcu_out_item, tcu_scoreboard) out_imp;
 
+  // Virtual interface for clock-based timeout modeling
+  virtual tcu_if.monitor_mp vif;
+
   // Reference model state
   tcu_out_item expected_q[$];
   tcu_out_item actual_outputs[$];
-  
+
   bit          buffer_valid;
   bit [63:0]   buffer_base_addr;
   bit [3:0]    buffer_block_id;
@@ -24,7 +27,14 @@ class tcu_scoreboard extends uvm_component;
   bit [255:0]  buffer_write_data;
   bit [31:0]   buffer_write_mask;
   bit [1:0]    buffer_size;
-  
+
+  // Timeout modeling (matches DUT's number_of_max_coalesced_interval)
+  localparam int MAX_COALESCE_INTERVAL = 8;
+  int unsigned interval_counter;
+
+  // Track if coalescable input arrived this cycle
+  bit coalescable_input_this_cycle;
+
   // Statistics
   int unsigned num_inputs;
   int unsigned num_outputs;
@@ -44,7 +54,12 @@ class tcu_scoreboard extends uvm_component;
     super.build_phase(phase);
     in_imp  = new("in_imp",  this);
     out_imp = new("out_imp", this);
+    if (!uvm_config_db#(virtual tcu_if.monitor_mp)::get(this, "", "vif", vif)) begin
+      `uvm_fatal("NOVIF", "Virtual interface not set for tcu_scoreboard")
+    end
     buffer_valid = 0;
+    interval_counter = 0;
+    coalescable_input_this_cycle = 0;
     num_inputs = 0;
     num_outputs = 0;
     num_matches = 0;
@@ -53,36 +68,72 @@ class tcu_scoreboard extends uvm_component;
     num_sanity_failures = 0;
   endfunction
 
+  // Timeout monitoring task - runs in parallel during run_phase
+  task run_phase(uvm_phase phase);
+    forever begin
+      @(posedge vif.clk);
+
+      // Check if we have a valid buffer
+      if (buffer_valid) begin
+        // If no coalescable input arrived this cycle, flush immediately
+        // (matches DUT behavior: output_valid = !buffer_can_coalesce)
+        if (!coalescable_input_this_cycle) begin
+          `uvm_info("SCB", "No coalescable input this cycle, flushing buffer", UVM_HIGH)
+          flush_buffer();
+          interval_counter = 0;
+        end
+        else begin
+          // Input did arrive and coalesced, increment timeout counter
+          interval_counter++;
+          if (interval_counter >= MAX_COALESCE_INTERVAL) begin
+            `uvm_info("SCB", "Timeout reached, flushing buffer", UVM_HIGH)
+            flush_buffer();
+            interval_counter = 0;
+          end
+        end
+      end
+
+      // Reset flag for next cycle
+      coalescable_input_this_cycle = 0;
+    end
+  endtask
+
   // Process input transactions
   function void write_in(tcu_seq_item tr);
     bit [63:0] in_base_addr;
     bit [9:0]  in_base_tid;
     bit        can_coalesce;
-    
+
     num_inputs++;
     `uvm_info("SCB_IN", $sformatf("Received input #%0d: %s", num_inputs, tr.convert2string()), UVM_MEDIUM)
-    
+
     in_base_addr = {tr.address[63:BASE_ADDR_OFFSET], {BASE_ADDR_OFFSET{1'b0}}};
     in_base_tid = {tr.tid[9:3], 3'b0};
-    
+
     can_coalesce = buffer_valid &&
                    (buffer_base_addr == in_base_addr) &&
                    (buffer_block_id == tr.block_id) &&
                    (buffer_base_tid == in_base_tid) &&
                    (buffer_write_enable == tr.write_enable) &&
                    (buffer_ld_dest_reg == tr.ld_dest_reg || tr.write_enable);
-    
+
     if (!buffer_valid) begin
       init_buffer(tr, in_base_addr, in_base_tid);
+      interval_counter = 0;  // Reset timeout counter for new buffer
+      coalescable_input_this_cycle = 1;  // New buffer started
       `uvm_info("SCB_IN", "Started new coalescing buffer", UVM_HIGH)
     end
     else if (can_coalesce) begin
       merge_into_buffer(tr);
+      coalescable_input_this_cycle = 1;  // Input coalesced
+      // Note: DUT does NOT reset counter on coalesce, it keeps counting
       `uvm_info("SCB_IN", "Merged into existing buffer", UVM_HIGH)
     end
     else begin
       flush_buffer();
       init_buffer(tr, in_base_addr, in_base_tid);
+      interval_counter = 0;  // Reset timeout counter for new buffer
+      coalescable_input_this_cycle = 1;  // New buffer started after flush
       `uvm_info("SCB_IN", "Flushed buffer, started new", UVM_HIGH)
     end
   endfunction

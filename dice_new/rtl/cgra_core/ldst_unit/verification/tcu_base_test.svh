@@ -56,19 +56,19 @@ class tcu_base_test extends uvm_test;
     // Run coalescing sequence
     coal_seq = tcu_coalesce_seq::type_id::create("coal_seq");
     coal_seq.start(env.agt.sqr);
-    #200ns;
-    
+
     // Run non-coalescing sequence
     no_coal_seq = tcu_no_coalesce_seq::type_id::create("no_coal_seq");
     no_coal_seq.start(env.agt.sqr);
-    #200ns;
-    
+
     // Run random traffic
     rand_seq = tcu_random_seq::type_id::create("rand_seq");
     rand_seq.num_items = 50;
     rand_seq.start(env.agt.sqr);
-    
-    #500ns;
+
+    // Wait for DUT to flush any remaining buffered commands (timeout + FIFO drain)
+    // 20 clock cycles at 10ns period = 200ns
+    #200ns;
     
     `uvm_info("TEST", "========== TEST COMPLETE ==========", UVM_LOW)
     
