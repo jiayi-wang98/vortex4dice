@@ -7,7 +7,7 @@ module temporal_coalescing_unit#(
     parameter int EBLOCK_ID_WIDTH = 4,
     parameter int TID_WIDTH = 10,
     parameter int DATA_WIDTH = 64,
-    parameter int ADDR_WIDTH = 64,
+    parameter int ADDR_WIDTH = 32,
     parameter int MAX_REG_WIDTH = 7,
     parameter int TID_BITMAP_WIDTH = NUMBER_OF_MAX_COALESCED_COMMANDS
 )
@@ -44,7 +44,17 @@ module temporal_coalescing_unit#(
     input logic outcmd_ready                   // Ready signal to control flow
 );
 
-    parameter int total_output_cmd_width = 4 + 10 + 8 + 1 + CACHE_LINE_SIZE*8 + CACHE_LINE_SIZE + 64 + 2 + 7 + NUMBER_OF_MAX_COALESCED_COMMANDS * BASE_ADDRESS_OFFSET;
+    parameter int total_output_cmd_width = 
+          EBLOCK_ID_WIDTH              // 4
+        + TID_WIDTH                    // 10
+        + TID_BITMAP_WIDTH             // 8
+        + 1                            // write_enable
+        + (CACHE_LINE_SIZE * 8)        // write_data (256)
+        + CACHE_LINE_SIZE              // write_mask (32)
+        + ADDR_WIDTH                   // 32
+        + 2                            // size
+        + MAX_REG_WIDTH                // 7
+        + (NUMBER_OF_MAX_COALESCED_COMMANDS * BASE_ADDRESS_OFFSET);
     // Coalescing interval counter
     logic [$clog2(NUMBER_OF_MAX_COALESCED_INTERVAL)-1:0] interval_counter;
     logic interval_timeout;
@@ -150,7 +160,7 @@ module temporal_coalescing_unit#(
 
     sync_fifo_read_unreg #(
         .DATA_WIDTH(total_output_cmd_width),
-        .DEPTH(2)
+        .DEPTH(4)
     ) output_fifo (
         .clk(clk),
         .rst(rst),

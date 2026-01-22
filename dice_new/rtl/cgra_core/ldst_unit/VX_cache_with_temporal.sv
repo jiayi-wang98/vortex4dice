@@ -7,14 +7,19 @@ module VX_cache_with_temporal #(
     parameter int EBLOCK_ID_WIDTH = 4,
     parameter int TID_WIDTH = 10,
     parameter int DATA_WIDTH = 64,
-    parameter int ADDR_WIDTH = 64,
+    parameter int ADDR_WIDTH = 32,
     parameter int MAX_REG_WIDTH = 7,
     parameter int TID_BITMAP_WIDTH = NUMBER_OF_MAX_COALESCED_COMMANDS,
     parameter int NUM_REQS = 1,
     parameter int MEM_PORTS = 1, 
     parameter int NUM_BANKS = 1,
-    parameter int OUTCMD_TAG_WIDTH = NUMBER_OF_MAX_COALESCED_COMMANDS * BASE_ADDRESS_OFFSET + EBLOCK_ID_WIDTH +
-        TID_WIDTH + TID_BITMAP_WIDTH + MAX_REG_WIDTH
+    parameter int MSHR_SIZE = 16,
+    parameter MSHR_BITS = $clog2(MSHR_SIZE),
+    parameter OUTCMD_TAG_WIDTH = 46,
+    //parameter int OUTCMD_TAG_WIDTH = NUMBER_OF_MAX_COALESCED_COMMANDS * BASE_ADDRESS_OFFSET + EBLOCK_ID_WIDTH +
+        //TID_WIDTH + TID_BITMAP_WIDTH + MAX_REG_WIDTH,
+    parameter MEM_TAG_WIDTH = OUTCMD_TAG_WIDTH + MSHR_BITS,
+    parameter MEM_ADDR_WIDTH = ADDR_WIDTH - $clog2(CACHE_LINE_SIZE) // 59 bits
 )(
     input logic clk,
     input logic rst,
@@ -38,14 +43,14 @@ module VX_cache_with_temporal #(
     output logic mem_req_valid,
     output logic mem_req_rw,
     output logic [CACHE_LINE_SIZE-1:0] mem_req_byteen,
-    output logic [26:0] mem_req_addr,
+    output logic [MEM_ADDR_WIDTH-1:0] mem_req_addr,
     output logic [255:0] mem_req_data,
-    output logic [47:0] mem_req_tag,
+    output logic [MEM_TAG_WIDTH-1:0] mem_req_tag,
     input logic mem_req_ready,
     
     input logic mem_rsp_valid,
-    input logic [DATA_WIDTH-1:0] mem_rsp_data,
-    input logic [OUTCMD_TAG_WIDTH-1:0] mem_rsp_tag,
+    input logic [255:0] mem_rsp_data,
+    input logic [MEM_TAG_WIDTH-1:0] mem_rsp_tag,
     output logic mem_rsp_ready
 
     
@@ -65,7 +70,7 @@ module VX_cache_with_temporal #(
     logic [NUMBER_OF_MAX_COALESCED_COMMANDS-1:0][BASE_ADDRESS_OFFSET-1:0] outcmd_address_map; //map from tid bitmap to address_offset
     
     logic core_req_ready;
-
+    /*
     typedef struct packed {
     logic [EBLOCK_ID_WIDTH-1:0] outcmd_block_id;
     logic [TID_WIDTH-1:0]       outcmd_base_tid;
@@ -73,14 +78,29 @@ module VX_cache_with_temporal #(
     logic [MAX_REG_WIDTH-1:0]   outcmd_ld_dest_reg;
     logic [NUMBER_OF_MAX_COALESCED_COMMANDS-1:0]
           [BASE_ADDRESS_OFFSET-1:0] outcmd_address_map;
+    } outcmd_tag_t; */
+
+   typedef struct packed {
+    logic [11:0]                    reserved;           // 12 bits (Now at the MSB)
+    logic [EBLOCK_ID_WIDTH-1:0]     outcmd_block_id;    // 4 bits
+    logic [TID_WIDTH-1:0]           outcmd_base_tid;    // 10 bits
+    logic [TID_BITMAP_WIDTH-1:0]    outcmd_tid_bitmap;  // 8 bits
+    logic [MAX_REG_WIDTH-1:0]       outcmd_ld_dest_reg; // 7 bits
+    logic [BASE_ADDRESS_OFFSET-1:0] outcmd_base_offset; // 5 bits (Now at the LSB)
     } outcmd_tag_t;
+    outcmd_tag_t core_req_tag;
+    outcmd_tag_t core_rsp_tag;
 
-    outcmd_tag_t core_tag_req;
-    outcmd_tag_t core_tag_rsp;
-    outcmd_tag_t mem_tag_rsp;
     
-    assign core_tag_req = {outcmd_block_id, outcmd_base_tid, outcmd_tid_bitmap, outcmd_ld_dest_reg, outcmd_address_map};
-
+    //assign core_req_tag = {outcmd_block_id, outcmd_base_tid, outcmd_tid_bitmap, outcmd_ld_dest_reg, outcmd_address_map};
+    assign core_req_tag = {
+    12'b0,                  // Padding FIRST (MSB)
+    outcmd_block_id,        // 4
+    outcmd_base_tid,        // 10
+    outcmd_tid_bitmap,      // 8
+    outcmd_ld_dest_reg,     // 7
+    outcmd_address_map[0]   // 5 (LSB)
+};
     typedef struct packed {
     logic [EBLOCK_ID_WIDTH-1:0] incmd_block_id;
     logic [TID_WIDTH-1:0]       incmd_base_tid;
@@ -92,7 +112,9 @@ module VX_cache_with_temporal #(
 
 
     // Temporal instantiation 
-    temporal_coalescing_unit temporal_inst (
+    temporal_coalescing_unit # (
+        .ADDR_WIDTH(ADDR_WIDTH)
+    )temporal_inst (
         .clk(clk),
         .rst(rst),
         .incmd_valid(incmd_valid),
@@ -124,7 +146,8 @@ module VX_cache_with_temporal #(
     .LINE_SIZE(CACHE_LINE_SIZE),
     .NUM_BANKS(NUM_BANKS),
     .TAG_WIDTH(OUTCMD_TAG_WIDTH),
-    .WORD_SIZE(8)
+    .WORD_SIZE(8),
+    .MEM_TAG_WIDTH(MEM_TAG_WIDTH)
     ) cache_inst (
     .clk(clk),
     .reset(rst),
@@ -134,12 +157,12 @@ module VX_cache_with_temporal #(
     .core_req_addr('{outcmd_address}),
     .core_req_flags('{default: 0}),
     .core_req_data('{outcmd_write_data}),
-    .core_req_tag('{core_tag_req}),
+    .core_req_tag('{core_req_tag}),
     .core_req_ready('{core_req_ready}),
 
     .core_rsp_valid('{core_rsp_valid}),
     .core_rsp_data('{core_rsp_data}),
-    .core_rsp_tag('{core_tag_rsp}),
+    .core_rsp_tag('{core_rsp_tag}),
     .core_rsp_ready('{incmd_ready}), 
 
     .mem_req_valid('{mem_req_valid}),
@@ -153,9 +176,8 @@ module VX_cache_with_temporal #(
     .mem_rsp_valid('{mem_rsp_valid}), 
     .mem_rsp_data('{mem_rsp_data}),
     .mem_rsp_tag('{mem_rsp_tag}),
-    .mem_rsp_ready('{mem_rsp_ready}) 
+    .mem_rsp_ready('{mem_rsp_ready})
 );
-
 
 endmodule
 

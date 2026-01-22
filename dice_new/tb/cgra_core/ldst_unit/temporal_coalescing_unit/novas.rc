@@ -230,13 +230,13 @@ autoSaveSession = FALSE
 TclAutoSource = 
 cmd_enter_form = FALSE
 SyncBrowserDir = TRUE
-recent_commands_nWave = reread,extractSelSignals,zoomAll,traceDriver,gotoUsrSearchForwardMarker,unselect,selectAll,fastFile,wvCaptureWindow,openFile
+FindBarVisible = 
 ColorThemeModern = bright
 version = Verdi_X-2025.06
-recent_commands_Verdi = hbReload,hbLoadFsdbFile,hbImpDsg,hbInvokeWave,hbCloseFsdbFile,ToolBarTraceDriverGroup,hbOpenLogFile,srcSignalPaneSelectAllInCurrentPage,hbTextPaste
+recent_commands_Verdi = hbLoadFsdbFile,hbInvokeWave,hbImpDsg,hbCloseFsdbFile,hbReload,ToolBarTraceDriverGroup,hbOpenLogFile,srcSignalPaneSelectAllInCurrentPage,hbTextPaste
+recent_commands_nWave = digitalFUDec,digitalFBin,zoomAll,editCut,extractSelSignals,selectAll,fastFile,wvCaptureWindow,openFile,saveSignal
 prevColorThemeModern = bright
 SignalCaseInSensitive = FALSE
-FindBarVisible = nWave
 [GlobalProp]
 ErrWindow_Font = Helvetica_M_R_12
 [Globals]
@@ -272,8 +272,8 @@ import_default_language = Verilog
 import_filter_verilog = *.v; *.vc; *.f
 PrefetchViewableAnnot = TRUE
 designTreeBgColor = ID_WHITE
-simulation_file_type = *.fsdb;*.vf;*.jf;*.zwd*
 ShowFileListView = FALSE
+simulation_file_type = *.fsdb;*.vf;*.jf;*.zwd*
 [Hier]
 filterTimeout = 1500
 [ImportLiberty]
@@ -387,6 +387,7 @@ saveWaveformStat = TRUE
 savePropStat = FALSE
 savePropDtl = TRUE
 [QtDialog]
+tipViewerDlg = 511,333,398,259
 unknownSave_SaveSignal(s)NotFound = 424,240,590,340
 highlightColor = 382,246,675,327
 EventReportDialog = 360,269,720,280
@@ -396,15 +397,14 @@ saveSigDlg = 444,216,551,386
 openFileDlg = 419,168,602,483
 capturePreview = 0,162,1440,494
 nWave_ConverttoFastFile = 415,273,590,340
-ExtractSignalsDialog_SelectExtractedFSDBfile = 424,215,590,340
-tipViewerDlg = 511,333,398,259
-ExtractSignalsDialog = 497,239,445,292
 QwInfoMsgDlg = 335,337,750,250
-QwWarnMsgDlg = 410,448,600,250
-unknownSave = 1049,557,461,245
-importDesignForm = 922,392,715,574
-loadFile = 973,463,614,432
-QwUserAskDlg = 1118,653,324,128
+ExtractSignalsDialog_SelectExtractedFSDBfile = 424,215,590,340
+ExtractSignalsDialog = 497,239,445,292
+importDesignForm = 362,159,715,574
+loadFile = 413,193,614,432
+QwWarnMsgDlg = 410,411,600,250
+unknownSave = 489,250,461,245
+QwUserAskDlg = 548,307,324,128
 [Safety]
 RegisterObject = ID_RED4
 CoreObject = ID_ORANGE5
@@ -489,7 +489,7 @@ bSVTBMode = TRUE
 SimMode = TRUE
 interactiveDebugging = TRUE
 KeepBreakPoints = FALSE
-vcs_svPath = /data/thatton9/vortex4dice/dice_new/tb/cgra_core/ldst_unit/temporal_coalescing_unit/cache_testing/simv
+vcs_svPath = /data/thatton9/vortex4dice/dice_new/tb/cgra_core/ldst_unit/temporal_coalescing_unit/simv
 [SimulationPlus2]
 eventDumpUnfinish = FALSE
 [Source]
@@ -607,7 +607,7 @@ pdmlMacro = ID_BLACK
 font = COURIER12
 annotFont = FIXED12
 [Text.1]
-viewport = 0 27 2560 1305 45
+viewport = 0 27 1440 788 45
 [TextPrinter]
 Orientation = Landscape
 Indicator = FALSE
@@ -705,38 +705,38 @@ isHidden = FALSE
 isUserChangeColumnVisible = FALSE
 isColFilterColorCoding = FALSE
 [VIA.oneSearch.preference.vgifColumnSettingRC.setting0.column1]
-name = "Block's First Line"
-width = 120
-visualIndex = 1
-isHidden = TRUE
-isUserChangeColumnVisible = FALSE
-isColFilterColorCoding = FALSE
-[VIA.oneSearch.preference.vgifColumnSettingRC.setting0.column2]
-name = "Message"
-width = 2000
-visualIndex = 5
-isHidden = FALSE
-isUserChangeColumnVisible = FALSE
-isColFilterColorCoding = FALSE
-[VIA.oneSearch.preference.vgifColumnSettingRC.setting0.column3]
 name = "Code"
 width = 60
 visualIndex = 3
 isHidden = TRUE
 isUserChangeColumnVisible = FALSE
 isColFilterColorCoding = FALSE
-[VIA.oneSearch.preference.vgifColumnSettingRC.setting0.column4]
+[VIA.oneSearch.preference.vgifColumnSettingRC.setting0.column2]
 name = "Type"
 width = 60
 visualIndex = 4
 isHidden = TRUE
 isUserChangeColumnVisible = FALSE
 isColFilterColorCoding = FALSE
-[VIA.oneSearch.preference.vgifColumnSettingRC.setting0.column5]
+[VIA.oneSearch.preference.vgifColumnSettingRC.setting0.column3]
 name = "Time"
 width = 60
 visualIndex = 0
 isHidden = FALSE
+isUserChangeColumnVisible = FALSE
+isColFilterColorCoding = FALSE
+[VIA.oneSearch.preference.vgifColumnSettingRC.setting0.column4]
+name = "Message"
+width = 2000
+visualIndex = 5
+isHidden = FALSE
+isUserChangeColumnVisible = FALSE
+isColFilterColorCoding = FALSE
+[VIA.oneSearch.preference.vgifColumnSettingRC.setting0.column5]
+name = "Block's First Line"
+width = 120
+visualIndex = 1
+isHidden = TRUE
 isUserChangeColumnVisible = FALSE
 isColFilterColorCoding = FALSE
 [VIA.ruleHistory]
@@ -816,7 +816,7 @@ scope_to_save_with_macro
 open_file_dir
 open_rc_file_dir
 getSignalForm = 320 133 800 479 165 387 391 91
-viewPort = 0 11 2560 518 200 65
+viewPort = 0 11 1440 319 200 65
 legendBackground = -c ID_BLACK
 valueBackground = -c ID_BLACK
 curveBackground = -c ID_BLACK
@@ -982,8 +982,8 @@ printBasic = 1 0 0 TRUE FALSE
 printDest = -printer {}
 printSignature = {%f %h %t} {}
 curveWindow_Drag&Drop_Mode = TRUE
-RecentFile1 = "\"/data/thatton9/vortex4dice/dice_new/tb/cgra_core/ldst_unit/temporal_coalescing_unit/cache_testing/tb_vx_cache_with_temporal.fsdb\""
-RecentFile2 = "\"/data/thatton9/vortex4dice/dice_new/tb/cgra_core/ldst_unit/temporal_coalescing_unit/tb_tcu.fsdb\""
+RecentFile1 = "\"/data/thatton9/vortex4dice/dice_new/tb/cgra_core/ldst_unit/temporal_coalescing_unit/tb_tcu.fsdb\""
+RecentFile2 = "\"/data/thatton9/vortex4dice/dice_new/tb/cgra_core/ldst_unit/temporal_coalescing_unit/cache_testing/tb_vx_cache_with_temporal.fsdb\""
 open_file_time_range = FALSE
 legend_window_font = -f COURIER12 -c ID_CYAN5
 value_window_font = -f COURIER12 -c ID_CYAN5
@@ -1620,7 +1620,7 @@ AddImportArgument = FALSE
 LineBreakWithScope = TRUE
 StopAfterCompileOption = -s
 [wave.0]
-viewPort = 0 11 2560 518 200 65
+viewPort = 0 11 1440 319 200 65
 [wave.1]
 viewPort = 127 219 960 332 100 65
 [wave.2]

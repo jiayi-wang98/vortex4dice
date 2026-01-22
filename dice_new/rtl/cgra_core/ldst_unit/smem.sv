@@ -1,7 +1,7 @@
 module smem #(
     parameter DATA_W = 256,
     parameter ADDR_W = 27,
-    parameter TAG_W  = 69,
+    parameter TAG_W  = 48,
     parameter MEM_DEPTH = 128
 )(
     input  logic clk,
@@ -14,12 +14,12 @@ module smem #(
     input  logic [ADDR_W-1:0] mem_req_addr,
     input  logic [DATA_W-1:0] mem_req_data,
     input  logic [DATA_W/8-1:0] mem_req_byteen,
-    input  logic [47:0] mem_req_tag,
+    input  logic [TAG_W-1:0] mem_req_tag,
 
     // Memory response interface
     output logic mem_rsp_valid,
     input  logic mem_rsp_ready,
-    output logic [DATA_W/4-1:0] mem_rsp_data,
+    output logic [DATA_W-1:0] mem_rsp_data,
     output logic [TAG_W-1:0] mem_rsp_tag
 );
     
@@ -66,7 +66,7 @@ module smem #(
                 if (mem_req_rw) begin
                     // Write
                     for (int i = 0; i < DATA_W/8; i++) begin
-                        if (!mem_req_byteen[i])
+                        if (mem_req_byteen[i])
                             mem[mem_req_addr][8*i +: 8] <= mem_req_data[8*i +: 8];
                     end
                 end else begin
