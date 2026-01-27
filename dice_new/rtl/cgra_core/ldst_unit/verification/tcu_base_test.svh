@@ -1,9 +1,17 @@
 // =============================================================================
+// FILE: tcu_base_test.svh
+// =============================================================================
+// DESCRIPTION:
+//   Base UVM test for the TCU environment. Builds the env, configures reporting,
+//   and runs a sequence set that exercises coalescing and non-coalescing cases.
+// =============================================================================
+// =============================================================================
 // TEST
 // =============================================================================
 class tcu_base_test extends uvm_test;
   `uvm_component_utils(tcu_base_test)
 
+  // Environment handle and log file descriptor
   tcu_env env;
   int log_file;
 
@@ -16,7 +24,7 @@ class tcu_base_test extends uvm_test;
     env = tcu_env::type_id::create("env", this);
   endfunction
   
-  // Configure logging
+  // Configure logging and UVM report behavior
   function void start_of_simulation_phase(uvm_phase phase);
     super.start_of_simulation_phase(phase);
     
@@ -45,6 +53,7 @@ class tcu_base_test extends uvm_test;
     tcu_coalesce_seq    coal_seq;
     tcu_no_coalesce_seq no_coal_seq;
     
+    // Keep the test alive until sequences complete
     phase.raise_objection(this, "Starting test");
 
     `uvm_info("TEST", "========== TEST STARTING ==========", UVM_LOW)
@@ -53,15 +62,15 @@ class tcu_base_test extends uvm_test;
     #1us;
     `uvm_info("TEST", "Driver initialization complete, starting sequences...", UVM_LOW)
 
-    // Run coalescing sequence
+    // Run directed coalescing sequence
     coal_seq = tcu_coalesce_seq::type_id::create("coal_seq");
     coal_seq.start(env.agt.sqr);
 
-    // Run non-coalescing sequence
+    // Run directed non-coalescing sequence
     no_coal_seq = tcu_no_coalesce_seq::type_id::create("no_coal_seq");
     no_coal_seq.start(env.agt.sqr);
 
-    // Run random traffic
+    // Run randomized traffic for additional coverage
     rand_seq = tcu_random_seq::type_id::create("rand_seq");
     rand_seq.num_items = 50;
     rand_seq.start(env.agt.sqr);
@@ -75,6 +84,7 @@ class tcu_base_test extends uvm_test;
     phase.drop_objection(this, "Test complete");
   endtask
   
+  // Print final summary of UVM report counts
   function void report_phase(uvm_phase phase);
     uvm_report_server server;
     int errors, warnings, fatals;

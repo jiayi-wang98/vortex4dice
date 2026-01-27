@@ -1,11 +1,19 @@
 // =============================================================================
+// FILE: tcu_random_seq.svh
+// =============================================================================
+// DESCRIPTION:
+//   Sequence library for TCU stimulus. Includes randomized traffic and
+//   directed sequences aimed at coalescing and non-coalescing behaviors.
+// =============================================================================
+// =============================================================================
 // SEQUENCES
 // =============================================================================
 
-// Random sequence
+// Random sequence: unconstrained traffic using tcu_seq_item constraints
 class tcu_random_seq extends uvm_sequence #(tcu_seq_item);
   `uvm_object_utils(tcu_random_seq)
   
+  // Number of randomized items to generate
   int unsigned num_items = 20;
 
   function new(string name = "tcu_random_seq");
@@ -28,7 +36,7 @@ class tcu_random_seq extends uvm_sequence #(tcu_seq_item);
 endclass
 
 
-// Coalescing test sequence
+// Coalescing test sequence: targets same cache line / base TID to force merges
 class tcu_coalesce_seq extends uvm_sequence #(tcu_seq_item);
   `uvm_object_utils(tcu_coalesce_seq)
 
@@ -97,7 +105,7 @@ class tcu_coalesce_seq extends uvm_sequence #(tcu_seq_item);
 endclass
 
 
-// Non-coalescing test sequence
+// Non-coalescing test sequence: varies fields to break coalescing rules
 class tcu_no_coalesce_seq extends uvm_sequence #(tcu_seq_item);
   `uvm_object_utils(tcu_no_coalesce_seq)
 

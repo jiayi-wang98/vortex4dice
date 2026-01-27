@@ -1,4 +1,17 @@
 // =============================================================================
+// FILE: tcu_if.sv
+// =============================================================================
+// DESCRIPTION:
+//   Interface definition for the Temporal Coalescing Unit (TCU) DUT. Provides
+//   a structured bundle of input/output command signals plus separate modports
+//   for driver (active) and monitor (passive) access.
+//
+// NOTES:
+//   - Input command signals model the TCU request side.
+//   - Output command signals model the coalesced command side.
+//   - Modports enforce directionality and reduce accidental drive conflicts.
+// =============================================================================
+// =============================================================================
 // INTERFACE
 // =============================================================================
 interface tcu_if #(
@@ -10,7 +23,7 @@ interface tcu_if #(
   input logic rst_n
 );
 
-  // Input command signals
+  // Input command channel (request-side)
   logic        incmd_valid;
   logic [3:0]  incmd_block_id;
   logic [9:0]  incmd_tid;
@@ -22,7 +35,7 @@ interface tcu_if #(
   logic [6:0]  incmd_ld_dest_reg;
   logic        incmd_ready;
 
-  // Output command signals
+  // Output command channel (coalesced command side)
   logic        outcmd_valid;
   logic [3:0]  outcmd_block_id;
   logic [9:0]  outcmd_base_tid;
@@ -36,7 +49,7 @@ interface tcu_if #(
   logic [NUM_MAX_COALESCED_CMDS-1:0][BASE_ADDR_OFFSET-1:0] outcmd_address_map;
   logic        outcmd_ready;
 
-  // Driver modport
+  // Driver modport: active control of inputs + output-ready handshake
   modport driver_mp (
     input  clk, rst_n,
     input  incmd_ready,
@@ -49,7 +62,7 @@ interface tcu_if #(
            outcmd_address, outcmd_size, outcmd_ld_dest_reg, outcmd_address_map
   );
 
-  // Monitor modport (read-only)
+  // Monitor modport: passive observation of all pins
   modport monitor_mp (
     input clk, rst_n,
     input incmd_valid, incmd_block_id, incmd_tid, incmd_write_enable,

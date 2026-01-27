@@ -1,11 +1,20 @@
 // =============================================================================
+// FILE: tcu_monitor.svh
+// =============================================================================
+// DESCRIPTION:
+//   UVM monitor for the TCU interface. Observes both input and output channels
+//   and publishes transactions through analysis ports to the scoreboard.
+// =============================================================================
+// =============================================================================
 // MONITOR - Observes DUT interfaces
 // =============================================================================
 class tcu_monitor extends uvm_component;
   `uvm_component_utils(tcu_monitor)
 
+  // Virtual interface for passive observation
   virtual tcu_if.monitor_mp vif;
 
+  // Analysis ports for input/output transactions
   uvm_analysis_port #(tcu_seq_item) in_ap;
   uvm_analysis_port #(tcu_out_item) out_ap;
 
@@ -15,6 +24,7 @@ class tcu_monitor extends uvm_component;
 
   function void build_phase(uvm_phase phase);
     super.build_phase(phase);
+    // Create analysis ports and bind virtual interface
     in_ap  = new("in_ap",  this);
     out_ap = new("out_ap", this);
     if (!uvm_config_db#(virtual tcu_if.monitor_mp)::get(this, "", "vif", vif)) begin
@@ -23,13 +33,14 @@ class tcu_monitor extends uvm_component;
   endfunction
 
   task run_phase(uvm_phase phase);
+    // Monitor input and output concurrently
     fork
       monitor_input();
       monitor_output();
     join
   endtask
 
-  // Monitor input commands
+  // Monitor input commands (valid/ready handshake)
   task monitor_input();
     tcu_seq_item tr;
     forever begin
@@ -50,7 +61,7 @@ class tcu_monitor extends uvm_component;
     end
   endtask
 
-  // Monitor output commands
+  // Monitor output commands (valid/ready handshake)
   task monitor_output();
     tcu_out_item tr;
     forever begin

@@ -1,8 +1,17 @@
 // =============================================================================
+// FILE: tcu_seq_item.svh
+// =============================================================================
+// DESCRIPTION:
+//   UVM sequence item representing an input command to the Temporal Coalescing
+//   Unit (TCU). This models the DUT request-side protocol and is used by
+//   sequences, driver, and monitor for stimulus and collection.
+// =============================================================================
+// =============================================================================
 // SEQUENCE ITEM - Input command transaction
 // =============================================================================
 class tcu_seq_item extends uvm_sequence_item;
   
+  // Transaction fields mirrored from the input command interface.
   rand bit [3:0]  block_id;
   rand bit [9:0]  tid;
   rand bit        write_enable;
@@ -12,12 +21,12 @@ class tcu_seq_item extends uvm_sequence_item;
   rand bit [1:0]  size;
   rand bit [6:0]  ld_dest_reg;
 
-  // Size constraint (00=1B, 01=2B, 10=4B, 11=8B)
+  // Size encoding constraint (00=1B, 01=2B, 10=4B, 11=8B)
   constraint size_c {
     size inside {2'b00, 2'b01, 2'b10, 2'b11};
   }
   
-  // Address alignment based on size
+  // Address alignment constraint based on size
   constraint addr_align_c {
     (size == 2'b01) -> (address[0] == 0);
     (size == 2'b10) -> (address[1:0] == 0);
@@ -35,7 +44,7 @@ class tcu_seq_item extends uvm_sequence_item;
     }
   }
   
-  // Read mask constraint
+  // Read mask constraint - reads must have all bytes enabled
   constraint read_mask_c {
     (!write_enable) -> (write_mask == 8'hFF);
   }
@@ -51,10 +60,12 @@ class tcu_seq_item extends uvm_sequence_item;
     `uvm_field_int(ld_dest_reg,  UVM_ALL_ON)
   `uvm_object_utils_end
 
+  // Standard UVM constructor
   function new(string name = "tcu_seq_item");
     super.new(name);
   endfunction
 
+  // Human-readable summary used by logs and scoreboard
   function string convert2string();
     return $sformatf("block_id=%0d tid=%0d we=%0b addr=0x%0h size=%0d data=0x%0h mask=0x%0h ld_dest=%0d",
                      block_id, tid, write_enable, address, size, write_data, write_mask, ld_dest_reg);

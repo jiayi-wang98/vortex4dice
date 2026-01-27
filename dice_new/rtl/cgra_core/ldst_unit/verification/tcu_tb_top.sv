@@ -1,4 +1,19 @@
 
+// =============================================================================
+// FILE: tcu_tb_top.sv
+// =============================================================================
+// DESCRIPTION:
+//   Top-level UVM testbench wrapper for the Temporal Coalescing Unit (TCU).
+//   Instantiates the DUT, binds the verification interface, generates clock
+//   and reset, and configures the UVM environment via config_db.
+//
+// RESPONSIBILITIES:
+//   - Provide a concrete instance of the tcu_if virtual interface
+//   - Hook up DUT ports to the interface
+//   - Generate clock/reset for simulation
+//   - Publish virtual interfaces to driver/monitor/scoreboard
+//   - Launch the selected UVM test
+// =============================================================================
 `include "uvm_macros.svh"
 import uvm_pkg::*;
 import tcu_pkg::*;
@@ -15,14 +30,14 @@ module tcu_tb_top;
   logic clk;
   logic rst_n;
 
-  // Interface
+  // Interface instance shared by driver and monitor
   tcu_if #(
     .CACHE_LINE_SIZE(CACHE_LINE_SIZE),
     .NUM_MAX_COALESCED_CMDS(N_MAX_CMDS),
     .BASE_ADDR_OFFSET(BASE_ADDR_OFF)
   ) tcu_vif (.clk(clk), .rst_n(rst_n));
 
-  // DUT
+  // DUT instance under test
   temporal_coalescing_unit #(
     .cache_line_size(CACHE_LINE_SIZE),
     .number_of_max_coalesced_commands(N_MAX_CMDS),
@@ -54,7 +69,7 @@ module tcu_tb_top;
     .outcmd_ready     (tcu_vif.outcmd_ready)
   );
 
-  // Clock generation
+  // Clock generation (10ns period)
   initial begin
     $display("[TB_TOP] Clock generator starting at time=%0t", $realtime);
     clk = 0;
@@ -66,7 +81,7 @@ module tcu_tb_top;
     end
   end
 
-  // Reset generation
+  // Reset generation (active-low)
   initial begin
     $display("[TB_TOP] Reset generator starting at time=%0t", $realtime);
     rst_n = 0;
@@ -77,7 +92,7 @@ module tcu_tb_top;
     `uvm_info("TB_TOP", "Reset released", UVM_LOW)
   end
 
-  // UVM configuration
+  // UVM configuration (virtual interface injection + test selection)
   initial begin
     uvm_config_db#(virtual tcu_if.driver_mp)::set(
       null, "uvm_test_top.env.agt.drv", "vif", tcu_vif);
@@ -88,7 +103,7 @@ module tcu_tb_top;
     run_test("tcu_base_test");
   end
 
-  // Waveform dump
+  // Waveform dump for debug
   initial begin
     $dumpfile("tcu_tb.vcd");
     $dumpvars(0, tcu_tb_top);

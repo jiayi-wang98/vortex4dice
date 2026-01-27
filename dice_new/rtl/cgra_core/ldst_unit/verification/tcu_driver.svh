@@ -1,9 +1,17 @@
 // =============================================================================
+// FILE: tcu_driver.svh
+// =============================================================================
+// DESCRIPTION:
+//   UVM driver for the TCU input command interface. Converts sequence items
+//   into pin-level activity and performs valid/ready handshaking with the DUT.
+// =============================================================================
+// =============================================================================
 // DRIVER - Converts transactions to pin activity
 // =============================================================================
 class tcu_driver extends uvm_driver #(tcu_seq_item);
   `uvm_component_utils(tcu_driver)
 
+  // Virtual interface for driving the DUT pins
   virtual tcu_if.driver_mp vif;
 
   function new(string name = "tcu_driver", uvm_component parent = null);
@@ -12,6 +20,7 @@ class tcu_driver extends uvm_driver #(tcu_seq_item);
 
   function void build_phase(uvm_phase phase);
     super.build_phase(phase);
+    // Retrieve the virtual interface from the config_db
     if (!uvm_config_db#(virtual tcu_if.driver_mp)::get(this, "", "vif", vif)) begin
       `uvm_fatal("NOVIF", "Virtual interface not set for tcu_driver")
     end
@@ -27,7 +36,7 @@ class tcu_driver extends uvm_driver #(tcu_seq_item);
     $display("[DRIVER DEBUG] Time=%0t, rst_n=%0b", $realtime, vif.rst_n);
     `uvm_info("DRIVER", $sformatf("After 1ns delay (time=%0t), rst_n=%0b", $realtime, vif.rst_n), UVM_LOW)
 
-    // Initialize outputs
+    // Initialize all driven outputs to idle values
     vif.incmd_valid      <= 0;
     vif.incmd_block_id   <= 0;
     vif.incmd_tid        <= 0;
@@ -39,7 +48,7 @@ class tcu_driver extends uvm_driver #(tcu_seq_item);
     vif.incmd_ld_dest_reg <= 0;
     vif.outcmd_ready     <= 1;
 
-    // Wait for a clock edge to ensure all signals are stable
+    // Wait for a clock edge to ensure all signals are stable before driving
     $display("[DRIVER DEBUG] Before waiting for clk: Time=%0t, clk=%0b", $realtime, vif.clk);
     fork
       begin
@@ -66,7 +75,7 @@ class tcu_driver extends uvm_driver #(tcu_seq_item);
     repeat(10) @(posedge vif.clk);
     `uvm_info("DRIVER", "Starting transaction processing", UVM_LOW)
 
-    // Main driver loop
+    // Main driver loop: pull items from sequencer and drive them
     forever begin
       seq_item_port.get_next_item(tr);
       `uvm_info("DRIVER", $sformatf("Driving: %s", tr.convert2string()), UVM_MEDIUM)
@@ -75,7 +84,7 @@ class tcu_driver extends uvm_driver #(tcu_seq_item);
     end
   endtask
 
-  // Drive transaction with valid/ready handshake
+  // Drive a single transaction using a valid/ready handshake
   task drive_transaction(tcu_seq_item tr);
     int timeout_counter;
     timeout_counter = 0;

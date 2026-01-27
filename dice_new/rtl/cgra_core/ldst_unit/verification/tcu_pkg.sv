@@ -1,4 +1,15 @@
-// tcu_pkg.sv
+// =============================================================================
+// FILE: tcu_pkg.sv
+// =============================================================================
+// DESCRIPTION:
+//   UVM package for the Temporal Coalescing Unit (TCU) testbench. This package
+//   centralizes all type, component, sequence, and test includes to provide a
+//   single import point for the verification environment.
+//
+// USAGE:
+//   Import the package in the top-level testbench or any UVM component:
+//     import tcu_pkg::*;
+// =============================================================================
 package tcu_pkg;
 
   `include "uvm_macros.svh"
