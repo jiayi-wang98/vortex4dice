@@ -15,7 +15,7 @@ module VX_cache_with_temporal #(
     parameter int NUM_BANKS = 1,
     parameter int MSHR_SIZE = 16,
     parameter MSHR_BITS = $clog2(MSHR_SIZE),
-    parameter OUTCMD_TAG_WIDTH = 46,
+    parameter OUTCMD_TAG_WIDTH = 48,
     //parameter int OUTCMD_TAG_WIDTH = NUMBER_OF_MAX_COALESCED_COMMANDS * BASE_ADDRESS_OFFSET + EBLOCK_ID_WIDTH +
         //TID_WIDTH + TID_BITMAP_WIDTH + MAX_REG_WIDTH,
     parameter MEM_TAG_WIDTH = OUTCMD_TAG_WIDTH + MSHR_BITS,
@@ -78,29 +78,31 @@ module VX_cache_with_temporal #(
     logic [MAX_REG_WIDTH-1:0]   outcmd_ld_dest_reg;
     logic [NUMBER_OF_MAX_COALESCED_COMMANDS-1:0]
           [BASE_ADDRESS_OFFSET-1:0] outcmd_address_map;
-    } outcmd_tag_t; */
+    } outcmd_tag_t; 
+    */
 
-   typedef struct packed {
-    logic [11:0]                    reserved;           // 12 bits (Now at the MSB)
-    logic [EBLOCK_ID_WIDTH-1:0]     outcmd_block_id;    // 4 bits
-    logic [TID_WIDTH-1:0]           outcmd_base_tid;    // 10 bits
-    logic [TID_BITMAP_WIDTH-1:0]    outcmd_tid_bitmap;  // 8 bits
-    logic [MAX_REG_WIDTH-1:0]       outcmd_ld_dest_reg; // 7 bits
-    logic [BASE_ADDRESS_OFFSET-1:0] outcmd_base_offset; // 5 bits (Now at the LSB)
-    } outcmd_tag_t;
-    outcmd_tag_t core_req_tag;
-    outcmd_tag_t core_rsp_tag;
+// Grouped Struct and Assignment (48-bit Tag / 44-bit UUID)
+typedef struct packed {
+    logic [20:0] reserved;           // 21 bits padding
+    logic [3:0]  outcmd_block_id;    // 4 bits
+    logic [9:0]  outcmd_base_tid;    // 10 bits
+    logic [4:0]  outcmd_tid_bitmap;  // 5 bits
+    logic [5:0]  outcmd_ld_dest_reg; // 6 bits
+    logic [1:0]  outcmd_word_offset; // 2 bits (LSB)
+} outcmd_tag_t; // Total: 48 bits
 
-    
-    //assign core_req_tag = {outcmd_block_id, outcmd_base_tid, outcmd_tid_bitmap, outcmd_ld_dest_reg, outcmd_address_map};
-    assign core_req_tag = {
-    12'b0,                  // Padding FIRST (MSB)
-    outcmd_block_id,        // 4
-    outcmd_base_tid,        // 10
-    outcmd_tid_bitmap,      // 8
-    outcmd_ld_dest_reg,     // 7
-    outcmd_address_map[0]   // 5 (LSB)
+outcmd_tag_t core_req_tag;
+
+assign core_req_tag = {
+    19'b0,
+    outcmd_block_id[3:0],
+    outcmd_base_tid[9:0],
+    outcmd_tid_bitmap[4:0],
+    outcmd_ld_dest_reg[5:0],
+    outcmd_address[4:3]     // <--- Changed from [4:3] to [6:5]
 };
+
+
     typedef struct packed {
     logic [EBLOCK_ID_WIDTH-1:0] incmd_block_id;
     logic [TID_WIDTH-1:0]       incmd_base_tid;
@@ -178,8 +180,8 @@ module VX_cache_with_temporal #(
     .mem_rsp_tag('{mem_rsp_tag}),
     .mem_rsp_ready('{mem_rsp_ready})
 );
-
-endmodule
+wire [63:0] final_aligned_data;
+assign final_aligned_data = {core_rsp_data[11:0], core_rsp_data[63:12]};endmodule
 
 
    
