@@ -1,8 +1,10 @@
 `include "dice_pkg.sv"
 
-import dice_pkg::*;
 
 module dice_ram_1w1r
+import dice_pkg::*;
+
+#
 (
 
     parameter DATA_WIDTH = DICE_ADDR_WIDTH,
@@ -118,8 +120,7 @@ xpm_memory_sdpram_inst (
 
     // Read operation
     always_ff @(posedge clk) begin
-        if (rd_en) begin
-            rd_data_reg <= ram_array[rd_addr];
-        end
+        rd_data_reg <= ram_array[rd_addr];
     end
+`endif
 endmodule

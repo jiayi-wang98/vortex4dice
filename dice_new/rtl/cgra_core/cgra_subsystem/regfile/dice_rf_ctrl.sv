@@ -17,7 +17,8 @@ import dice_pkg::*;
     parameter int ADDR_WIDTH = $clog2(DEPTH),
     parameter int NUM_SPECIAL_REG = 16,
     parameter int MAX_CTA_ID = 65535,
-    parameter int CTA_ID_WIDTH = $clog2(MAX_CTA_ID)
+    parameter int CTA_ID_WIDTH = $clog2(MAX_CTA_ID),
+    parameter int BUF_DEPTH = 8
 )
 (
       input  logic              clk_i
@@ -50,6 +51,7 @@ import dice_pkg::*;
     , output logic                          ldst_ready_o
 
 
+    , input logic [NUM_SPECIAL_REG-1:0] clear_i
     // special register input
     , input logic [NUM_SPECIAL_REG-1:0] spec_rd_enable_i
     , input logic [NUM_SPECIAL_REG*4-1:0] spec_reg_sel_i
@@ -71,21 +73,28 @@ import dice_pkg::*;
     , output logic [NUM_SPECIAL_REG*DATA_WIDTH-1:0] spec_reg_out_o
 );
 
-    logic [NUM_PORTS-1] rf_rd_en;
+    logic [NUM_PORTS-1:0] rf_rd_en;
     logic [NUM_PORTS*ADDR_WIDTH-1:0] rf_rd_addr;
     logic [NUM_PORTS*DATA_WIDTH-1:0] rf_rd_data;
 
     // Write port
-    logic [NUM_BANK-1:0]    rf_wr_en;
-    logic [NUM_BANK*ADDR_WIDTH-1:0] rf_wr_addr;
-    logic [NUM_BANK*DATA_WIDTH-1:0] rf_wr_data;
+    logic [NUM_PORTS-1:0]    rf_wr_en;
+    logic [NUM_PORTS*ADDR_WIDTH-1:0] rf_wr_addr;
+    logic [NUM_PORTS*DATA_WIDTH-1:0] rf_wr_data;
 
 
     // wr arbitration signals 
-    logic [7:0] fw_hit_cgra;
-    logic [7:0] fw_hit_ldst;
+    // logic [NUM_PORTS*7:0] fw_hit_cgra;
+    // logic [NUM_PORTS*7:0] fw_hit_ldst;
     logic [NUM_PORTS*DATA_WIDTH-1:0] fw_data;
 
+    logic [NUM_PORTS*DICE_TID_WIDTH-1:0] fw_req_i;
+
+    logic [NUM_PORTS-1:0] stall_o;
+
+    assign ldst_ready_o = ~(|stall_o);
+
+    assign fw_req_i = rf_rd_addr;
 
 
 
@@ -105,15 +114,21 @@ import dice_pkg::*;
             ) u_wr_ctrl (
                 .clk_i (clk_i)
                 , .reset_i (reset_i)
+
                 , .wr_cgra_i (cgra_wr_i[i])
                 , .cgra_valid_i (cgra_valid_i)
+
                 , .wr_ldst_i (ldst_wr_i[i])
                 , .ldst_valid_i (ldst_valid_i)
-                , .fw_req_i (fw_req_i)
-                , .stall_o (stall_o)
-                , .fw_hit_cgra_o (fw_hit_cgra[i])
-                , .fw_hit_ldst_o (fw_hit_ldst[i])
+
+                , .fw_req_i (fw_req_i[i*DICE_TID_WIDTH +: DICE_TID_WIDTH])
+
+                , .stall_o (stall_o[i])
+
+                // , .fw_hit_cgra_o (fw_hit_cgra[i*8 +: 8])
+                // , .fw_hit_ldst_o (fw_hit_ldst[i*8 +: 8])
                 , .fw_data_o (fw_data[i*DATA_WIDTH +: DATA_WIDTH])
+
                 , .ws_o (rf_wr_addr[i*ADDR_WIDTH +: ADDR_WIDTH])
                 , .data_o (rf_wr_data[i*DATA_WIDTH +: DATA_WIDTH])
                 , .we_o (rf_wr_en[i])
@@ -129,7 +144,7 @@ import dice_pkg::*;
                 , .reset_i (reset_i)
                 , .reg_data_i (rf_rd_data[i*DATA_WIDTH +: DATA_WIDTH])
                 , .fw_data_i (fw_data[i*DATA_WIDTH +: DATA_WIDTH])
-                , .fw_valid_i (fw_hit_cgra[i] || fw_hit_ldst[i])
+                , .fw_valid_i ('0) // no forwarding for now
                 , .data_o (rd_data_o[i*DATA_WIDTH +: DATA_WIDTH])
             );
 
@@ -143,14 +158,14 @@ import dice_pkg::*;
             dice_special_reg#
             (
                 .DATA_WIDTH (DATA_WIDTH)
-                .NUM_TID (NUM_TID)
-                .TID_WIDTH (TID_WIDTH)
-                .MAX_CTA_ID (MAX_CTA_ID)
-                .CTA_ID_WIDTH (CTA_ID_WIDTH)
+                ,.NUM_TID (NUM_TID)
+                ,.TID_WIDTH (TID_WIDTH)
+                ,.MAX_CTA_ID (MAX_CTA_ID)
+                ,.CTA_ID_WIDTH (CTA_ID_WIDTH)
             ) u_special_reg (
                 .clk_i (clk_i)
                 , .reset_i (reset_i)
-                , .clear_i (clear_i)
+                , .clear_i (clear_i[i])
                 , .rd_en (spec_rd_enable_i[i])
                 , .rd_sel (spec_reg_sel_i[i*4 +: 4])
                 , .const_data (const_reg_i[i*DATA_WIDTH +: DATA_WIDTH])
@@ -184,28 +199,25 @@ import dice_pkg::*;
     ) read_org (
         .clk_i (clk_i)
         , .reset_i (reset_i)
+
         , .rd_tid_valid_i (rd_tid_valid_i)
         , .rd_tid_ready_o (rd_tid_ready_o)
+
         , .rd_unroll_factor_i (rd_unroll_factor_i)
         , .rd_en_i (rd_en_i)
         , .rd_tid_i (rd_tid_i)
         , .rd_bitmap_i (rd_bitmap_i)
+
         , .rd_sel_o (rf_rd_addr)
         , .rd_valid_o (rf_rd_en)
     );
 
     
 
-    dice_register_file#
-    (
-        .NUM_BANK   (NUM_PORTS)
-        , .WIDTH      (DATA_WIDTH)
-        , .DEPTH      (DEPTH)
-        , .ADDR_WIDTH (ADDR_WIDTH)
-    ) registers (
+    dice_register_file
+     registers (
           .clk (clk_i)
 
-        , .rd_en   (rf_rd_en)
         , .rd_addr (rf_rd_addr)
         , .rd_data (rf_rd_data)
 

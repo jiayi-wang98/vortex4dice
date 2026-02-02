@@ -46,6 +46,10 @@ import dice_pkg::*;
     // Circular left shift of bitmap by shift_amt
     // result = (bitmap << shift_amt) | (bitmap >> (NUM_PORTS - shift_amt))
     logic [NUM_PORTS-1:0] shifted_bitmap;
+
+    assign shift_amt = tid_0[$clog2(NUM_PORTS)-1:0];
+    assign shifted_bitmap = (rd_bitmap_i << shift_amt) |
+                            (rd_bitmap_i >> (NUM_PORTS - shift_amt));
    
     // Ready when enabled
     assign rd_tid_ready_o = rd_en_i;
@@ -60,9 +64,7 @@ import dice_pkg::*;
         if (rd_en_i && rd_tid_valid_i) begin
             case (rd_unroll_factor_i)
                 // No unrolling: 1 TID
-                shift_amt = tid_0[$clog2(NUM_PORTS)-1:0];
-                shifted_bitmap = (rd_bitmap_i << shift_amt) 
-                                    | (rd_bitmap_i >> (NUM_PORTS - shift_amt));
+              
 
                 2'b00: begin
                     // Set valid bits from shifted bitmap

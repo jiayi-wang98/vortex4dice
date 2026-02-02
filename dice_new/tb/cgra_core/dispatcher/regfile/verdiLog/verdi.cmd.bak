@@ -1,4 +1,0 @@
-verdiWindowResize -win $_Verdi_1 "0" "32" "900" "972"
-verdiSetActWin -dock widgetDock_MTB_SOURCE_TAB_1
-verdiWindowResize -win $_Verdi_1 "0" "32" "2136" "1266"
-verdiWindowResize -win $_Verdi_1 "0" "32" "2136" "1266"

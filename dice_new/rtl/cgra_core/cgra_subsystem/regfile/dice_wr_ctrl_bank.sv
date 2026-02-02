@@ -22,13 +22,13 @@ module dice_wr_ctrl_bank #
     , input logic        ldst_valid_i
 
     // forwarding for read
-    , input reg_rd_cmd fw_req_i
+    , input [DICE_TID_WIDTH-1:0] fw_req_i
 
     // stall from either buffer
     , output logic       stall_o
     // forwarding flags for each entry in buffer
-    , output logic[7:0]         fw_hit_cgra_o
-    , output logic[7:0]         fw_hit_ldst_o
+    // , output logic[7:0]         fw_hit_cgra_o
+    // , output logic[7:0]         fw_hit_ldst_o
     , output logic[WIDTH-1:0]   fw_data_o
 
     // signals out to register file
@@ -69,8 +69,8 @@ module dice_wr_ctrl_bank #
         , .cmd_o             (cgra_wb)
         , .fw_req_i          (fw_req_i)
         , .fw_hit_o          (cgra_fw_hit[0])
-        , .fw_data_o_o       (cgra_fw_data_o)
-        , .fw_data_o_valid_o (cgra_fw_valid)
+        , .fw_data_o       (cgra_fw_data_o)
+        , .fw_data_valid_o (cgra_fw_valid)
   );
 
   // ---------------- LDST buffer ----------------
@@ -98,14 +98,14 @@ module dice_wr_ctrl_bank #
         , .cmd_o          (ldst_wb)
         , .wb_valid_o     (ldst_wb_valid)
         , .fw_hit_o       (ldst_fw_hit)
-        , .fw_data_o_o      (ldst_fw_data_o)
-        , .fw_data_o_valid_o(ldst_fw_valid)
+        , .fw_data_o      (ldst_fw_data_o)
+        , .fw_data_valid_o(ldst_fw_valid)
     );
 
   assign stall_o = ldst_full;
 
-  assign fw_hit_ldst_o = ldst_fw_hit;
-  assign fw_hit_cgra_o = cgra_fw_hit;
+  // assign fw_hit_ldst_o = ldst_fw_hit;
+  // assign fw_hit_cgra_o = cgra_fw_hit;
 
   //fw data
 

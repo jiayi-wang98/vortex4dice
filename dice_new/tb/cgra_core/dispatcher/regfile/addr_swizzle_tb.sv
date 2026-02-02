@@ -4,6 +4,9 @@
 
 module addr_swizzle_tb;
 
+import DE_pkg::*;
+import dice_pkg::*;
+
   initial begin
     $fsdbDumpfile("addr_swizzle_tb.fsdb");
     $fsdbDumpvars("+all");

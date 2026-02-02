@@ -1,1 +1,1 @@
-../../../../rtl/cgra_core/cgra_subsystem/dispatch/filelist.f
+../../../../rtl/cgra_core/cgra_subsystem/regfile/filelist.f

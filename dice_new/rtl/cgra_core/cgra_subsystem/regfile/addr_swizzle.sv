@@ -1,14 +1,13 @@
 `include "DE_pkg.sv"
 `include "dice_pkg.sv"
-
+module addr_swizzle 
 import DE_pkg::*;
 import dice_pkg::*;
 
-module addr_swizzle #
-(
+#(
       parameter WIDTH =  DICE_ADDR_WIDTH
     , parameter NUM_BANK = DICE_NUM_BANKS
-    , parameter DEPTH = DICE_NUM_REG
+    , parameter DEPTH = DICE_NUM_REGS
     , parameter ADDR_WIDTH = $clog2(WIDTH)
 )
 (

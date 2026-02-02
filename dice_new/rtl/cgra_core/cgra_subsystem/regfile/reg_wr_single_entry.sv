@@ -20,7 +20,7 @@ module reg_wr_single #(
     output reg_wr_cmd   cmd_o,
 
     // Forwarding interface
-    input  reg_rd_cmd   fw_req_i,
+    input  [DICE_TID_WIDTH-1:0]   fw_req_i,
     output logic        fw_hit_o,
     output logic [WIDTH-1:0] fw_data_o,
     output logic        fw_data_valid_o
@@ -31,7 +31,6 @@ module reg_wr_single #(
     logic      valid_r;
 
      reg_wr_cmd cmd_r;
-    logic      valid_r;
 
     // Capture latest CGRA write each cycle
     always_ff @(posedge clk_i) begin

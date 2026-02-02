@@ -19,7 +19,7 @@ module reg_wr_buffer #(
     , input  reg_wr_cmd       wr_i
 
     // forwarding read command
-    , input  reg_rd_cmd       fw_req_i
+    , input  [DICE_TID_WIDTH-1:0]       fw_req_i
 
     // pop oldest entry (writeback consumed)
     , input  logic            pop_i
