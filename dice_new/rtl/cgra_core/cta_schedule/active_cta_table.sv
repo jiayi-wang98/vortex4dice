@@ -9,7 +9,7 @@ module active_cta_table
     output logic                 add_ready_o,
     input  logic                 add_valid_i,
     input  dice_cta_desc_t       add_cta_info_i,
-    input  logic [1:0]           add_hw_cta_size_i, // 00=1 slot, 01=2, 11=4
+    input  logic           [1:0] add_hw_cta_size_i, // 00=1 slot, 01=2, 11=4
 
     // Pop interface
     input  logic                            pop_valid_i,
@@ -17,11 +17,11 @@ module active_cta_table
     output logic                            pop_ready_o,
 
     // Output popped CTA interface (table is master)
-    output logic                            out_valid_o,
-    input  logic                            out_ready_i,
-    output dice_cta_id_t                    out_cta_id_o,
-    output logic [DICE_TID_WIDTH-1:0]       out_cta_size_o,
-    output logic [DICE_KERNEL_ID_WIDTH-1:0] out_kernel_id_o,
+    output logic                                    out_valid_o,
+    input  logic                                    out_ready_i,
+    output dice_cta_id_t                            out_cta_id_o,
+    output logic         [      DICE_TID_WIDTH-1:0] out_cta_size_o,
+    output logic         [DICE_KERNEL_ID_WIDTH-1:0] out_kernel_id_o,
 
     // Status outputs
     output active_cta_t [DICE_NUM_MAX_CTA_PER_CORE-1:0] active_cta_entries_o,
@@ -36,25 +36,25 @@ module active_cta_table
 
   // CTA table entry structure
   typedef struct packed {
-    logic                             is_primary;  // True for the first entry of a multi-entry CTA
-    logic [DICE_HW_CTA_ID_WIDTH:0]    entries_used;  // Number of entries used by this CTA
-    active_cta_t                      entry_info;
+    logic                          is_primary;    // True for the first entry of a multi-entry CTA
+    logic [DICE_HW_CTA_ID_WIDTH:0] entries_used;  // Number of entries used by this CTA
+    active_cta_t                   entry_info;
   } cta_entry_t;
 
   // CTA table storage
-  cta_entry_t cta_table_q[DICE_NUM_MAX_CTA_PER_CORE];
+  cta_entry_t                              cta_table_q               [DICE_NUM_MAX_CTA_PER_CORE];
 
   // Output buffer for popped entries
-  logic                            output_buffer_valid_q;
-  dice_cta_id_t                    output_buffer_cta_id_q;
-  logic [DICE_HW_CTA_ID_WIDTH-1:0] output_buffer_cta_size_q;
-  logic [DICE_KERNEL_ID_WIDTH-1:0] output_buffer_kernel_id_q;
+  logic                                    output_buffer_valid_q;
+  dice_cta_id_t                            output_buffer_cta_id_q;
+  logic         [DICE_HW_CTA_ID_WIDTH-1:0] output_buffer_cta_size_q;
+  logic         [DICE_KERNEL_ID_WIDTH-1:0] output_buffer_kernel_id_q;
 
   // Internal combinational signals
-  logic [DICE_HW_CTA_ID_WIDTH-1:0] empty_index;
-  logic                            found_empty;
-  logic [DICE_HW_CTA_ID_WIDTH:0]   entries_needed;
-  logic [DICE_HW_CTA_ID_WIDTH:0]   entries_to_clear;
+  logic         [DICE_HW_CTA_ID_WIDTH-1:0] empty_index;
+  logic                                    found_empty;
+  logic         [  DICE_HW_CTA_ID_WIDTH:0] entries_needed;
+  logic         [  DICE_HW_CTA_ID_WIDTH:0] entries_to_clear;
 
   // Use entries_needed from cta_controller (1, 2, or 4 slots)
   assign entries_needed   = (DICE_HW_CTA_ID_WIDTH + 1)'(add_hw_cta_size_i) + 1;
@@ -128,9 +128,7 @@ module active_cta_table
   always_ff @(posedge clk_i) begin
     if (rst_i == 1'b1) begin
       // Reset all entries
-      for (int i = 0; i < DICE_NUM_MAX_CTA_PER_CORE; i++) begin
-        cta_table_q[i] <= '0;
-      end
+      cta_table_q <= '{default: '0};
       // Reset output buffer
       output_buffer_valid_q <= 1'b0;
       output_buffer_cta_id_q <= '0;
