@@ -112,6 +112,7 @@ module fdr_top
   assign fdr_if.data.schedule_cta_size     = schedule_if.data.schedule_cta_size;
   assign fdr_if.data.schedule_hw_cta_size  = schedule_if.data.schedule_hw_cta_size;
   assign fdr_if.data.schedule_smem_per_cta = schedule_if.data.schedule_smem_per_cta;
+  assign fdr_if.data.schedule_cta_thread_count = schedule_if.data.schedule_cta_thread_count;
   assign fdr_if.data.real_active_mask      = branch_mask_internal;
 
 

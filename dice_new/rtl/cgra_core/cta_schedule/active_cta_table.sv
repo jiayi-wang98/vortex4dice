@@ -1,3 +1,6 @@
+// TODO: Keep track of the true number of active threads in each CTA,
+// not just the hw_cta_size
+
 module active_cta_table
   import dice_pkg::*;
   import dice_frontend_pkg::*;
@@ -10,6 +13,7 @@ module active_cta_table
     input  logic                 add_valid_i,
     input  dice_cta_desc_t       add_cta_info_i,
     input  logic           [1:0] add_hw_cta_size_i, // 00=1 slot, 01=2, 11=4
+    input  logic [DICE_TID_WIDTH:0] add_cta_thread_count_i,  // Exact thread count
 
     // Pop interface
     input  logic                            pop_valid_i,
@@ -20,8 +24,9 @@ module active_cta_table
     output logic                                    out_valid_o,
     input  logic                                    out_ready_i,
     output dice_cta_id_t                            out_cta_id_o,
-    output logic         [      DICE_TID_WIDTH-1:0] out_cta_size_o,
+    output logic         [DICE_TID_WIDTH-1:0]       out_cta_size_o,
     output logic         [DICE_KERNEL_ID_WIDTH-1:0] out_kernel_id_o,
+    output logic         [DICE_TID_WIDTH:0]         out_cta_thread_count_o,  // Exact thread count
 
     // Status outputs
     output active_cta_t [DICE_NUM_MAX_CTA_PER_CORE-1:0] active_cta_entries_o,
@@ -49,6 +54,7 @@ module active_cta_table
   dice_cta_id_t                            output_buffer_cta_id_q;
   logic         [DICE_HW_CTA_ID_WIDTH-1:0] output_buffer_cta_size_q;
   logic         [DICE_KERNEL_ID_WIDTH-1:0] output_buffer_kernel_id_q;
+  logic         [DICE_TID_WIDTH:0]         output_buffer_cta_thread_count_q;
 
   // Internal combinational signals
   logic         [DICE_HW_CTA_ID_WIDTH-1:0] empty_index;
@@ -100,6 +106,7 @@ module active_cta_table
   assign out_cta_id_o = output_buffer_cta_id_q;
   assign out_cta_size_o = output_buffer_cta_size_q;
   assign out_kernel_id_o = output_buffer_kernel_id_q;
+  assign out_cta_thread_count_o = output_buffer_cta_thread_count_q;
 
   logic pop_this_cycle;
   logic output_consumed_this_cycle;
@@ -134,6 +141,7 @@ module active_cta_table
       output_buffer_cta_id_q <= '0;
       output_buffer_cta_size_q <= '0;
       output_buffer_kernel_id_q <= '0;
+      output_buffer_cta_thread_count_q <= '0;
 
     end else begin
       // Compute entries_to_clear for pop operations
@@ -145,6 +153,7 @@ module active_cta_table
         output_buffer_cta_id_q <= cta_table_q[pop_hw_cta_id_i].entry_info.cta_id;
         output_buffer_cta_size_q <= (DICE_TID_WIDTH)'(cta_table_q[pop_hw_cta_id_i].entry_info.hw_cta_size);
         output_buffer_kernel_id_q <= cta_table_q[pop_hw_cta_id_i].entry_info.kernel_id;
+        output_buffer_cta_thread_count_q <= cta_table_q[pop_hw_cta_id_i].entry_info.cta_thread_count;
 
         // Clear all entries used by this CTA
         for (int j = 0; j < DICE_NUM_MAX_CTA_PER_CORE; j++) begin
@@ -159,6 +168,7 @@ module active_cta_table
         output_buffer_cta_id_q <= cta_table_q[pop_hw_cta_id_i].entry_info.cta_id;
         output_buffer_cta_size_q <= (DICE_TID_WIDTH)'(cta_table_q[pop_hw_cta_id_i].entry_info.hw_cta_size);
         output_buffer_kernel_id_q <= cta_table_q[pop_hw_cta_id_i].entry_info.kernel_id;
+        output_buffer_cta_thread_count_q <= cta_table_q[pop_hw_cta_id_i].entry_info.cta_thread_count;
 
         // Clear all entries used by this CTA
         for (int j = 0; j < DICE_NUM_MAX_CTA_PER_CORE; j++) begin
@@ -173,6 +183,7 @@ module active_cta_table
         output_buffer_cta_id_q <= '0;
         output_buffer_cta_size_q <= '0;
         output_buffer_kernel_id_q <= '0;
+        output_buffer_cta_thread_count_q <= '0;
       end
       // If pop_this_cycle && output_buffer_valid && !output_consumed_this_cycle
       // then we can't pop because buffer is full - pop is ignored
@@ -189,6 +200,7 @@ module active_cta_table
               cta_table_q[j].entry_info.kernel_id <= add_cta_info_i.kernel_desc.kernel_id;
               cta_table_q[j].entry_info.smem_per_cta <= add_cta_info_i.kernel_desc.smem_per_cta;
               cta_table_q[j].entry_info.hw_cta_size <= (DICE_HW_CTA_SIZE_WIDTH)'(add_hw_cta_size_i);
+              cta_table_q[j].entry_info.cta_thread_count <= add_cta_thread_count_i;
             end else begin
               cta_table_q[j] <= '0;
             end

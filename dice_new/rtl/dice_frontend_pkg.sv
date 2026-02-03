@@ -21,27 +21,14 @@ package dice_frontend_pkg;
   // =========================================================
   // Type definitions
   // =========================================================
-
-
-  /**
-  * Branch Metadata Structure
-  * Defines control logic for p-graph branching, including predicate dependencies,
-  * jump targets, and hardware reconvergence points.
-  */
   typedef struct packed {
-    logic branch_ena;  // Branch enable: active if branch is associated with current p-graph
-    logic branch_uni;  // Universal branch: if set, ignore branch_pred_reg
-    logic [$clog2(DICE_PR_NUM)-1:0] branch_pred_reg;  // Predicate register dependency index
-    logic branch_neg_pred;  // Polarity: 1 = jump if pred is 0; 0 = jump if pred is 1
-    logic is_return;  // Return instruction: CTA will complete after all pending e-blocks finish
-
-    // Jump Target Calculation:
-    // Actual PC = Current_PC + (branch_jump_target_offset * Metadata_Length)
-    logic [$clog2(`DICE_MAX_PGRAPHS)-1:0] branch_jump_target_offset;
-
-    // Reconvergence Calculation:
-    // Reconvergence PC = Current_PC + (branch_reconv_offset * Metadata_Length)
-    logic [$clog2(`DICE_MAX_PGRAPHS)-1:0] branch_reconv_offset;
+    logic                                 branch_ena;                // Active if branch associated with p-graph
+    logic                                 branch_uni;                // Universal branch
+    logic [$clog2(DICE_PR_NUM)-1:0]       branch_pred_reg;           // Predicate register index
+    logic                                 branch_neg_pred;           // Jump polarity (1: jump if 0)
+    logic                                 is_return;                 // Return instruction
+    logic [$clog2(`DICE_MAX_PGRAPHS)-1:0] branch_jump_target_offset; // Jump target offset
+    logic [$clog2(`DICE_MAX_PGRAPHS)-1:0] branch_reconv_offset;      // Reconvergence offset
   } branch_meta_t;
 
   //metadata
@@ -85,7 +72,8 @@ package dice_frontend_pkg;
     dice_cta_size_t                              schedule_cta_size;
     logic [DICE_KERNEL_ID_WIDTH-1:0]             schedule_kernel_id;
     logic [DICE_SMEM_SIZE_WIDTH-1:0]             schedule_smem_per_cta;
-    logic [dice_pkg::DICE_HW_CTA_SIZE_WIDTH-1:0] schedule_hw_cta_size;
+    logic [DICE_HW_CTA_SIZE_WIDTH-1:0]           schedule_hw_cta_size;
+    logic [DICE_TID_WIDTH:0]                     schedule_cta_thread_count;  // Exact number of threads
   } schedule_eblock_t;
 
 
@@ -99,9 +87,10 @@ package dice_frontend_pkg;
     // Geometry & resources
     dice_grid_size_t                             schedule_grid_size;
     dice_cta_size_t                              schedule_cta_size;
-    logic [dice_pkg::DICE_HW_CTA_SIZE_WIDTH-1:0] schedule_hw_cta_size; //CHANGE THIS TO HW SIZE
+    logic [DICE_HW_CTA_SIZE_WIDTH-1:0] schedule_hw_cta_size; //CHANGE THIS TO HW SIZE
     logic [1:0] hw_cta_size;
     logic [DICE_SMEM_SIZE_WIDTH-1:0]             schedule_smem_per_cta;
+    logic [DICE_TID_WIDTH:0]                     schedule_cta_thread_count;  // Exact number of threads
 
     // Execution state
     logic [DICE_NUM_MAX_THREADS_PER_CORE-1:0] real_active_mask;
@@ -121,7 +110,8 @@ package dice_frontend_pkg;
     dice_cta_size_t cta_size;
     logic [DICE_KERNEL_ID_WIDTH-1:0] kernel_id;
     logic [DICE_SMEM_SIZE_WIDTH-1:0] smem_per_cta;
-    logic [dice_pkg::DICE_HW_CTA_SIZE_WIDTH-1:0] hw_cta_size;
+    logic [DICE_HW_CTA_SIZE_WIDTH-1:0] hw_cta_size;
+    logic [DICE_TID_WIDTH:0] cta_thread_count;  // Exact number of threads in this CTA
   } active_cta_t;
 
 

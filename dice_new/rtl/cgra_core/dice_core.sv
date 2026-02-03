@@ -20,16 +20,13 @@ module dice_core
     VX_mem_bus_if.master bitstream_cache_mem_if
 
 );
-
   // Internal Interfaces
-  cta_sched_if schedule_if ();  //between cta scheduler and fdr stages
-  branch_handler_if     bh_if (); //between fdr and cta scheduler stages (branch handler, simt stack update, simt status)
-  fdr_if fdr_out_if ();  //between fdr and backend stages
-  dice_bh_simt_if       simt_stack_update_if (); //between branch handler and simt stack controller stages
-  simt_stack_status_if simt_status_if ();  //exposes simt stack entries to modules that need it
-  prf_if prf_if ();  //between branch handler and predicated register files
-  cgra_cm_if cm0_if ();  //between bitstream fetch and cgra buffer #0
-  cgra_cm_if cm1_if ();  //between bitstream fetch and cgra buffer #1
+  cta_sched_if         schedule_if          (); // between cta scheduler and fdr stages
+  branch_handler_if    bh_if                (); // between fdr and cta scheduler stages (branch handler, simt stack update, simt status)
+  fdr_if               fdr_out_if           (); // between fdr and backend stages
+  dice_bh_simt_if      simt_stack_update_if (); // between branch handler and simt stack controller stages
+  simt_stack_status_if simt_status_if       (); // exposes simt stack entries to modules that need it
+  prf_if               prf_if               (); // between branch handler and predicated
 
   // CTA Dispatcher interfaces (internal, wired to flat top-level ports)
   cta_dispatch_if cta_dispatch_if_inst ();
@@ -45,18 +42,18 @@ module dice_core
   // Note: cta_complete_ready_i is not used by cta_controller (ready is always implicit)
 
   cta_schedule_stage u_cta_schedule_stage (
-      .clk_i(clk),
-      .rst_i(reset),
-      .cta_dispatch_if(cta_dispatch_if_inst),
-      .cta_complete_if(cta_complete_if_inst),
-      .schedule_if(schedule_if),
-      .eblock_commit_valid_i(),
-      .eblock_commit_id_i(),
-      .status_table_bh_if(bh_if),
-      .brt_info_i(),
-      .brt_info_write_enable_i(),
-      .simt_stack_update(simt_stack_update_if),
-      .simt_status_if(simt_status_if)
+      .clk_i                   (clk),
+      .rst_i                   (reset),
+      .cta_dispatch_if         (cta_dispatch_if_inst),
+      .cta_complete_if         (cta_complete_if_inst),
+      .schedule_if             (schedule_if),
+      .eblock_commit_valid_i   (),
+      .eblock_commit_id_i      (),
+      .status_table_bh_if      (bh_if),
+      .brt_info_i              (),
+      .brt_info_write_enable_i (),
+      .simt_stack_update       (simt_stack_update_if),
+      .simt_status_if          (simt_status_if)
   );
 
   fdr_top u_fdr_top (

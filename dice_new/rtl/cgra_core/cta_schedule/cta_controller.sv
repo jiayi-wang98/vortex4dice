@@ -17,6 +17,7 @@ module cta_controller
     output logic                                            add_valid_o,
     output dice_cta_desc_t                                  add_cta_info_o,
     output logic [1:0]                                      add_hw_cta_size_o,      // 00=1 slot, 01=2 slots, 11=4 slots
+    output logic [DICE_TID_WIDTH:0]                         add_cta_thread_count_o, // Exact thread count
     input  logic [DICE_HW_CTA_ID_WIDTH-1:0]                 next_empty_cta_index_i,
     input  logic [DICE_NUM_MAX_CTA_PER_CORE-1:0]            active_cta_status_i,    // Validity bitmap
     input  logic                                            pop_out_valid_i,
@@ -74,6 +75,7 @@ module cta_controller
   endfunction
 
   assign add_hw_cta_size_o = encode_hw_cta_size(cta_thread_count);
+  assign add_cta_thread_count_o = cta_thread_count;
 
 
   //=================================================================
