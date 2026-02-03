@@ -147,7 +147,7 @@ module fdr_top
   assign simt_stack_update_if.update_stack_data.branch_not_taken_pc       = simt_branch_not_taken_pc_internal;
   assign simt_stack_update_if.update_stack_data.branch_reconvergence_pc   = simt_branch_reconv_pc_internal;
   assign simt_stack_update_if.hw_cta_id                                   = simt_update_hw_cta_id_internal;
-  assign simt_stack_update_if.hw_cta_size                                 = schedule_if.data.schedule_hw_cta_size[1:0];
+  assign simt_stack_update_if.hw_cta_size                                 = schedule_if.data.schedule_hw_cta_size;
 
   // Arbitrated SIMT update signals
   always_comb begin

@@ -12,7 +12,7 @@ module active_cta_table
     output logic                 add_ready_o,
     input  logic                 add_valid_i,
     input  dice_cta_desc_t       add_cta_info_i,
-    input  logic           [1:0] add_hw_cta_size_i, // 00=1 slot, 01=2, 11=4
+    input  cta_size_e            add_hw_cta_size_i,  // CTA_SIZE_1/2/4
     input  logic [DICE_TID_WIDTH:0] add_cta_thread_count_i,  // Exact thread count
 
     // Pop interface
@@ -199,7 +199,7 @@ module active_cta_table
               cta_table_q[j].entry_info.cta_size <= add_cta_info_i.kernel_desc.cta_size;
               cta_table_q[j].entry_info.kernel_id <= add_cta_info_i.kernel_desc.kernel_id;
               cta_table_q[j].entry_info.smem_per_cta <= add_cta_info_i.kernel_desc.smem_per_cta;
-              cta_table_q[j].entry_info.hw_cta_size <= (DICE_HW_CTA_SIZE_WIDTH)'(add_hw_cta_size_i);
+              cta_table_q[j].entry_info.hw_cta_size <= add_hw_cta_size_i;
               cta_table_q[j].entry_info.cta_thread_count <= add_cta_thread_count_i;
             end else begin
               cta_table_q[j] <= '0;

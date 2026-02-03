@@ -3,17 +3,16 @@
 package dice_frontend_pkg;
   import dice_pkg::*;
 
-
-  localparam int BITSTREAM_LENGTH_WIDTH = 8;
-  localparam int MAX_EBLOCK = `DICE_NUM_MAX_CTA_PER_CORE + `DICE_NUM_RETIRE_TABLE_ENTRIES;
-  localparam int EBLOCK_ID_WIDTH = $clog2(MAX_EBLOCK);
-  localparam int SIMT_STACK_COUNT = `DICE_NUM_MAX_CTA_PER_CORE;
+  localparam int BITSTREAM_LENGTH_WIDTH  = 8;
+  localparam int MAX_EBLOCK              = `DICE_NUM_MAX_CTA_PER_CORE + `DICE_NUM_RETIRE_TABLE_ENTRIES;
+  localparam int EBLOCK_ID_WIDTH         = $clog2(MAX_EBLOCK);
+  localparam int SIMT_STACK_COUNT        = `DICE_NUM_MAX_CTA_PER_CORE;
   localparam int SIMT_STACK_THREAD_WIDTH = `DICE_NUM_MAX_THREADS_PER_CORE;
-  localparam int SIMT_STACK_DEPTH = `DICE_SIMT_STACK_DEPTH;
+  localparam int SIMT_STACK_DEPTH        = `DICE_SIMT_STACK_DEPTH;
 
-  localparam int REG_NUM = `DICE_GPR_NUM + `DICE_PR_NUM + `DICE_CR_NUM;
-  localparam int REG_INDEX_WIDTH = $clog2(REG_NUM);  // Width to index a register
-  localparam int PR_INDEX_WIDTH = $clog2(`DICE_PR_NUM);  // Width to index a predicate register
+  localparam int REG_NUM                 = `DICE_GPR_NUM + `DICE_PR_NUM + `DICE_CR_NUM;
+  localparam int REG_INDEX_WIDTH         = $clog2(REG_NUM);      // Width to index a register
+  localparam int PR_INDEX_WIDTH          = $clog2(`DICE_PR_NUM); // Width to index a predicate register
 
 
   // =========================================================
@@ -51,14 +50,14 @@ package dice_frontend_pkg;
   typedef logic [`DICE_NUM_MAX_THREADS_PER_CORE-1:0] thread_mask_t;
 
   typedef struct packed {
-    logic [BITSTREAM_LENGTH_WIDTH-1:0] bitstream_length;
-    logic [REG_NUM-1:0] in_regs_bitmap;
-    logic [REG_NUM-1:0] out_regs_bitmap;
+    logic [BITSTREAM_LENGTH_WIDTH-1:0]                            bitstream_length;
+    logic [REG_NUM-1:0]                                           in_regs_bitmap;
+    logic [REG_NUM-1:0]                                           out_regs_bitmap;
     logic [$clog2(`DICE_CGRA_MEM_PORTS-1):0][REG_INDEX_WIDTH-1:0] ld_dest_regs;
-    logic [$clog2(`DICE_CGRA_MEM_PORTS-1):0] num_stores;
-    logic [1:0] unrolling_factor;
-    logic [7:0] lat;
-    logic parameter_load;
+    logic [$clog2(`DICE_CGRA_MEM_PORTS-1):0]                      num_stores;
+    logic [1:0]                                                   unrolling_factor;
+    logic [7:0]                                                   lat;
+    logic                                                         parameter_load;
   } fdr_meta_t;
 
   //stage borders
@@ -73,46 +72,46 @@ package dice_frontend_pkg;
     dice_cta_size_t                              schedule_cta_size;
     logic [DICE_KERNEL_ID_WIDTH-1:0]             schedule_kernel_id;
     logic [DICE_SMEM_SIZE_WIDTH-1:0]             schedule_smem_per_cta;
-    logic [DICE_HW_CTA_SIZE_WIDTH-1:0]           schedule_hw_cta_size;
+    cta_size_e                                   schedule_hw_cta_size;
     logic [DICE_TID_WIDTH:0]                     schedule_cta_thread_count;  // Exact number of threads
   } schedule_eblock_t;
 
 
   typedef struct packed {
     // IDs
-    logic [DICE_HW_CTA_ID_WIDTH-1:0] schedule_hw_cta_id;
-    logic [EBLOCK_ID_WIDTH-1:0]      schedule_eblock_id;
-    dice_cta_id_t                    schedule_cta_id;
-    logic [DICE_KERNEL_ID_WIDTH-1:0] schedule_kernel_id;
+    logic [DICE_HW_CTA_ID_WIDTH-1:0]          schedule_hw_cta_id;
+    logic [EBLOCK_ID_WIDTH-1:0]               schedule_eblock_id;
+    dice_cta_id_t                             schedule_cta_id;
+    logic [DICE_KERNEL_ID_WIDTH-1:0]          schedule_kernel_id;
 
     // Geometry & resources
-    dice_grid_size_t                             schedule_grid_size;
-    dice_cta_size_t                              schedule_cta_size;
-    logic [DICE_HW_CTA_SIZE_WIDTH-1:0]           schedule_hw_cta_size;
-    logic [DICE_SMEM_SIZE_WIDTH-1:0]             schedule_smem_per_cta;
-    logic [DICE_TID_WIDTH:0]                     schedule_cta_thread_count;  // Exact number of threads
+    dice_grid_size_t                          schedule_grid_size;
+    dice_cta_size_t                           schedule_cta_size;
+    cta_size_e                                schedule_hw_cta_size;
+    logic [DICE_SMEM_SIZE_WIDTH-1:0]          schedule_smem_per_cta;
+    logic [DICE_TID_WIDTH:0]                  schedule_cta_thread_count; // Exact number of threads
 
     // Execution state
     logic [DICE_NUM_MAX_THREADS_PER_CORE-1:0] real_active_mask;
 
     // Metadata
-    fdr_meta_t metadata;
-    logic      loaded_buffer;
+    fdr_meta_t                                metadata;
+    logic                                     loaded_buffer;
   } fdr_t;
-
 
 
   // CTA table entry structure
   typedef struct packed {
-    logic cta_valid;
-    dice_cta_id_t cta_id;
-    dice_grid_size_t grid_size;
-    dice_cta_size_t cta_size;
+    logic                            cta_valid;
+    dice_cta_id_t                    cta_id;
+    dice_grid_size_t                 grid_size;
+    dice_cta_size_t                  cta_size;
     logic [DICE_KERNEL_ID_WIDTH-1:0] kernel_id;
     logic [DICE_SMEM_SIZE_WIDTH-1:0] smem_per_cta;
-    logic [DICE_HW_CTA_SIZE_WIDTH-1:0] hw_cta_size;
-    logic [DICE_TID_WIDTH:0] cta_thread_count;  // Exact number of threads in this CTA
+    cta_size_e                       hw_cta_size;
+    logic [DICE_TID_WIDTH:0]         cta_thread_count; // Exact number of threads in this CTA
   } active_cta_t;
+
 
 
   typedef struct packed {
@@ -122,12 +121,12 @@ package dice_frontend_pkg;
   } cta_status_t;
 
   typedef struct packed {
-    logic update_with_divergence;  // 0 = no divergence, 1 = with divergence
-    logic [DICE_ADDR_WIDTH-1:0]         update_next_pc;  // No divergence: next PC, With divergence: branch taken PC
+    logic                                               update_with_divergence;   // 0 = no divergence, 1 = with divergence
+    logic [DICE_ADDR_WIDTH-1:0]                         update_next_pc;           // No div: next PC, With div: branch taken PC
     // Divergence case inputs (only used when update_with_divergence = 1)
     logic [SIMT_STACK_COUNT*SIMT_STACK_THREAD_WIDTH-1:0] predicate_regs_value;
-    logic [DICE_ADDR_WIDTH-1:0] branch_not_taken_pc;
-    logic [DICE_ADDR_WIDTH-1:0] branch_reconvergence_pc;
+    logic [DICE_ADDR_WIDTH-1:0]                         branch_not_taken_pc;
+    logic [DICE_ADDR_WIDTH-1:0]                         branch_reconvergence_pc;
   } simt_stack_update_t;
 
 
@@ -150,8 +149,8 @@ package dice_frontend_pkg;
   // =========================================================
 
   typedef struct packed {
-    logic [DICE_ADDR_WIDTH-1:0]        pc;
-    logic [DICE_ADDR_WIDTH-1:0]        reconvergence_pc;
+    logic [DICE_ADDR_WIDTH-1:0]         pc;
+    logic [DICE_ADDR_WIDTH-1:0]         reconvergence_pc;
     logic [SIMT_STACK_THREAD_WIDTH-1:0] active_mask;
   } stack_entry_t;
 

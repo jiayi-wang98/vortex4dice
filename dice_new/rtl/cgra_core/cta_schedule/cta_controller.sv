@@ -16,7 +16,7 @@ module cta_controller
     input  logic                                            add_ready_i,
     output logic                                            add_valid_o,
     output dice_cta_desc_t                                  add_cta_info_o,
-    output logic [1:0]                                      add_hw_cta_size_o,      // 00=1 slot, 01=2 slots, 11=4 slots
+    output cta_size_e                                       add_hw_cta_size_o,      // CTA_SIZE_1/2/4
     output logic [DICE_TID_WIDTH:0]                         add_cta_thread_count_o, // Exact thread count
     input  logic [DICE_HW_CTA_ID_WIDTH-1:0]                 next_empty_cta_index_i,
     input  logic [DICE_NUM_MAX_CTA_PER_CORE-1:0]            active_cta_status_i,    // Validity bitmap
@@ -27,7 +27,7 @@ module cta_controller
     output logic                                            init_valid_o,
     input  logic                                            init_ready_i,
     output logic [DICE_HW_CTA_ID_WIDTH-1:0]                 init_hw_cta_id_o,
-    output logic [DICE_HW_CTA_ID_WIDTH-1:0]                 init_hw_cta_size_o,     // 00=1 stack, 01=2 stacks, 11=4 stacks
+    output cta_size_e                                       init_hw_cta_size_o,     // CTA_SIZE_1/2/4
     output logic [DICE_ADDR_WIDTH-1:0]                      init_pc_o,
     output logic [DICE_ADDR_WIDTH-1:0]                      init_reconvergence_pc_o,
 
@@ -55,7 +55,7 @@ module cta_controller
 
 
 
-  function automatic logic [1:0] encode_hw_cta_size(
+  function automatic cta_size_e encode_hw_cta_size(
     input logic [DICE_TID_WIDTH+1:0] cta_size
   );
     // Thresholds sized to match cta_size exactly
@@ -66,11 +66,11 @@ module cta_controller
       thr2 = (DICE_TID_WIDTH + 1)'(2 * THREADS_PER_SLOT);
 
       if (cta_size <= thr1)
-        encode_hw_cta_size = 2'b00; // 1 slot
+        encode_hw_cta_size = CTA_SIZE_1;
       else if (cta_size <= thr2)
-        encode_hw_cta_size = 2'b01; // 2 slots
+        encode_hw_cta_size = CTA_SIZE_2;
       else
-        encode_hw_cta_size = 2'b11; // 4 slots
+        encode_hw_cta_size = CTA_SIZE_4;
     end
   endfunction
 

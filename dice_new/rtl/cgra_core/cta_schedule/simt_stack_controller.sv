@@ -7,7 +7,7 @@ module simt_stack_controller
 
     // ============== BRANCH HANDLER ==============
     input logic [$clog2(DICE_NUM_MAX_CTA_PER_CORE)-1:0] hw_cta_id_i,
-    input logic [1:0] hw_cta_size_i,  // 00=1 stack, 01=2 stacks, 11=4 stacks
+    input cta_size_e hw_cta_size_i,  // CTA_SIZE_1/2/4
 
     // Update request interface (valid/ready handshake) - BRANCH HANDLER
     input logic update_valid_i,
@@ -23,7 +23,7 @@ module simt_stack_controller
     // ============== CTA CONTROLLER ==============
     input logic init_valid_i,
     input logic [$clog2(DICE_NUM_MAX_CTA_PER_CORE)-1:0] init_hw_cta_id_i,
-    input logic [1:0] init_hw_cta_size_i,
+    input cta_size_e init_hw_cta_size_i,
     input logic [DICE_ADDR_WIDTH-1:0] init_pc_i,
     input logic [DICE_ADDR_WIDTH-1:0] init_reconvergence_pc_i,
     output logic init_ready_o,
@@ -43,8 +43,7 @@ module simt_stack_controller
   // LOCAL PARAMETERS AND TYPES
   // ===========================================================================
 
-  localparam int ThreadWidth = DICE_NUM_MAX_THREADS_PER_CORE / DICE_NUM_MAX_CTA_PER_CORE;
-  localparam int MetadataLengthWidth = BITSTREAM_LENGTH_WIDTH;
+  localparam int THREAD_WIDTH = DICE_NUM_MAX_THREADS_PER_CORE / DICE_NUM_MAX_CTA_PER_CORE;
 
   // FSM States
   typedef enum logic [2:0] {
@@ -77,14 +76,14 @@ module simt_stack_controller
 
   // CTA configuration registers
   logic [$clog2(DICE_NUM_MAX_CTA_PER_CORE)-1:0] hw_cta_id_q;
-  logic [1:0] hw_cta_size_q;
+  cta_size_e hw_cta_size_q;
 
   // Number of stacks this CTA spans = cta_size_encoding + 1
   // Encoding: 00→1, 01→2, 11→4
   // Used to select stacks [hw_cta_id_q : hw_cta_id_q + num_active_stacks - 1]
   logic [2:0] num_active_stacks;
 
-  // Effective thread width = ThreadWidth * num_active_stacks
+  // Effective thread width = THREAD_WIDTH * num_active_stacks
   // Max value = DICE_NUM_MAX_THREADS_PER_CORE, needs DICE_TID_WIDTH+1 bits
   logic [DICE_TID_WIDTH:0] effective_thread_width;
 
@@ -111,10 +110,10 @@ module simt_stack_controller
   // Per-stack data signals
   logic [DICE_ADDR_WIDTH-1:0] stack_push_next_pc[DICE_NUM_MAX_CTA_PER_CORE];
   logic [DICE_ADDR_WIDTH-1:0] stack_push_reconvergence_pc[DICE_NUM_MAX_CTA_PER_CORE];
-  logic [ThreadWidth-1:0]     stack_push_active_mask[DICE_NUM_MAX_CTA_PER_CORE];
+  logic [THREAD_WIDTH-1:0]     stack_push_active_mask[DICE_NUM_MAX_CTA_PER_CORE];
   logic [DICE_ADDR_WIDTH-1:0] stack_top_next_pc_int[DICE_NUM_MAX_CTA_PER_CORE];
   logic [DICE_ADDR_WIDTH-1:0] stack_top_reconvergence_pc_int[DICE_NUM_MAX_CTA_PER_CORE];
-  logic [ThreadWidth-1:0]     stack_top_active_mask_int[DICE_NUM_MAX_CTA_PER_CORE];
+  logic [THREAD_WIDTH-1:0]     stack_top_active_mask_int[DICE_NUM_MAX_CTA_PER_CORE];
 
   // Combined stack output signals
   logic                       combined_stack_out_valid;
@@ -150,7 +149,7 @@ module simt_stack_controller
   // ===========================================================================
 
   assign num_active_stacks = 3'(hw_cta_size_q) + 3'd1;
-  assign effective_thread_width = (DICE_TID_WIDTH+1)'(ThreadWidth) * (DICE_TID_WIDTH+1)'(num_active_stacks);
+  assign effective_thread_width = (DICE_TID_WIDTH+1)'(THREAD_WIDTH) * (DICE_TID_WIDTH+1)'(num_active_stacks);
 
   // Output status signals - direct pass-through
   assign stack_empty_o = stack_empty_individual;
@@ -193,16 +192,16 @@ module simt_stack_controller
 
   // Extract effective mask based on CTA size
   // Operates on the COMBINED mask already aggregated from stacks [hw_cta_id : hw_cta_id + n]
-  function automatic thread_mask_t get_effective_mask(input logic [1:0] cta_size,
+  function automatic thread_mask_t get_effective_mask(input cta_size_e cta_size,
                                                       input thread_mask_t full_mask);
     case (cta_size)
-      2'b00:
-      return {{(DICE_NUM_MAX_CTA_PER_CORE - 1) * ThreadWidth{1'b0}}, full_mask[ThreadWidth-1:0]};
-      2'b01:
-      return {{(DICE_NUM_MAX_CTA_PER_CORE - 2) * ThreadWidth{1'b0}}, full_mask[2*ThreadWidth-1:0]};
-      2'b11: return full_mask;
+      CTA_SIZE_1:
+      return {{(DICE_NUM_MAX_CTA_PER_CORE - 1) * THREAD_WIDTH{1'b0}}, full_mask[THREAD_WIDTH-1:0]};
+      CTA_SIZE_2:
+      return {{(DICE_NUM_MAX_CTA_PER_CORE - 2) * THREAD_WIDTH{1'b0}}, full_mask[2*THREAD_WIDTH-1:0]};
+      CTA_SIZE_4: return full_mask;
       default:
-      return {{(DICE_NUM_MAX_CTA_PER_CORE - 1) * ThreadWidth{1'b0}}, full_mask[ThreadWidth-1:0]};
+      return {{(DICE_NUM_MAX_CTA_PER_CORE - 1) * THREAD_WIDTH{1'b0}}, full_mask[THREAD_WIDTH-1:0]};
     endcase
   endfunction
 
@@ -314,18 +313,18 @@ module simt_stack_controller
       // Combine active masks from all active stacks
       for (int j = 0; j < DICE_NUM_MAX_CTA_PER_CORE; j++) begin
         if (j >= hw_cta_id_q && j < (hw_cta_id_q + num_active_stacks)) begin
-          mask_offset = (j - hw_cta_id_q) * ThreadWidth;
-          combined_stack_top_active_mask[mask_offset+:ThreadWidth] = stack_top_active_mask_int[j];
+          mask_offset = (j - hw_cta_id_q) * THREAD_WIDTH;
+          combined_stack_top_active_mask[mask_offset+:THREAD_WIDTH] = stack_top_active_mask_int[j];
         end else begin
-          mask_offset = j * ThreadWidth;
-          combined_stack_top_active_mask[mask_offset+:ThreadWidth] = '0;
+          mask_offset = j * THREAD_WIDTH;
+          combined_stack_top_active_mask[mask_offset+:THREAD_WIDTH] = '0;
         end
       end
     end
   end
 
   // Extract effective active mask based on CTA size
-  assign effective_active_mask = get_effective_mask(hw_cta_size_q, combined_stack_top_active_mask); //this may bne 
+  assign effective_active_mask = get_effective_mask(hw_cta_size_q, combined_stack_top_active_mask); //this may bne
 
   // ===========================================================================
   // COMBINATIONAL LOGIC: DIVERGENCE ANALYSIS
@@ -475,8 +474,8 @@ module simt_stack_controller
             stack_push_next_pc[j] = new_top_entry_q.pc;
             stack_push_reconvergence_pc[j] = new_top_entry_q.reconvergence_pc;
             // Distribute active mask across stacks
-            mask_offset = (j - hw_cta_id_q) * ThreadWidth;
-            stack_push_active_mask[j] = new_top_entry_q.active_mask[mask_offset+:ThreadWidth];
+            mask_offset = (j - hw_cta_id_q) * THREAD_WIDTH;
+            stack_push_active_mask[j] = new_top_entry_q.active_mask[mask_offset+:THREAD_WIDTH];
           end
 
           StatePushFirst: begin
@@ -484,8 +483,8 @@ module simt_stack_controller
             stack_push_next_pc[j] = push_entry_1_q.pc;
             stack_push_reconvergence_pc[j] = push_entry_1_q.reconvergence_pc;
             // Distribute active mask across stacks
-            mask_offset = (j - hw_cta_id_q) * ThreadWidth;
-            stack_push_active_mask[j] = push_entry_1_q.active_mask[mask_offset+:ThreadWidth];
+            mask_offset = (j - hw_cta_id_q) * THREAD_WIDTH;
+            stack_push_active_mask[j] = push_entry_1_q.active_mask[mask_offset+:THREAD_WIDTH];
           end
 
           StatePushSecond: begin
@@ -493,8 +492,8 @@ module simt_stack_controller
             stack_push_next_pc[j] = push_entry_2_q.pc;
             stack_push_reconvergence_pc[j] = push_entry_2_q.reconvergence_pc;
             // Distribute active mask across stacks
-            mask_offset = (j - hw_cta_id_q) * ThreadWidth;
-            stack_push_active_mask[j] = push_entry_2_q.active_mask[mask_offset+:ThreadWidth];
+            mask_offset = (j - hw_cta_id_q) * THREAD_WIDTH;
+            stack_push_active_mask[j] = push_entry_2_q.active_mask[mask_offset+:THREAD_WIDTH];
           end
 
           StatePopStack: begin
@@ -611,7 +610,7 @@ module simt_stack_controller
 
       // CTA configuration
       hw_cta_id_q <= '0;
-      hw_cta_size_q <= '0;
+      hw_cta_size_q <= CTA_SIZE_1;
 
       // Captured inputs - branch handler
       update_with_divergence_q <= 1'b0;
