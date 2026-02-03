@@ -1,7 +1,6 @@
 `include "dice_define.vh"
 
 package dice_frontend_pkg;
-  // Import dice_pkg in package body (allowed per lowRISC style guide for same-IP)
   import dice_pkg::*;
 
 
@@ -10,12 +9,11 @@ package dice_frontend_pkg;
   localparam int EBLOCK_ID_WIDTH = $clog2(MAX_EBLOCK);
   localparam int SIMT_STACK_COUNT = `DICE_NUM_MAX_CTA_PER_CORE;
   localparam int SIMT_STACK_THREAD_WIDTH = `DICE_NUM_MAX_THREADS_PER_CORE;
-  localparam int SIMT_STACK_DEPTH = 32;
-
-  // Predicate register configuration (moved from defines for module use)
-  localparam int DICE_PR_NUM = `DICE_PR_NUM;
+  localparam int SIMT_STACK_DEPTH = `DICE_SIMT_STACK_DEPTH;
 
   localparam int REG_NUM = `DICE_GPR_NUM + `DICE_PR_NUM + `DICE_CR_NUM;
+  localparam int REG_INDEX_WIDTH = $clog2(REG_NUM);  // Width to index a register
+  localparam int PR_INDEX_WIDTH = $clog2(`DICE_PR_NUM);  // Width to index a predicate register
 
 
   // =========================================================
@@ -24,7 +22,7 @@ package dice_frontend_pkg;
   typedef struct packed {
     logic                                 branch_ena;                // Active if branch associated with p-graph
     logic                                 branch_uni;                // Universal branch
-    logic [$clog2(DICE_PR_NUM)-1:0]       branch_pred_reg;           // Predicate register index
+    logic [PR_INDEX_WIDTH-1:0]            branch_pred_reg;           // Predicate register index
     logic                                 branch_neg_pred;           // Jump polarity (1: jump if 0)
     logic                                 is_return;                 // Return instruction
     logic [$clog2(`DICE_MAX_PGRAPHS)-1:0] branch_jump_target_offset; // Jump target offset
@@ -32,6 +30,8 @@ package dice_frontend_pkg;
   } branch_meta_t;
 
   //metadata
+  // pgraph_meta_t: Complete metadata from kernel descriptor
+  // Contains all information needed to execute a p-graph including branch metadata
   typedef struct packed {
     logic [DICE_ADDR_WIDTH-1:0]                                   bitstream_addr;
     logic [BITSTREAM_LENGTH_WIDTH-1:0]                            bitstream_length;
@@ -39,21 +39,22 @@ package dice_frontend_pkg;
     logic [7:0]                                                   lat;
     logic [REG_NUM-1:0]                                           in_regs_bitmap;
     logic [REG_NUM-1:0]                                           out_regs_bitmap;
-    logic [$clog2(`DICE_CGRA_MEM_PORTS-1):0][$clog2(REG_NUM)-1:0] ld_dest_regs;
+    logic [$clog2(`DICE_CGRA_MEM_PORTS-1):0][REG_INDEX_WIDTH-1:0] ld_dest_regs;
     logic [$clog2(`DICE_CGRA_MEM_PORTS-1):0]                      num_stores;
     branch_meta_t                                                 branch_meta;
     logic                                                         barrier;
     logic                                                         parameter_load;
   } pgraph_meta_t;
 
-  //thread mask -> typedef may not be needed
+  // Thread mask type: Used throughout pipeline stages for semantic clarity.
+  // Represents which threads in a CTA are active/valid.
   typedef logic [`DICE_NUM_MAX_THREADS_PER_CORE-1:0] thread_mask_t;
 
   typedef struct packed {
     logic [BITSTREAM_LENGTH_WIDTH-1:0] bitstream_length;
     logic [REG_NUM-1:0] in_regs_bitmap;
     logic [REG_NUM-1:0] out_regs_bitmap;
-    logic [$clog2(`DICE_CGRA_MEM_PORTS-1):0][$clog2(REG_NUM)-1:0] ld_dest_regs;
+    logic [$clog2(`DICE_CGRA_MEM_PORTS-1):0][REG_INDEX_WIDTH-1:0] ld_dest_regs;
     logic [$clog2(`DICE_CGRA_MEM_PORTS-1):0] num_stores;
     logic [1:0] unrolling_factor;
     logic [7:0] lat;
@@ -65,7 +66,7 @@ package dice_frontend_pkg;
     logic [DICE_HW_CTA_ID_WIDTH-1:0]             schedule_hw_cta_id;
     logic [DICE_ADDR_WIDTH-1:0]                  schedule_next_pc;
     logic [EBLOCK_ID_WIDTH-1:0]                  schedule_eblock_id;
-    thread_mask_t                                schedule_active_mask;
+    thread_mask_t                                schedule_active_mask;  // Initial mask from scheduler
     logic                                        schedule_prefetch_block;
     dice_cta_id_t                                schedule_cta_id;
     dice_grid_size_t                             schedule_grid_size;
@@ -87,8 +88,7 @@ package dice_frontend_pkg;
     // Geometry & resources
     dice_grid_size_t                             schedule_grid_size;
     dice_cta_size_t                              schedule_cta_size;
-    logic [DICE_HW_CTA_SIZE_WIDTH-1:0] schedule_hw_cta_size; //CHANGE THIS TO HW SIZE
-    logic [1:0] hw_cta_size;
+    logic [DICE_HW_CTA_SIZE_WIDTH-1:0]           schedule_hw_cta_size;
     logic [DICE_SMEM_SIZE_WIDTH-1:0]             schedule_smem_per_cta;
     logic [DICE_TID_WIDTH:0]                     schedule_cta_thread_count;  // Exact number of threads
 
@@ -121,9 +121,6 @@ package dice_frontend_pkg;
     logic [DICE_ADDR_WIDTH-1:0] predict_pc;
   } cta_status_t;
 
-
-
-
   typedef struct packed {
     logic update_with_divergence;  // 0 = no divergence, 1 = with divergence
     logic [DICE_ADDR_WIDTH-1:0]         update_next_pc;  // No divergence: next PC, With divergence: branch taken PC
@@ -140,7 +137,7 @@ package dice_frontend_pkg;
    * Used by divergence_monitor to resolve branches once dependencies clear.
    */
   typedef struct packed {
-    logic [$clog2(DICE_PR_NUM)-1:0] pred_reg;      // Predicate register index
+    logic [PR_INDEX_WIDTH-1:0]      pred_reg;      // Predicate register index
     logic                           neg_pred;      // Polarity (0=jump if pred=1, 1=jump if pred=0)
     logic [DICE_ADDR_WIDTH-1:0]     taken_pc;      // Branch taken target PC
     logic [DICE_ADDR_WIDTH-1:0]     not_taken_pc;  // Fall-through PC

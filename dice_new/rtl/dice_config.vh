@@ -29,11 +29,9 @@
 
 // P-graph configuration
 `define DICE_MAX_PGRAPHS              256   // Maximum p-graphs per kernel
-
-`define DICE_GPR_NUM                 16    // General Purpose Registers
-`define DICE_PR_NUM                  8     // Predicate Registers
-`define DICE_CR_NUM                  8     // Constant Registers
-`define DICE_CGRA_MEM_PORTS          4     // Available CGRA memory ports
 `define DICE_METADATA_WIDTH          64    // Metadata width ---- DETERMINE WHAT THIS SHOULD BE
+
+// SIMT Stack configuration
+`define DICE_SIMT_STACK_DEPTH        32    // Maximum SIMT stack depth per CTA
 
 `endif // DICE_CONFIG_VH
