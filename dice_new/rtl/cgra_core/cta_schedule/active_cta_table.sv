@@ -52,7 +52,7 @@ module active_cta_table
   // Output buffer for popped entries
   logic                                    output_buffer_valid_q;
   dice_cta_id_t                            output_buffer_cta_id_q;
-  logic         [DICE_HW_CTA_ID_WIDTH-1:0] output_buffer_cta_size_q;
+  cta_size_e                             output_buffer_cta_size_q;
   logic         [DICE_KERNEL_ID_WIDTH-1:0] output_buffer_kernel_id_q;
   logic         [DICE_TID_WIDTH:0]         output_buffer_cta_thread_count_q;
 
@@ -151,7 +151,7 @@ module active_cta_table
         // Pop and output in same cycle - directly replace buffer contents
         output_buffer_valid_q <= 1'b1;
         output_buffer_cta_id_q <= cta_table_q[pop_hw_cta_id_i].entry_info.cta_id;
-        output_buffer_cta_size_q <= (DICE_TID_WIDTH)'(cta_table_q[pop_hw_cta_id_i].entry_info.hw_cta_size);
+        output_buffer_cta_size_q <= cta_table_q[pop_hw_cta_id_i].entry_info.hw_cta_size;
         output_buffer_kernel_id_q <= cta_table_q[pop_hw_cta_id_i].entry_info.kernel_id;
         output_buffer_cta_thread_count_q <= cta_table_q[pop_hw_cta_id_i].entry_info.cta_thread_count;
 
@@ -166,7 +166,7 @@ module active_cta_table
         // Pop when buffer is empty - store in buffer
         output_buffer_valid_q <= 1'b1;
         output_buffer_cta_id_q <= cta_table_q[pop_hw_cta_id_i].entry_info.cta_id;
-        output_buffer_cta_size_q <= (DICE_TID_WIDTH)'(cta_table_q[pop_hw_cta_id_i].entry_info.hw_cta_size);
+        output_buffer_cta_size_q <= cta_table_q[pop_hw_cta_id_i].entry_info.hw_cta_size;
         output_buffer_kernel_id_q <= cta_table_q[pop_hw_cta_id_i].entry_info.kernel_id;
         output_buffer_cta_thread_count_q <= cta_table_q[pop_hw_cta_id_i].entry_info.cta_thread_count;
 

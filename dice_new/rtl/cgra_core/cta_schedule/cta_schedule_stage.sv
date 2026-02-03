@@ -63,7 +63,7 @@ module cta_schedule_stage
   logic active_table_add_ready;
   logic active_table_add_valid;
   dice_cta_desc_t active_table_cta_desc;
-  logic [1:0] active_table_hw_cta_size;
+  cta_size_e active_table_hw_cta_size;
   logic [DICE_TID_WIDTH:0] active_table_cta_thread_count;
 
   logic active_table_pop_valid;
@@ -98,7 +98,7 @@ module cta_schedule_stage
   // SIMT stack initialization wiring (cta_controller → simt_stack_controller)
   logic                                         simt_init_valid;
   logic [$clog2(DICE_NUM_MAX_CTA_PER_CORE)-1:0] simt_init_hw_cta_id;
-  logic [1:0]                                   simt_init_hw_cta_size;
+  cta_size_e                                   simt_init_hw_cta_size;
   logic [DICE_ADDR_WIDTH-1:0]                   simt_init_pc;
   logic [DICE_ADDR_WIDTH-1:0]                   simt_init_reconvergence_pc;
   logic                                         simt_init_ready;
