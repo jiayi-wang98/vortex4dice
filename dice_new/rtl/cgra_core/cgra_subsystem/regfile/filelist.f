@@ -11,7 +11,7 @@ $DICE_HOME/tb/cgra_core/dispatcher/regfile/dice_rf_ctrl_tb.sv
 
 $DICE_HOME/rtl/cgra_core/cgra_subsystem/regfile/DE_pkg.sv
 $DICE_HOME/rtl/cgra_core/cgra_subsystem/regfile/addr_swizzle.sv
-$DICE_HOME/rtl/cgra_core/cgra_subsystem/regfile/dice_rd_ctrl.sv
+$DICE_HOME/rtl/cgra_core/cgra_subsystem/regfile/dice_rd_ctrl_bank.sv
 $DICE_HOME/rtl/cgra_core/cgra_subsystem/regfile/dice_read_org.sv
 $DICE_HOME/rtl/cgra_core/cgra_subsystem/regfile/dice_register_file.sv
 $DICE_HOME/rtl/cgra_core/cgra_subsystem/regfile/dice_rf_ctrl.sv

@@ -1,3 +1,4 @@
+// verilator lint_off 
 `include "DE_pkg.sv"
 `include "dice_pkg.sv"
 
@@ -5,6 +6,12 @@ module dice_rf_ctrl_tb;
 
 import DE_pkg::*;
 import dice_pkg::*;
+
+
+    initial begin
+        $fsdbDumpfile("dice_rf_ctrl_tb.fsdb");
+        $fsdbDumpvars(0, "+all");
+    end
 
     //-------------------------------------------------------------------------
     // Parameters
@@ -42,8 +49,10 @@ import dice_pkg::*;
     //-------------------------------------------------------------------------
     // Write Interface Signals (CGRA)
     //-------------------------------------------------------------------------
-    reg_wr_cmd [NUM_PORTS-1:0]        cgra_wr_i;
-    logic                             cgra_valid_i;
+    logic [(4*TID_WIDTH)-1:0]           cgra_tid_i;
+    logic [(NUM_PORTS*DATA_WIDTH)-1:0]  cgra_data_i;
+    logic [NUM_PORTS-1:0]               wr_bitmap_i;
+    logic                               cgra_valid_i;
 
     //-------------------------------------------------------------------------
     // Write Interface Signals (LDST)
@@ -113,7 +122,9 @@ import dice_pkg::*;
         , .rd_data_o          (rd_data_o)
 
         // CGRA write interface
-        , .cgra_wr_i          (cgra_wr_i)
+        , .cgra_tid_i         (cgra_tid_i)
+        , .cgra_data_i        (cgra_data_i)
+        , .wr_bitmap_i        (wr_bitmap_i)
         , .cgra_valid_i       (cgra_valid_i)
 
         // LDST write interface
@@ -155,13 +166,17 @@ import dice_pkg::*;
             rd_tid_i           = '0;
             rd_bitmap_i        = '0;
 
+            cgra_tid_i   = '0;
+            cgra_data_i  = '0;
+            wr_bitmap_i  = '0;
+            cgra_valid_i = 1'b0;
+
             for (int i = 0; i < NUM_PORTS; i++) begin
-                cgra_wr_i[i] = '0;
                 ldst_wr_i[i] = '0;
             end
-            cgra_valid_i = 1'b0;
             ldst_valid_i = 1'b0;
 
+            clear_i          = '0;
             spec_rd_enable_i = '0;
             spec_reg_sel_i   = '0;
             const_reg_i      = '0;
@@ -187,7 +202,87 @@ import dice_pkg::*;
             reset_i = 1'b0;
             @(posedge clk_i);
 
+            // Write all registers to zero
+            clear_all_registers();
+
             $display("[%0t] Reset complete", $time);
+        end
+    endtask
+
+    // Task to write all registers to zero
+    // Iterates through all TIDs and writes zeros to all banks
+    task clear_all_registers();
+        begin
+            $display("[%0t] Clearing all registers...", $time);
+            cgra_data_i = '0;
+            wr_bitmap_i = '1;  // Enable all banks
+
+            for (int tid = 0; tid < NUM_TID; tid++) begin
+                cgra_tid_i = '0;
+                cgra_tid_i[0 +: TID_WIDTH] = tid[TID_WIDTH-1:0];
+                cgra_valid_i = 1'b1;
+                @(posedge clk_i);
+            end
+
+            // Wait one more cycle to let the last write (tid=511) propagate
+            // through the single-entry buffer before deasserting valid
+            @(posedge clk_i);
+
+            cgra_valid_i = 1'b0;
+            wr_bitmap_i  = '0;
+            @(posedge clk_i);
+            $display("[%0t] All registers cleared", $time);
+
+            // Verify all registers are zero
+            verify_all_registers_zero();
+        end
+    endtask
+
+    // Task to verify all registers are zero
+    task verify_all_registers_zero();
+        int error_count;
+        begin
+            $display("[%0t] Verifying all registers are zero...", $time);
+            error_count = 0;
+
+            rd_bitmap_i        = '1;  // Read all banks
+            rd_unroll_factor_i = 2'b00;
+            rd_en_i            = 1'b1;
+
+            for (int tid = 0; tid < NUM_TID; tid++) begin
+                rd_tid_i = '0;
+                rd_tid_i[0 +: TID_WIDTH] = tid[TID_WIDTH-1:0];
+                rd_tid_valid_i = 1'b1;
+                @(posedge clk_i);
+
+                // Wait one cycle for read data to be available
+                @(posedge clk_i);
+
+                // Check all banks for this TID
+                for (int bank = 0; bank < NUM_PORTS; bank++) begin
+                    if (rd_data_o[bank*DATA_WIDTH +: DATA_WIDTH] !== '0) begin
+                        $error("[%0t] Register not zero! TID=%0d, Bank=%0d, Data=0x%0h",
+                               $time, tid, bank, rd_data_o[bank*DATA_WIDTH +: DATA_WIDTH]);
+                        error_count++;
+                    end else begin
+                        $display("[%0t] Register is zero! TID=%0d, Bank=%0d, Data=0x%0h",
+                               $time, tid, bank, rd_data_o[bank*DATA_WIDTH +: DATA_WIDTH]);
+                    end
+                end
+            end
+
+            rd_tid_valid_i = 1'b0;
+            rd_en_i        = 1'b0;
+            rd_bitmap_i    = '0;
+            @(posedge clk_i);
+
+            if (error_count == 0) begin
+                $display("[%0t] PASS: All %0d registers verified as zero", $time, NUM_TID * NUM_PORTS);
+            end else begin
+                $error("[%0t] FAIL: %0d registers were not zero", $time, error_count);
+            end
+
+            assert (error_count == 0) else $fatal(1, "Register clear verification failed!");
         end
     endtask
 
@@ -199,67 +294,69 @@ import dice_pkg::*;
     // Functions
     //-------------------------------------------------------------------------
 
-    // Generate a random reg_wr_cmd struct
-    // Set we_enable to 1 to force write enable high, 0 to randomize it
+    // Generate a random reg_wr_cmd struct (for LDST writes)
     function automatic reg_wr_cmd gen_rand_reg_wr_cmd();
         reg_wr_cmd cmd;
-        cmd.tid  = $urandom;
-        cmd.ws   = $urandom;
-        cmd.data = $urandom;
-        cmd.we   = '1;
+        cmd.tid       = $urandom;
+        cmd.data      = $urandom;
+        cmd.wr_bitmap = 1'b1;
         return cmd;
     endfunction
 
-    // Generate a random reg_wr_cmd with specific tid
+    // Generate a random reg_wr_cmd with specific tid (for LDST writes)
     function automatic reg_wr_cmd gen_rand_reg_wr_cmd_with_tid(
           input logic [$clog2(NUM_TID)-1:0] tid
     );
         reg_wr_cmd cmd;
-        cmd.tid  = tid;
-        cmd.ws   = $urandom;
-        cmd.data = $urandom;
-        cmd.we   = '1;
+        cmd.tid       = tid;
+        cmd.data      = $urandom;
+        cmd.wr_bitmap = 1'b1;
         return cmd;
     endfunction
 
     // Generate a specific reg_wr_cmd (for directed tests)
     function automatic reg_wr_cmd gen_reg_wr_cmd(
-          input logic [$clog2(NUM_TID)-1:0]   tid
-        , input logic [$clog2(DICE_NUM_REGS)-1:0] ws
-        , input logic [DICE_REG_DATA_WIDTH:0] data
-        , input logic                         we
+          input logic [$clog2(NUM_TID)-1:0]        tid
+        , input logic [DICE_REG_DATA_WIDTH-1:0]    data
+        , input logic                              wr_bitmap
     );
         reg_wr_cmd cmd;
-        cmd.tid  = tid;
-        cmd.ws   = ws;
-        cmd.data = data;
-        cmd.we   = we;
+        cmd.tid       = tid;
+        cmd.data      = data;
+        cmd.wr_bitmap = wr_bitmap;
         return cmd;
     endfunction
 
     // Task write cgra only
-    task write_cgra_only();
+    task write_cgra_only(input logic [(4*TID_WIDTH)-1:0] tid);
         begin
             cgra_valid_i = 1'b1;
+            cgra_tid_i   = tid;
+            wr_bitmap_i = 32'b11111111111111111111111111111111; // 32-bit mask, all banks enabled
             for (int i = 0; i < NUM_PORTS; i++) begin
-                cgra_wr_i[i] = gen_rand_reg_wr_cmd();
-                $display("Writing to bank %0d: tid=%0d, ws=%0d, data=%0d", i, cgra_wr_i[i].tid, cgra_wr_i[i].ws, cgra_wr_i[i].data);
+                cgra_data_i[i*DATA_WIDTH +: DATA_WIDTH] = $urandom;
+                $display("Writing to bank %0d: data=%0h", i, cgra_data_i[i*DATA_WIDTH +: DATA_WIDTH]);
             end
+            $display("CGRA write: tid=%0d, wr_bitmap=%0b", cgra_tid_i[0 +: TID_WIDTH], wr_bitmap_i);
+            @(posedge clk_i);
             @(posedge clk_i);
             cgra_valid_i = 1'b0;
         end
     endtask
 
 
-    task read_cgra_only();
+    task read_cgra_only(input logic [(4*TID_WIDTH)-1:0] tid);
         begin
             $display("Reading from cgra only");
             rd_tid_valid_i = 1'b1;
-            rd_tid_i = $clog2(NUM_TID)'($urandom);
-            rd_bitmap_i = NUM_PORTS'(32'b00000000_00000000_00000000_00000000_00000000_00000000_00000000_11111111);
+            rd_tid_i = tid;
+            rd_bitmap_i = NUM_PORTS'('1);
 
             @(posedge clk_i);
-            $display("Read data: %0d", rd_data_o);
+            @(posedge clk_i);
+            for (int i = 0; i < NUM_PORTS; i++) begin
+                $display("Read data from bank %0d: %0h", i, rd_data_o[i*DATA_WIDTH +: DATA_WIDTH]);
+            end
             rd_tid_valid_i = 1'b0;
         end
     endtask
@@ -276,8 +373,9 @@ import dice_pkg::*;
         // Apply reset
         reset_dut(5);
 
-        write_cgra_only();
-        read_cgra_only();
+        write_cgra_only(0);
+        @(posedge clk_i);
+        read_cgra_only(0);
         // End simulation
         #100;
         $display("=== dice_rf_ctrl Testbench End ===");
@@ -285,3 +383,5 @@ import dice_pkg::*;
     end
 
 endmodule
+
+// verilator lint_on

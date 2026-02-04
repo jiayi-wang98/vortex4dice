@@ -3,7 +3,10 @@
 // - RF side:    out_valid/out_ready
 // - Latest write wins; supports in+out in same cycle (no bubble).
 
-module reg_wr_single #(
+module reg_wr_single 
+import DE_pkg::*;
+import dice_pkg::*;
+#(
       parameter int WIDTH      = 32
     , parameter int ADDR_WIDTH = $clog2(512)
 ) (
@@ -11,40 +14,42 @@ module reg_wr_single #(
     input  logic        reset_i,
 
     // Upstream CGRA write interface
-    input  logic        cgra_valid_i,
-    output logic        cgra_ready_o,
-    input  reg_wr_cmd   cgra_wr_i,
+    input  logic                      cgra_valid_i,
+    output logic                      cgra_ready_o,
+    input  reg_wr_cmd                 cgra_wr_i,
 
     // Downstream interface to RF arbiter (CGRA has priority there)
-    output logic        valid_o,
-    output reg_wr_cmd   cmd_o,
+    output logic                      valid_o,
+    output reg_wr_cmd                 cgra_wr_o
 
     // Forwarding interface
-    input  [DICE_TID_WIDTH-1:0]   fw_req_i,
-    output logic        fw_hit_o,
-    output logic [WIDTH-1:0] fw_data_o,
-    output logic        fw_data_valid_o
+    // input  [DICE_TID_WIDTH-1:0]   fw_req_i,
+    // output logic        fw_hit_o,
+    // output logic [WIDTH-1:0] fw_data_o,
+    // output logic        fw_data_valid_o
 );
 
     // One-entry register + valid bit
-    reg_wr_cmd entry_r;
-    logic      valid_r;
-
-     reg_wr_cmd cmd_r;
+    logic      cgra_valid_r;
+    reg_wr_cmd cgra_wr_r;
 
     // Capture latest CGRA write each cycle
     always_ff @(posedge clk_i) begin
         if (reset_i) begin
-            valid_r <= 1'b0;
-            cmd_r   <= '0;
+            cgra_valid_r <= 1'b0;
+            cgra_wr_r    <= '0;
         end else begin
-            valid_r <= cgra_valid_i;
-            if (cgra_valid_i) cmd_r <= cgra_wr_i;
+            cgra_valid_r <= cgra_valid_i;
+            if (cgra_valid_i) begin
+                cgra_wr_r <= cgra_wr_i;
+            end
         end
     end
 
-    assign valid_o = valid_r;
-    assign cmd_o   = cmd_r;
+    assign valid_o   = cgra_valid_r;
+    assign cgra_wr_o = cgra_wr_r;
+
+    assign cgra_ready_o = 1'b1;
 
     // TODO: implement read forwarding
 

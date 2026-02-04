@@ -41,15 +41,12 @@ import dice_pkg::*;
     assign tid_2 = rd_tid_i[2*TID_WIDTH +: TID_WIDTH];
     assign tid_3 = rd_tid_i[3*TID_WIDTH +: TID_WIDTH];
 
-    logic [$clog2(NUM_PORTS)-1:0] shift_amt;
 
     // Circular left shift of bitmap by shift_amt
     // result = (bitmap << shift_amt) | (bitmap >> (NUM_PORTS - shift_amt))
     logic [NUM_PORTS-1:0] shifted_bitmap;
 
-    assign shift_amt = tid_0[$clog2(NUM_PORTS)-1:0];
-    assign shifted_bitmap = (rd_bitmap_i << shift_amt) |
-                            (rd_bitmap_i >> (NUM_PORTS - shift_amt));
+    assign shifted_bitmap = shift_bitmap(rd_bitmap_i, tid_0);
    
     // Ready when enabled
     assign rd_tid_ready_o = rd_en_i;

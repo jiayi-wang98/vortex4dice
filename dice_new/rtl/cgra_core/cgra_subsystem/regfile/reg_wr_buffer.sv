@@ -19,7 +19,7 @@ module reg_wr_buffer #(
     , input  reg_wr_cmd       wr_i
 
     // forwarding read command
-    , input  [DICE_TID_WIDTH-1:0]       fw_req_i
+    // , input  [DICE_TID_WIDTH-1:0]       fw_req_i
 
     // pop oldest entry (writeback consumed)
     , input  logic            pop_i
@@ -34,9 +34,9 @@ module reg_wr_buffer #(
     , output logic                       wb_valid_o
 
     // forwarding info
-    , output logic [DEPTH-1:0]      fw_hit_o
-    , output logic [WIDTH-1:0]      fw_data_o
-    , output logic                  fw_data_valid_o
+    // , output logic [DEPTH-1:0]      fw_hit_o
+    // , output logic [WIDTH-1:0]      fw_data_o
+    // , output logic                  fw_data_valid_o
 );
 
     localparam int ptr_width_lp = $clog2(DEPTH);
@@ -101,9 +101,9 @@ module reg_wr_buffer #(
     end
 
 
-    assign fw_data_o = '0;
-    assign fw_hit_o = '0;
-    assign fw_data_valid_o = '0;
+    // assign fw_data_o = '0;
+    // assign fw_hit_o = '0;
+    // assign fw_data_valid_o = '0;
 
     // TODO: Implement read forwarding
     // // ----------------------------------------------------------------

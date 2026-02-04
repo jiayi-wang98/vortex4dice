@@ -28,16 +28,20 @@ module fifo_ctrl_credit #(
     function automatic [ptr_width_lp-1:0] next_ptr (
         input [ptr_width_lp-1:0] ptr
     );
+        // verilator lint_off WIDTH
         if (ptr == els_p-1)
             next_ptr = '0;
         else
             next_ptr = ptr + 1;
+        // verilator lint_on WIDTH
     endfunction
 
     // ------------------------------------------------------------
     // Derived flags (external interface)
     // ------------------------------------------------------------
+    // verilator lint_off WIDTH
     assign full_o  = (count_r == els_p);
+    // verilator lint_on WIDTH
     assign empty_o = (count_r == 0);
 
     // ------------------------------------------------------------

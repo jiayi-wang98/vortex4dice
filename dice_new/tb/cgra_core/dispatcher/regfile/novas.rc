@@ -237,7 +237,7 @@ VERDI_AUTO_COLLAPSE_BNR = FALSE
 recent_commands_nWave = reread,traceValueChange,getSignal,zoomAll,editCut,setUnpackedMode,rightFullPage,leftFullPage,traceDriver,traceChainDriver
 ColorThemeModern = bright
 version = Verdi_X-2025.06
-recent_commands_Verdi = hbLoadFsdbFile,hbInvokeWave,raiseNextWinAct,schCreateWindowByScopeGroup,designTreeMarkDown,hbCloseFsdbFile,hbImpDsg,textCaretLineRight,textCaretLineLeft,hbSaveSession
+recent_commands_Verdi = hbLoadFsdbFile,hbImpDsg,hbInvokeWave,raiseNextWinAct,schCreateWindowByScopeGroup,designTreeMarkDown,hbCloseFsdbFile,textCaretLineRight,textCaretLineLeft,hbSaveSession
 prevColorThemeModern = bright
 SignalCaseInSensitive = FALSE
 FindBarVisible = nWave
@@ -392,7 +392,6 @@ savePropStat = FALSE
 savePropDtl = TRUE
 [QtDialog]
 fileWithNote = 572,239,655,543
-importDesignForm = 542,189,715,574
 openFileDlg = 599,271,602,483
 behaviorAnalysisDlg = 286,481,329,137
 tsMDTDialog = 531,228,719,601
@@ -400,7 +399,8 @@ unknownSave = 219,353,461,245
 QwUserAskDlg = 507,499,787,101
 qWaveSignalDialog = 500,236,800,479
 QwWarnMsgDlg = 590,608,600,250
-loadFile = 761,449,614,432
+importDesignForm = 542,259,715,574
+loadFile = 593,293,614,432
 [Safety]
 RegisterObject = ID_RED4
 CoreObject = ID_ORANGE5
@@ -603,7 +603,7 @@ pdmlMacro = ID_BLACK
 font = COURIER12
 annotFont = FIXED12
 [Text.1]
-viewport = 0 32 2136 1266 45
+viewport = 0 27 1800 976 45
 [TextPrinter]
 Orientation = Landscape
 Indicator = FALSE
@@ -694,38 +694,38 @@ isOneSearchVisible = TRUE
 [VIA.oneSearch.preference.vgifColumnSettingRC.setting0]
 parRuleSets = ""
 [VIA.oneSearch.preference.vgifColumnSettingRC.setting0.column0]
-name = "Block's First Line"
-width = 120
-visualIndex = 1
-isHidden = TRUE
-isUserChangeColumnVisible = FALSE
-isColFilterColorCoding = FALSE
-[VIA.oneSearch.preference.vgifColumnSettingRC.setting0.column1]
-name = "Time"
-width = 60
-visualIndex = 0
-isHidden = FALSE
-isUserChangeColumnVisible = FALSE
-isColFilterColorCoding = FALSE
-[VIA.oneSearch.preference.vgifColumnSettingRC.setting0.column2]
-name = "Code"
-width = 60
-visualIndex = 3
-isHidden = TRUE
-isUserChangeColumnVisible = FALSE
-isColFilterColorCoding = FALSE
-[VIA.oneSearch.preference.vgifColumnSettingRC.setting0.column3]
 name = "Type"
 width = 60
 visualIndex = 4
 isHidden = TRUE
 isUserChangeColumnVisible = FALSE
 isColFilterColorCoding = FALSE
-[VIA.oneSearch.preference.vgifColumnSettingRC.setting0.column4]
+[VIA.oneSearch.preference.vgifColumnSettingRC.setting0.column1]
 name = "Message"
 width = 2000
 visualIndex = 5
 isHidden = FALSE
+isUserChangeColumnVisible = FALSE
+isColFilterColorCoding = FALSE
+[VIA.oneSearch.preference.vgifColumnSettingRC.setting0.column2]
+name = "Time"
+width = 60
+visualIndex = 0
+isHidden = FALSE
+isUserChangeColumnVisible = FALSE
+isColFilterColorCoding = FALSE
+[VIA.oneSearch.preference.vgifColumnSettingRC.setting0.column3]
+name = "Code"
+width = 60
+visualIndex = 3
+isHidden = TRUE
+isUserChangeColumnVisible = FALSE
+isColFilterColorCoding = FALSE
+[VIA.oneSearch.preference.vgifColumnSettingRC.setting0.column4]
+name = "Block's First Line"
+width = 120
+visualIndex = 1
+isHidden = TRUE
 isUserChangeColumnVisible = FALSE
 isColFilterColorCoding = FALSE
 [VIA.oneSearch.preference.vgifColumnSettingRC.setting0.column5]

@@ -43,8 +43,10 @@ import dice_pkg::*;
 
     // Write Input
     // ldst unit will give me write packets packaged by bank!
-    , input reg_wr_cmd [NUM_PORTS-1:0]      cgra_wr_i
-    , input logic                           cgra_valid_i
+    , input logic [(4*TID_WIDTH)-1:0]           cgra_tid_i
+    , input logic [(NUM_PORTS*DATA_WIDTH)-1:0]  cgra_data_i
+    , input logic [NUM_PORTS-1:0]               wr_bitmap_i
+    , input logic                               cgra_valid_i
 
     , input reg_wr_cmd [NUM_PORTS-1:0]      ldst_wr_i
     , input logic                           ldst_valid_i
@@ -86,22 +88,30 @@ import dice_pkg::*;
     // wr arbitration signals 
     // logic [NUM_PORTS*7:0] fw_hit_cgra;
     // logic [NUM_PORTS*7:0] fw_hit_ldst;
-    logic [NUM_PORTS*DATA_WIDTH-1:0] fw_data;
+    // logic [NUM_PORTS*DATA_WIDTH-1:0] fw_data;
 
-    logic [NUM_PORTS*DICE_TID_WIDTH-1:0] fw_req_i;
+    // logic [NUM_PORTS*DICE_TID_WIDTH-1:0] fw_req_i;
 
     logic [NUM_PORTS-1:0] stall_o;
 
     assign ldst_ready_o = ~(|stall_o);
 
-    assign fw_req_i = rf_rd_addr;
+    // assign fw_req_i = rf_rd_addr;
 
-
+    reg_wr_cmd cgra_wr_li [NUM_PORTS-1:0];
 
 
     genvar i;
 
-    
+    generate 
+        for (i = 0; i < NUM_PORTS; i++) begin
+            assign cgra_wr_li[i].data = cgra_data_i[i*DATA_WIDTH +: DATA_WIDTH];
+            assign cgra_wr_li[i].wr_bitmap = wr_bitmap_i[i];
+            // Only assign the lowest TID from the cgra_tid_i bus (corresponds to the lowest bits)
+            // no unrolling factor for now
+            assign cgra_wr_li[i].tid = cgra_tid_i[0 +: TID_WIDTH];
+        end
+    endgenerate
     
     generate
         for (i = 0;  i < NUM_PORTS; i++) begin
@@ -115,19 +125,20 @@ import dice_pkg::*;
                 .clk_i (clk_i)
                 , .reset_i (reset_i)
 
-                , .wr_cgra_i (cgra_wr_i[i])
+                , .cgra_wr_i (cgra_wr_li[i])
                 , .cgra_valid_i (cgra_valid_i)
+                ,.cgra_ready_o ()
 
                 , .wr_ldst_i (ldst_wr_i[i])
                 , .ldst_valid_i (ldst_valid_i)
 
-                , .fw_req_i (fw_req_i[i*DICE_TID_WIDTH +: DICE_TID_WIDTH])
+                // , .fw_req_i (fw_req_i[i*DICE_TID_WIDTH +: DICE_TID_WIDTH])
 
                 , .stall_o (stall_o[i])
 
                 // , .fw_hit_cgra_o (fw_hit_cgra[i*8 +: 8])
                 // , .fw_hit_ldst_o (fw_hit_ldst[i*8 +: 8])
-                , .fw_data_o (fw_data[i*DATA_WIDTH +: DATA_WIDTH])
+                // , .fw_data_o (fw_data[i*DATA_WIDTH +: DATA_WIDTH])
 
                 , .ws_o (rf_wr_addr[i*ADDR_WIDTH +: ADDR_WIDTH])
                 , .data_o (rf_wr_data[i*DATA_WIDTH +: DATA_WIDTH])
@@ -143,8 +154,8 @@ import dice_pkg::*;
                 .clk_i (clk_i)
                 , .reset_i (reset_i)
                 , .reg_data_i (rf_rd_data[i*DATA_WIDTH +: DATA_WIDTH])
-                , .fw_data_i (fw_data[i*DATA_WIDTH +: DATA_WIDTH])
-                , .fw_valid_i ('0) // no forwarding for now
+                // , .fw_data_i (fw_data[i*DATA_WIDTH +: DATA_WIDTH])
+                // , .fw_valid_i ('0) // no forwarding for now
                 , .data_o (rd_data_o[i*DATA_WIDTH +: DATA_WIDTH])
             );
 
@@ -221,7 +232,7 @@ import dice_pkg::*;
         , .rd_addr (rf_rd_addr)
         , .rd_data (rf_rd_data)
 
-        , .wr_en   (rf_wr_en)
+        , .wr_en   (shift_bitmap(rf_wr_en, rf_wr_addr[0 +: TID_WIDTH]))
         , .wr_addr (rf_wr_addr)
         , .wr_data (rf_wr_data)
     );
