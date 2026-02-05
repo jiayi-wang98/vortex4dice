@@ -9,11 +9,11 @@ module active_cta_table
     input logic rst_i,
 
     // Add new entry interface (table is slave)
-    output logic                 add_ready_o,
-    input  logic                 add_valid_i,
-    input  dice_cta_desc_t       add_cta_info_i,
-    input  cta_size_e            add_hw_cta_size_i,  // CTA_SIZE_1/2/4
-    input  logic [DICE_TID_WIDTH:0] add_cta_thread_count_i,  // Exact thread count
+    output logic                              add_ready_o,
+    input  logic                              add_valid_i,
+    input  dice_cta_desc_t                    add_cta_info_i,
+    input  cta_size_e                         add_hw_cta_size_i,      // CTA_SIZE_1/2/4
+    input  logic           [DICE_TID_WIDTH:0] add_cta_thread_count_i, // Exact thread count
 
     // Pop interface
     input  logic                            pop_valid_i,
@@ -24,9 +24,9 @@ module active_cta_table
     output logic                                    out_valid_o,
     input  logic                                    out_ready_i,
     output dice_cta_id_t                            out_cta_id_o,
-    output logic         [DICE_TID_WIDTH-1:0]       out_cta_size_o,
+    output logic         [      DICE_TID_WIDTH-1:0] out_cta_size_o,
     output logic         [DICE_KERNEL_ID_WIDTH-1:0] out_kernel_id_o,
-    output logic         [DICE_TID_WIDTH:0]         out_cta_thread_count_o,  // Exact thread count
+    output logic         [        DICE_TID_WIDTH:0] out_cta_thread_count_o, // Exact thread count
 
     // Status outputs
     output active_cta_t [DICE_NUM_MAX_CTA_PER_CORE-1:0] active_cta_entries_o,
@@ -47,20 +47,20 @@ module active_cta_table
   } cta_entry_t;
 
   // CTA table storage
-  cta_entry_t                              cta_table_q               [DICE_NUM_MAX_CTA_PER_CORE];
+  cta_entry_t cta_table_q[DICE_NUM_MAX_CTA_PER_CORE];
 
   // Output buffer for popped entries
-  logic                                    output_buffer_valid_q;
-  dice_cta_id_t                            output_buffer_cta_id_q;
-  cta_size_e                             output_buffer_cta_size_q;
-  logic         [DICE_KERNEL_ID_WIDTH-1:0] output_buffer_kernel_id_q;
-  logic         [DICE_TID_WIDTH:0]         output_buffer_cta_thread_count_q;
+  logic output_buffer_valid_q;
+  dice_cta_id_t output_buffer_cta_id_q;
+  cta_size_e output_buffer_cta_size_q;
+  logic [DICE_KERNEL_ID_WIDTH-1:0] output_buffer_kernel_id_q;
+  logic [DICE_TID_WIDTH:0] output_buffer_cta_thread_count_q;
 
   // Internal combinational signals
-  logic         [DICE_HW_CTA_ID_WIDTH-1:0] empty_index;
-  logic                                    found_empty;
-  logic         [  DICE_HW_CTA_ID_WIDTH:0] entries_needed;
-  logic         [  DICE_HW_CTA_ID_WIDTH:0] entries_to_clear;
+  logic [DICE_HW_CTA_ID_WIDTH-1:0] empty_index;
+  logic found_empty;
+  logic [DICE_HW_CTA_ID_WIDTH:0] entries_needed;
+  logic [DICE_HW_CTA_ID_WIDTH:0] entries_to_clear;
 
   // Use entries_needed from cta_controller (1, 2, or 4 slots)
   assign entries_needed   = (DICE_HW_CTA_ID_WIDTH + 1)'(add_hw_cta_size_i) + 1;
@@ -97,15 +97,15 @@ module active_cta_table
   end
 
   // Output assignments
-  assign full_o = (found_empty == 1'b0);
+  assign full_o                 = (found_empty == 1'b0);
   assign next_empty_cta_index_o = empty_index;
-  assign add_ready_o = found_empty;
+  assign add_ready_o            = found_empty;
 
   // Output interface
-  assign out_valid_o = output_buffer_valid_q;
-  assign out_cta_id_o = output_buffer_cta_id_q;
-  assign out_cta_size_o = output_buffer_cta_size_q;
-  assign out_kernel_id_o = output_buffer_kernel_id_q;
+  assign out_valid_o            = output_buffer_valid_q;
+  assign out_cta_id_o           = output_buffer_cta_id_q;
+  assign out_cta_size_o         = output_buffer_cta_size_q;
+  assign out_kernel_id_o        = output_buffer_kernel_id_q;
   assign out_cta_thread_count_o = output_buffer_cta_thread_count_q;
 
   logic pop_this_cycle;
