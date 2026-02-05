@@ -15,9 +15,9 @@ module VX_cache_with_temporal #(
     parameter int NUM_BANKS = 1,
     parameter int MSHR_SIZE = 16,
     parameter MSHR_BITS = $clog2(MSHR_SIZE),
-    parameter OUTCMD_TAG_WIDTH = 48,
-    //parameter int OUTCMD_TAG_WIDTH = NUMBER_OF_MAX_COALESCED_COMMANDS * BASE_ADDRESS_OFFSET + EBLOCK_ID_WIDTH +
-        //TID_WIDTH + TID_BITMAP_WIDTH + MAX_REG_WIDTH,
+    //parameter OUTCMD_TAG_WIDTH = 48,
+    parameter int OUTCMD_TAG_WIDTH = NUMBER_OF_MAX_COALESCED_COMMANDS * BASE_ADDRESS_OFFSET + EBLOCK_ID_WIDTH +
+        TID_WIDTH + TID_BITMAP_WIDTH + MAX_REG_WIDTH,
     parameter MEM_TAG_WIDTH = OUTCMD_TAG_WIDTH + MSHR_BITS,
     parameter MEM_ADDR_WIDTH = ADDR_WIDTH - $clog2(CACHE_LINE_SIZE) // 59 bits
 )(
@@ -70,7 +70,7 @@ module VX_cache_with_temporal #(
     logic [NUMBER_OF_MAX_COALESCED_COMMANDS-1:0][BASE_ADDRESS_OFFSET-1:0] outcmd_address_map; //map from tid bitmap to address_offset
     
     logic core_req_ready;
-    /*
+    
     typedef struct packed {
     logic [EBLOCK_ID_WIDTH-1:0] outcmd_block_id;
     logic [TID_WIDTH-1:0]       outcmd_base_tid;
@@ -79,8 +79,9 @@ module VX_cache_with_temporal #(
     logic [NUMBER_OF_MAX_COALESCED_COMMANDS-1:0]
           [BASE_ADDRESS_OFFSET-1:0] outcmd_address_map;
     } outcmd_tag_t; 
-    */
-
+    
+    
+/*
 // Grouped Struct and Assignment (48-bit Tag / 44-bit UUID)
 typedef struct packed {
     logic [20:0] reserved;           // 21 bits padding
@@ -90,18 +91,16 @@ typedef struct packed {
     logic [5:0]  outcmd_ld_dest_reg; // 6 bits
     logic [1:0]  outcmd_word_offset; // 2 bits (LSB)
 } outcmd_tag_t; // Total: 48 bits
-
+*/
 outcmd_tag_t core_req_tag;
 
 assign core_req_tag = {
-    19'b0,
-    outcmd_block_id[3:0],
-    outcmd_base_tid[9:0],
-    outcmd_tid_bitmap[4:0],
-    outcmd_ld_dest_reg[5:0],
-    outcmd_address[4:3]     // <--- Changed from [4:3] to [6:5]
+    outcmd_block_id,
+    outcmd_base_tid,
+    outcmd_tid_bitmap,
+    outcmd_ld_dest_reg,
+    outcmd_address_map
 };
-
 
     typedef struct packed {
     logic [EBLOCK_ID_WIDTH-1:0] incmd_block_id;
@@ -181,7 +180,9 @@ assign core_req_tag = {
     .mem_rsp_ready('{mem_rsp_ready})
 );
 wire [63:0] final_aligned_data;
-assign final_aligned_data = {core_rsp_data[11:0], core_rsp_data[63:12]};endmodule
+assign final_aligned_data = {core_rsp_data[11:0], core_rsp_data[63:12]};
+
+endmodule
 
 
    

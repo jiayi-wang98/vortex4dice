@@ -12,7 +12,7 @@ module tb_vx_cache_with_temporal;
     parameter int TID_BITMAP_WIDTH = 8;
     parameter int NUM_REQS = 1;
     parameter int MEM_PORTS = 1;
-    parameter OUTCMD_TAG_WIDTH = 48;
+    parameter OUTCMD_TAG_WIDTH = 69;
     parameter MSHR_SIZE = 16;
     parameter MSHR_BITS = $clog2(MSHR_SIZE);
     parameter MEM_TAG_WIDTH = OUTCMD_TAG_WIDTH + MSHR_BITS;
@@ -154,15 +154,12 @@ wire [9:0] rsp_tid = core_rsp_tag[17:8];
         send_read_request(.addr(32'h0000_0180 << 2), .tid(12));
         #(CLK_PERIOD * 10);
 
-        // Step 6: Read 'DEADBEEF' (Index 120)
-        // 0xF00 << 2 = 0x3C00. Hardware will see 0x3C00 >> 2 = 0xF00.
-        $display("--- Requesting DEADBEEF at Adjusted Address 0x3C00 (Targeting 0xF00) ---");
-        send_read_request(.addr(32'h0000_0F00 << 2), .tid(120));
-        $display("--- Testing Word Mux Logic ---");
-        send_read_request(.addr(32'h0000_0F00), .tid(120)); // Word 0
-    send_read_request(.addr(32'h0000_0F00), .tid(120)); // Should be 3c0 Word 0
-send_read_request(.addr(32'h0000_0F20), .tid(121)); // Should be 3c8 Word 1 (1111?)
-send_read_request(.addr(32'h0000_0F40), .tid(122)); // Should be 3d0 Word 2 (2222?)
+       $display("--- Testing Original Block Reading ---");
+        // We stay on the same line (0xF00) but change the word offset
+        send_read_request(.addr(32'h0000_0F00), .tid(120)); // Targets Word 0 (0000...deadbeef)
+        send_read_request(.addr(32'h0000_0F08), .tid(121)); // Targets Word 1 (1111...deadbeef)
+        send_read_request(.addr(32'h0000_0F10), .tid(122)); // Targets Word 2 (2222...deadbeef)
+        send_read_request(.addr(32'h0000_0F18), .tid(123)); // Targets Word 3 (3333...deadbeef)
         // Long wait at the end to see the results
         #(CLK_PERIOD * 100);
         $display("--- Sweep Complete ---");

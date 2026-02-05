@@ -251,7 +251,7 @@ module VX_cache_bank import VX_gpu_pkg::*; #(
 
     wire [TAG_WIDTH-1:0] flush_tag;
     if (UUID_WIDTH != 0) begin : g_flush_tag_uuid
-        assign flush_tag = {flush_uuid, (TAG_WIDTH-UUID_WIDTH)'(1'b0)};
+        assign flush_tag = {flush_uuid};
     end else begin : g_flush_tag_0
         `UNUSED_VAR (flush_uuid)
         assign flush_tag = '0;
