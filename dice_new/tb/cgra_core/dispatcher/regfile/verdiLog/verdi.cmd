@@ -98,3 +98,6 @@ wvCloseDetailsViewDlg -win $_nWave2 -streamLevel
 wvCloseFilterColorizeDlg -win $_nWave2
 wvGetSignalClose -win $_nWave2
 wvReloadFile -win $_nWave2
+wvSaveSignal -win $_nWave2 \
+           "/data/amanoj3/vortex4dice/dice_new/tb/cgra_core/dispatcher/regfile/reg_file_2_4.rc"
+debExit

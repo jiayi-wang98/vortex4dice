@@ -29,25 +29,10 @@ import dice_pkg::*;
     // output logic        fw_data_valid_o
 );
 
-    // One-entry register + valid bit
-    logic      cgra_valid_r;
-    reg_wr_cmd cgra_wr_r;
 
-    // Capture latest CGRA write each cycle
-    always_ff @(posedge clk_i) begin
-        if (reset_i) begin
-            cgra_valid_r <= 1'b0;
-            cgra_wr_r    <= '0;
-        end else begin
-            cgra_valid_r <= cgra_valid_i;
-            if (cgra_valid_i) begin
-                cgra_wr_r <= cgra_wr_i;
-            end
-        end
-    end
-
-    assign valid_o   = cgra_valid_r;
-    assign cgra_wr_o = cgra_wr_r;
+    // no register, this is basically a passthrough until i have forwarding. 
+    assign valid_o   = cgra_valid_i;
+    assign cgra_wr_o = cgra_wr_i;
 
     assign cgra_ready_o = 1'b1;
 

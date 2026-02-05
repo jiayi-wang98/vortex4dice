@@ -58,8 +58,7 @@ import dice_pkg::*;
   logic                  pop_cgra;
 
 
-  //TODO: implement single value write aribtration, a flip flop and a fw check maybe
-  //
+  // single value write arbitration, does nothing right now :)
 
   reg_wr_single #(
         .WIDTH     (WIDTH)
