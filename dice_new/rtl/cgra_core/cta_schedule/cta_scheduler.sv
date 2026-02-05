@@ -168,6 +168,7 @@ module cta_scheduler
     scheduled_eblock.data.schedule_smem_per_cta = active_cta_entries_i[selected_cta_id]
         .smem_per_cta;
     scheduled_eblock.data.schedule_hw_cta_size = active_cta_entries_i[selected_cta_id].hw_cta_size;
+    scheduled_eblock.data.schedule_cta_thread_count = active_cta_entries_i[selected_cta_id].cta_thread_count;
   end
 
 

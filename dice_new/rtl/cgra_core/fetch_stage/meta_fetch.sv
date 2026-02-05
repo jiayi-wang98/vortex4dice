@@ -2,6 +2,7 @@
 module meta_fetch
   import dice_pkg::*;
   import dice_frontend_pkg::*;
+  import VX_gpu_pkg::*;
 #(
     // TAG_WIDTH kept for interface parameterization compatibility
     parameter int TAG_WIDTH = DICE_ADDR_WIDTH
@@ -43,10 +44,8 @@ module meta_fetch
   pgraph_meta_t outgoing_meta_q;
 
   //DIRECTLY FROM VORTEX======================================================
-  logic [VX_gpu_pkg::ICACHE_ADDR_WIDTH-1:0] meta_cache_req_addr_q, meta_cache_req_addr_d;
-  localparam int AddrShift = $clog2(
-      VX_gpu_pkg::VX_MEM_DATA_WIDTH / 8
-  );
+  logic [ICACHE_ADDR_WIDTH-1:0] meta_cache_req_addr_q, meta_cache_req_addr_d;
+  localparam int AddrShift = $clog2(VX_MEM_DATA_WIDTH / 8);
   assign meta_cache_req_addr_d = (fdr_next_pc_i >> AddrShift);
   // 4-byte aligned addresses
   //DIRECTLY FROM VORTEX======================================================

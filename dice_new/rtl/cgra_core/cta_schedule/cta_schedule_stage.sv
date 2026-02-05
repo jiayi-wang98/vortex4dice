@@ -63,7 +63,8 @@ module cta_schedule_stage
   logic active_table_add_ready;
   logic active_table_add_valid;
   dice_cta_desc_t active_table_cta_desc;
-  logic [1:0] active_table_hw_cta_size;
+  cta_size_e active_table_hw_cta_size;
+  logic [DICE_TID_WIDTH:0] active_table_cta_thread_count;
 
   logic active_table_pop_valid;
   logic [DICE_HW_CTA_ID_WIDTH-1:0] active_table_pop_hw_id;
@@ -71,6 +72,7 @@ module cta_schedule_stage
   logic active_table_out_valid;
   logic active_table_out_ready;
   dice_cta_id_t active_table_out_cta_id;
+  logic [DICE_TID_WIDTH:0] active_table_out_cta_thread_count;
   logic [DICE_HW_CTA_ID_WIDTH-1:0] active_table_next_empty_idx;
   active_cta_t [DICE_NUM_MAX_CTA_PER_CORE-1:0] active_cta_entries;
 
@@ -96,9 +98,9 @@ module cta_schedule_stage
   // SIMT stack initialization wiring (cta_controller → simt_stack_controller)
   logic                                         simt_init_valid;
   logic [$clog2(DICE_NUM_MAX_CTA_PER_CORE)-1:0] simt_init_hw_cta_id;
-  logic [                                  1:0] simt_init_hw_cta_size;
-  logic [                  DICE_ADDR_WIDTH-1:0] simt_init_pc;
-  logic [                  DICE_ADDR_WIDTH-1:0] simt_init_reconvergence_pc;
+  cta_size_e                                   simt_init_hw_cta_size;
+  logic [DICE_ADDR_WIDTH-1:0]                   simt_init_pc;
+  logic [DICE_ADDR_WIDTH-1:0]                   simt_init_reconvergence_pc;
   logic                                         simt_init_ready;
 
 
@@ -123,6 +125,7 @@ module cta_schedule_stage
       .add_ready_i            (active_table_add_ready),
       .add_cta_info_o         (active_table_cta_desc),
       .add_hw_cta_size_o      (active_table_hw_cta_size),
+      .add_cta_thread_count_o (active_table_cta_thread_count),
       .next_empty_cta_index_i (active_table_next_empty_idx),
       .pop_valid_o            (active_table_pop_valid),
       .pop_hw_cta_id_o        (active_table_pop_hw_id),
@@ -149,9 +152,8 @@ module cta_schedule_stage
       .add_valid_i           (active_table_add_valid),
       .add_cta_info_i        (active_table_cta_desc),
       .add_hw_cta_size_i     (active_table_hw_cta_size),
-
+      .add_cta_thread_count_i(active_table_cta_thread_count),
       .pop_valid_i           (active_table_pop_valid),
-
       .pop_hw_cta_id_i       (active_table_pop_hw_id),
       .pop_ready_o           (active_table_pop_ready),
       .out_valid_o           (active_table_out_valid),
@@ -159,6 +161,7 @@ module cta_schedule_stage
       .out_cta_id_o          (active_table_out_cta_id),
       .out_cta_size_o        (),
       .out_kernel_id_o       (),
+      .out_cta_thread_count_o(active_table_out_cta_thread_count),
       .active_cta_entries_o  (active_cta_entries),
       .full_o                (),
       .next_empty_cta_index_o(active_table_next_empty_idx)

@@ -7,7 +7,7 @@ interface dice_bh_simt_if
     logic                                          update_ready;
     dice_frontend_pkg::simt_stack_update_t         update_stack_data;
     logic [$clog2(DICE_NUM_MAX_CTA_PER_CORE)-1:0]  hw_cta_id;
-    logic [1:0]                                    hw_cta_size;
+    cta_size_e                                     hw_cta_size;
 
     //branch handler (FDR)
     modport master (
