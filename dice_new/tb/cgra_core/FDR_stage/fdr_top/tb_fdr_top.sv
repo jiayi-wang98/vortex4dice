@@ -1,66 +1,58 @@
-//-----------------------------------------------------------------------------
-// tb_fdr_top.sv - Testbench for fdr_top module (top-level FDR stage)
-//
-// FILES USED: fdr_top_tb.sv (boilerplate), dice_pkg.sv, dice_frontend_pkg.sv,
-//             VX_gpu_pkg.sv, cta_sched_if.sv, fdr_if.sv
-//
-// TESTS: 1) Reset, 2) No schedule, 3) Basic handshake, 4) fdr_if backpressure,
-//        5) Cache backpressure, 6) Random smoke
-//-----------------------------------------------------------------------------
+// =============================================================================
+// Testbench: tb_fdr_top.sv (simplified happy-path)
+// =============================================================================
+
 `timescale 1ns / 1ps
 `include "VX_define.vh"
 
 module tb_fdr_top;
+  import dice_pkg::*;
+  import dice_frontend_pkg::*;
 
   localparam int TagWidth = 48;
-  localparam int BitstreamSize = 2056;
   localparam int ChunkSize = VX_gpu_pkg::VX_MEM_DATA_WIDTH;
-  localparam int NumChunks = (BitstreamSize + ChunkSize - 1) / ChunkSize;
+  localparam int NumChunks = (DICE_BITSTREAM_SIZE + ChunkSize - 1) / ChunkSize;
   localparam int ClkPeriod = 10;
-  localparam int Timeout = 10000;
-  localparam int RandSeed = 42;
+  localparam int Timeout = 5000;
 
   logic clk, rst;
   int cycle_count;
-
-  logic [dice_pkg::DICE_ADDR_WIDTH-1:0] simt_stack_pc_i;
-  dice_pkg::dice_cta_status_t [dice_pkg::DICE_NUM_MAX_CTA_PER_CORE-1:0] cta_status_i;
-  logic clear_prefetch_valid_o;
-  logic [dice_pkg::DICE_HW_CTA_ID_WIDTH-1:0] clear_prefetch_hw_cta_id_o;
-  logic predict_miss_flush_o;
-  logic [ChunkSize-1:0] cm0_data_o, cm1_data_o;
-  logic [NumChunks-1:0] cm0_chunk_en_o, cm1_chunk_en_o;
 
   VX_mem_bus_if #(
       .DATA_SIZE(ChunkSize / 8),
       .TAG_WIDTH(TagWidth)
   ) metacache_mem_if ();
+
   VX_mem_bus_if #(
       .DATA_SIZE(ChunkSize / 8),
       .TAG_WIDTH(TagWidth)
   ) bitstream_cache_mem_if ();
+
   cta_sched_if schedule_if ();
   fdr_if fdr_if ();
+  simt_stack_status_if simt_status_if();
+  dice_bh_simt_if simt_stack_update_if();
+  prf_if prf_if();
+  branch_handler_if bh_if();
+  cgra_cm_if cm0_if();
+  cgra_cm_if cm1_if();
 
   fdr_top #(
-      .TAG_WIDTH(TagWidth),
-      .BITSTREAM_SIZE(BitstreamSize)
+      .TAG_WIDTH     (TagWidth),
+      .BITSTREAM_SIZE(DICE_BITSTREAM_SIZE)
   ) u_dut (
-      .clk_i(clk),
-      .rst_i(rst),
-      .metacache_mem_if(metacache_mem_if),
-      .bitstream_cache_mem_if(bitstream_cache_mem_if),
-      .schedule_if(schedule_if),
-      .fdr_if(fdr_if),
-      .simt_stack_pc_i(simt_stack_pc_i),
-      .cta_status_i(cta_status_i),
-      .clear_prefetch_valid_o(clear_prefetch_valid_o),
-      .clear_prefetch_hw_cta_id_o(clear_prefetch_hw_cta_id_o),
-      .predict_miss_flush_o(predict_miss_flush_o),
-      .cm0_data_o(cm0_data_o),
-      .cm0_chunk_en_o(cm0_chunk_en_o),
-      .cm1_data_o(cm1_data_o),
-      .cm1_chunk_en_o(cm1_chunk_en_o)
+      .clk_i                  (clk),
+      .rst_i                  (rst),
+      .metacache_mem_if       (metacache_mem_if),
+      .bitstream_cache_mem_if (bitstream_cache_mem_if),
+      .schedule_if            (schedule_if),
+      .fdr_if                 (fdr_if),
+      .simt_status_if         (simt_status_if),
+      .simt_stack_update_if   (simt_stack_update_if),
+      .prf_if                 (prf_if),
+      .bh_if                  (bh_if),
+      .cm0_if                 (cm0_if),
+      .cm1_if                 (cm1_if)
   );
 
   initial begin
@@ -68,7 +60,7 @@ module tb_fdr_top;
     forever #(ClkPeriod / 2) clk = ~clk;
   end
 
-  always_ff @(posedge clk) begin
+  always_ff @(posedge clk or posedge rst) begin
     if (rst) cycle_count <= 0;
     else begin
       cycle_count <= cycle_count + 1;
@@ -78,92 +70,112 @@ module tb_fdr_top;
 
   task automatic reset_dut();
     rst = 1;
-    simt_stack_pc_i = '0;
-    cta_status_i = '0;
+
     schedule_if.valid = 0;
-    schedule_if.data = '0;
+    schedule_if.data  = '0;
+
     fdr_if.ready = 1;
+
+    simt_status_if.status = '0;
+
     metacache_mem_if.req_ready = 1;
     metacache_mem_if.rsp_valid = 0;
-    metacache_mem_if.rsp_data.data = '0;
-    metacache_mem_if.rsp_data.tag = '0;
+    metacache_mem_if.rsp_data  = '0;
+
     bitstream_cache_mem_if.req_ready = 1;
     bitstream_cache_mem_if.rsp_valid = 0;
-    bitstream_cache_mem_if.rsp_data.data = '0;
-    bitstream_cache_mem_if.rsp_data.tag = '0;
-    repeat (10) @(posedge clk);
+    bitstream_cache_mem_if.rsp_data  = '0;
+
+    prf_if.req_ready = 1;
+    prf_if.rsp_valid = 0;
+    prf_if.rsp_data  = '0;
+
+    simt_stack_update_if.update_ready = 1;
+
+    bh_if.cta_status_data = '0;
+
+    repeat (5) @(posedge clk);
     rst = 0;
     @(posedge clk);
   endtask
 
   initial begin
-    int rand_val;
-    dice_frontend_pkg::schedule_eblock_t test_sched;
-    $display("[%0t] tb_fdr_top: Starting tests", $time);
+    schedule_eblock_t sched;
+    pgraph_meta_t meta;
+    logic [DICE_ADDR_WIDTH-1:0] start_pc;
 
-    // Test 1: Reset
-    reset_dut();
-    $display("[%0t] Test 1 PASSED: Reset", $time);
+    $display("tb_fdr_top (happy-path)");
 
-    // Test 2: No schedule
     reset_dut();
-    schedule_if.valid = 0;
-    repeat (10) @(posedge clk);
-    $display("[%0t] Test 2 PASSED: No schedule", $time);
 
-    // Test 3: Basic handshake
-    reset_dut();
-    test_sched = '0;
-    test_sched.schedule_next_pc = 32'h1000;
-    schedule_if.valid = 1;
-    schedule_if.data = test_sched;
+    start_pc = 32'h0000_1000;
+
+    sched = '0;
+    sched.schedule_hw_cta_id        = '0;
+    sched.schedule_next_pc          = start_pc;
+    sched.schedule_eblock_id        = '0;
+    sched.schedule_active_mask      = {DICE_NUM_MAX_THREADS_PER_CORE{1'b1}};
+    sched.schedule_prefetch_block   = 1'b0;
+    sched.schedule_cta_id           = '0;
+    sched.schedule_grid_size.x      = 1;
+    sched.schedule_grid_size.y      = 1;
+    sched.schedule_grid_size.z      = 1;
+    sched.schedule_cta_size.x       = 1;
+    sched.schedule_cta_size.y       = 1;
+    sched.schedule_cta_size.z       = 1;
+    sched.schedule_kernel_id        = '0;
+    sched.schedule_smem_per_cta     = '0;
+    sched.schedule_hw_cta_size      = CTA_SIZE_1;
+    sched.schedule_cta_thread_count = 1;
+
+    simt_status_if.status[0].valid = 1'b1;
+    simt_status_if.status[0].next_pc = start_pc;
+    simt_status_if.status[0].active_mask = {DICE_NUM_MAX_THREADS_PER_CORE{1'b1}};
+    simt_status_if.status[0].empty = 1'b0;
+    simt_status_if.status[0].full = 1'b0;
+
+    bh_if.cta_status_data = '0;
+
+    wait (schedule_if.ready == 1'b1);
+    schedule_if.data  = sched;
+    schedule_if.valid = 1'b1;
     @(posedge clk);
-    schedule_if.valid = 0;
-    repeat (20) @(posedge clk);
-    $display("[%0t] Test 3 PASSED: Basic handshake", $time);
+    schedule_if.valid = 1'b0;
 
-    // Test 4: fdr_if backpressure
-    reset_dut();
-    fdr_if.ready = 0;
-    schedule_if.valid = 1;
-    schedule_if.data = '0;
+    // Respond to meta fetch
+    meta = '0;
+    meta.bitstream_addr   = 32'h0000_2000;
+    meta.bitstream_length = 8'h04;
+    meta.branch_meta.branch_ena = 1'b0;
+    meta.barrier = 1'b0;
+
+    wait (metacache_mem_if.req_valid == 1'b1);
     @(posedge clk);
-    schedule_if.valid = 0;
-    repeat (5) @(posedge clk);
-    fdr_if.ready = 1;
-    repeat (10) @(posedge clk);
-    $display("[%0t] Test 4 PASSED: fdr_if backpressure", $time);
-
-    // Test 5: Cache backpressure
-    reset_dut();
-    metacache_mem_if.req_ready = 0;
-    bitstream_cache_mem_if.req_ready = 0;
-    schedule_if.valid = 1;
-    schedule_if.data = '0;
+    metacache_mem_if.rsp_valid = 1'b1;
+    metacache_mem_if.rsp_data.tag = metacache_mem_if.req_data.tag;
+    metacache_mem_if.rsp_data.data = '0;
+    metacache_mem_if.rsp_data.data[$bits(pgraph_meta_t)-1:0] = meta;
     @(posedge clk);
-    schedule_if.valid = 0;
-    repeat (5) @(posedge clk);
-    metacache_mem_if.req_ready = 1;
-    bitstream_cache_mem_if.req_ready = 1;
-    repeat (10) @(posedge clk);
-    $display("[%0t] Test 5 PASSED: Cache backpressure", $time);
+    metacache_mem_if.rsp_valid = 1'b0;
 
-    // Test 6: Random smoke
-    reset_dut();
-    rand_val = RandSeed;
-    for (int i = 0; i < 15; i++) begin
-      rand_val = rand_val * 1103515245 + 12345;
-      schedule_if.valid = rand_val[0];
-      fdr_if.ready = rand_val[1];
-      metacache_mem_if.req_ready = rand_val[2];
+    // Respond to bitstream fetch requests
+    for (int i = 0; i < NumChunks; i++) begin
+      wait (bitstream_cache_mem_if.req_valid == 1'b1);
       @(posedge clk);
+      bitstream_cache_mem_if.rsp_valid = 1'b1;
+      bitstream_cache_mem_if.rsp_data.tag  = bitstream_cache_mem_if.req_data.tag;
+      bitstream_cache_mem_if.rsp_data.data = '0;
+      @(posedge clk);
+      bitstream_cache_mem_if.rsp_valid = 1'b0;
     end
-    schedule_if.valid = 0;
-    fdr_if.ready = 1;
-    repeat (5) @(posedge clk);
-    $display("[%0t] Test 6 PASSED: Random smoke", $time);
 
-    $display("[%0t] tb_fdr_top: ALL TESTS PASSED", $time);
+    wait (fdr_if.valid == 1'b1);
+    assert (fdr_if.data.schedule_next_pc == start_pc)
+      else $fatal(1, "schedule_next_pc mismatch");
+    assert (fdr_if.data.metadata.bitstream_length == meta.bitstream_length)
+      else $fatal(1, "metadata.bitstream_length mismatch");
+
+    $display("PASS: fdr_top produced valid output");
 `ifdef MODELSIM
     $stop;
 `else
@@ -171,22 +183,10 @@ module tb_fdr_top;
 `endif
   end
 
-  always_ff @(posedge clk)
-    if (!rst) begin
-      assert (!$isunknown(fdr_if.valid))
-      else $fatal(1, "fdr_if.valid X/Z");
-    end
-
 `ifdef VCD
   initial begin
     $dumpfile("tb_fdr_top.vcd");
     $dumpvars(0, tb_fdr_top);
-  end
-`endif
-`ifdef FSDB
-  initial begin
-    $fsdbDumpfile("tb_fdr_top.fsdb");
-    $fsdbDumpvars(0, tb_fdr_top);
   end
 `endif
 

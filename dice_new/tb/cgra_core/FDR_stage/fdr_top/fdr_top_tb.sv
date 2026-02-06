@@ -1,3 +1,7 @@
+// =============================================================================
+// Testbench: fdr_top_tb.sv (simplified happy-path)
+// =============================================================================
+
 `timescale 1ns / 1ps
 `include "VX_define.vh"
 
@@ -5,33 +9,16 @@ module fdr_top_tb;
   import dice_pkg::*;
   import dice_frontend_pkg::*;
 
-  // =========================================================================
-  // Parameters
-  // =========================================================================
   localparam int TagWidth = 48;
-  localparam int BitstreamSize = 2056;
   localparam int ChunkSize = VX_gpu_pkg::VX_MEM_DATA_WIDTH;
-  localparam int NumChunks = (BitstreamSize + ChunkSize - 1) / ChunkSize;
+  localparam int NumChunks = (DICE_BITSTREAM_SIZE + ChunkSize - 1) / ChunkSize;
   localparam int ClkPeriod = 10;
-  localparam int TimeoutCycles = 10000;
+  localparam int TimeoutCycles = 5000;
 
-  // =========================================================================
-  // Testbench Signals
-  // =========================================================================
-  logic                                                                 clk;
-  logic                                                                 rst;
+  logic clk;
+  logic rst;
+  int cycle_count;
 
-  // DUT I/O
-  logic                                                                 clear_prefetch_valid_o;
-  logic                       [     dice_pkg::DICE_HW_CTA_ID_WIDTH-1:0] clear_prefetch_hw_cta_id_o;
-  logic                                                                 predict_miss_flush_o;
-
-  logic                       [                          ChunkSize-1:0] cm0_data_o;
-  logic                       [                          NumChunks-1:0] cm0_chunk_en_o;
-  logic                       [                          ChunkSize-1:0] cm1_data_o;
-  logic                       [                          NumChunks-1:0] cm1_chunk_en_o;
-
-  // Cache bus interfaces
   VX_mem_bus_if #(
       .DATA_SIZE(ChunkSize / 8),
       .TAG_WIDTH(TagWidth)
@@ -42,24 +29,37 @@ module fdr_top_tb;
       .TAG_WIDTH(TagWidth)
   ) bitstream_cache_mem_if ();
 
-  // Scheduler/FDR interfaces (Slave side in DUT, Master here)
   cta_sched_if schedule_if ();
   fdr_if fdr_if ();
   simt_stack_status_if simt_status_if();
-  dice_bh_simt_if simt_stack_update(); // Master from DUT
-  branch_handler_if status_table_bh_if(); // Master from DUT
-  
-  // NEW: Missing interfaces
-  prf_if prf_if(); // Master from DUT
-  branch_handler_if bh_if(); // Master from DUT (Wait, status_table_bh_if IS bh_if?? No.)
-  // fdr_top has:
-  // branch_handler_if.master bh_if,
-  
+  dice_bh_simt_if simt_stack_update_if();
+  prf_if prf_if();
+  branch_handler_if bh_if();
   cgra_cm_if cm0_if();
   cgra_cm_if cm1_if();
-  
-  
-  int cycle_count;
+
+  fdr_top #(
+      .TAG_WIDTH     (TagWidth),
+      .BITSTREAM_SIZE(DICE_BITSTREAM_SIZE)
+  ) u_dut (
+      .clk_i                  (clk),
+      .rst_i                  (rst),
+      .metacache_mem_if       (metacache_mem_if),
+      .bitstream_cache_mem_if (bitstream_cache_mem_if),
+      .schedule_if            (schedule_if),
+      .fdr_if                 (fdr_if),
+      .simt_status_if         (simt_status_if),
+      .simt_stack_update_if   (simt_stack_update_if),
+      .prf_if                 (prf_if),
+      .bh_if                  (bh_if),
+      .cm0_if                 (cm0_if),
+      .cm1_if                 (cm1_if)
+  );
+
+  initial begin
+    clk = 1'b0;
+    forever #(ClkPeriod / 2) clk = ~clk;
+  end
 
   always_ff @(posedge clk or posedge rst) begin
     if (rst) cycle_count <= 0;
@@ -69,123 +69,120 @@ module fdr_top_tb;
     end
   end
 
-  // =========================================================================
-  // DUT Instantiation
-  // =========================================================================
-  fdr_top #(
-      .TAG_WIDTH     (TagWidth),
-      .BITSTREAM_SIZE(BitstreamSize)
-  ) u_dut (
-      .clk_i                     (clk),
-      .rst_i                     (rst),
-      .metacache_mem_if          (metacache_mem_if),
-      .bitstream_cache_mem_if    (bitstream_cache_mem_if),
-      .schedule_if               (schedule_if),
-      .fdr_if                    (fdr_if),
-      .simt_status_if            (simt_status_if),
-      .simt_stack_update_if      (simt_stack_update), // Corrected name simt_stack_update_if
-      .prf_if                    (prf_if),
-      .bh_if                     (bh_if), // Corrected assignment
-      .cm0_if                    (cm0_if),
-      .cm1_if                    (cm1_if)
-  );
-  
-  // Wait, I originally mapped status_table_bh_if to ??? fdr_top has bh_if.
-  // And fdr_top also deals with pending branches?
-  // No, fdr_top DOES NOT have status_table_bh_if??
-  // Let's check fdr_top ports again.
-  // 31:     branch_handler_if.master bh_if,
-  // That's it.
-  // My previous TB had `branch_handler_if status_table_bh_if();` but mapped it to what?
-  // Ah, I mapped it to `status_table_bh_if` in u_dut? But u_dut ports didn't match.
-
-  // =========================================================================
-  // Clock Generation
-  // =========================================================================
-  initial begin
-    clk = 1'b0;
-    forever #(ClkPeriod / 2) clk = ~clk;
-  end
-
-  // =========================================================================
-  // Reset Sequence
-  // =========================================================================
-  task automatic apply_reset();
+  task automatic reset_dut();
     rst = 1'b1;
-    
-    // Initialize interface signals driving DUT Inputs
-    
-    // Scheduler Interface (Master here driving Slave DUT)
+
     schedule_if.valid = 1'b0;
-    schedule_if.data = '0;
-    
-    // FDR Interface (DUT is Master)
-    fdr_if.ready = 1'b1; 
-    
-    // SIMT Status (Slave DUT) 
+    schedule_if.data  = '0;
+
+    fdr_if.ready = 1'b1;
+
     simt_status_if.status = '0;
-    
-    // SIMT Update (Master DUT)
-    simt_stack_update.update_ready = 1'b1;
-    
-    // PRF Interface (Master DUT)
-    prf_if.rsp_data = '0; // TB provides read data
-    // prf_if.rsp_ready? No, DUT is master of req, TB is slave.
-    // prf_if.req_valid (from DUT).
-    // prf_if.rsp_ready (from DUT).
-    
-    // BH Interface (Master DUT)
-    // DUT writes to BH. `bh_if.bh_data` (output from DUT). `write_enable` (output).
-    // So TB inputs these. No drivers needed.
-    
-    // CM If (Master DUT)
-    // DUT drives data/en. TB observes.
-    
-    // Cache buses (Slave here responding to DUT Master)
+
     metacache_mem_if.req_ready = 1'b1;
     metacache_mem_if.rsp_valid = 1'b0;
-    metacache_mem_if.rsp_data = '0;
-    
+    metacache_mem_if.rsp_data  = '0;
+
     bitstream_cache_mem_if.req_ready = 1'b1;
     bitstream_cache_mem_if.rsp_valid = 1'b0;
-    bitstream_cache_mem_if.rsp_data = '0;
+    bitstream_cache_mem_if.rsp_data  = '0;
 
-    repeat (10) @(posedge clk);
+    prf_if.req_ready = 1'b1;
+    prf_if.rsp_valid = 1'b0;
+    prf_if.rsp_data  = '0;
+
+    simt_stack_update_if.update_ready = 1'b1;
+
+    bh_if.cta_status_data = '0;
+
+    repeat (5) @(posedge clk);
     rst = 1'b0;
     @(posedge clk);
   endtask
 
-  // =========================================================================
-  // Test Stimulus
-  // =========================================================================
   initial begin
-    // Apply reset
-    apply_reset();
-    
-    $display("[%0t] fdr_top_tb: Reset complete", $time);
+    schedule_eblock_t sched;
+    pgraph_meta_t meta;
+    logic [DICE_ADDR_WIDTH-1:0] start_pc;
 
-    // Test 1: Idle Check
-    repeat (5) @(posedge clk);
-    // Verify no unexpected outputs
-    assert(fdr_if.valid == 1'b0) else $error("FDR valid unexpected high");
-    
-    $display("[%0t] fdr_top_tb: Test passed!", $time);
-    `ifdef MODELSIM
-        $finish; // Was $stop
-    `else
-        $finish;
-    `endif
-  end
+    $display("fdr_top_tb (happy-path)");
 
-  // =========================================================================
-  // Waveform Dump (FSDB/VCD)
-  // =========================================================================
-`ifdef FSDB
-  initial begin
-    $fsdbDumpfile("fdr_top_tb.fsdb");
-    $fsdbDumpvars(0, fdr_top_tb);
-  end
+    reset_dut();
+
+    start_pc = 32'h0000_1000;
+
+    sched = '0;
+    sched.schedule_hw_cta_id        = '0;
+    sched.schedule_next_pc          = start_pc;
+    sched.schedule_eblock_id        = '0;
+    sched.schedule_active_mask      = {DICE_NUM_MAX_THREADS_PER_CORE{1'b1}};
+    sched.schedule_prefetch_block   = 1'b0;
+    sched.schedule_cta_id           = '0;
+    sched.schedule_grid_size.x      = 1;
+    sched.schedule_grid_size.y      = 1;
+    sched.schedule_grid_size.z      = 1;
+    sched.schedule_cta_size.x       = 1;
+    sched.schedule_cta_size.y       = 1;
+    sched.schedule_cta_size.z       = 1;
+    sched.schedule_kernel_id        = '0;
+    sched.schedule_smem_per_cta     = '0;
+    sched.schedule_hw_cta_size      = CTA_SIZE_1;
+    sched.schedule_cta_thread_count = 1;
+
+    simt_status_if.status[0].valid = 1'b1;
+    simt_status_if.status[0].next_pc = start_pc;
+    simt_status_if.status[0].active_mask = {DICE_NUM_MAX_THREADS_PER_CORE{1'b1}};
+    simt_status_if.status[0].empty = 1'b0;
+    simt_status_if.status[0].full = 1'b0;
+
+    bh_if.cta_status_data = '0;
+
+    wait (schedule_if.ready == 1'b1);
+    schedule_if.data  = sched;
+    schedule_if.valid = 1'b1;
+    @(posedge clk);
+    schedule_if.valid = 1'b0;
+
+    // Respond to meta fetch
+    meta = '0;
+    meta.bitstream_addr   = 32'h0000_2000;
+    meta.bitstream_length = 8'h04;
+    meta.branch_meta.branch_ena = 1'b0;
+    meta.barrier = 1'b0;
+
+    wait (metacache_mem_if.req_valid == 1'b1);
+    @(posedge clk);
+    metacache_mem_if.rsp_valid = 1'b1;
+    metacache_mem_if.rsp_data.tag = metacache_mem_if.req_data.tag;
+    metacache_mem_if.rsp_data.data = '0;
+    metacache_mem_if.rsp_data.data[$bits(pgraph_meta_t)-1:0] = meta;
+    @(posedge clk);
+    metacache_mem_if.rsp_valid = 1'b0;
+
+    // Respond to bitstream fetch requests
+    for (int i = 0; i < NumChunks; i++) begin
+      wait (bitstream_cache_mem_if.req_valid == 1'b1);
+      @(posedge clk);
+      bitstream_cache_mem_if.rsp_valid = 1'b1;
+      bitstream_cache_mem_if.rsp_data.tag  = bitstream_cache_mem_if.req_data.tag;
+      bitstream_cache_mem_if.rsp_data.data = '0;
+      @(posedge clk);
+      bitstream_cache_mem_if.rsp_valid = 1'b0;
+    end
+
+    wait (fdr_if.valid == 1'b1);
+    assert (fdr_if.data.schedule_next_pc == start_pc)
+      else $fatal(1, "schedule_next_pc mismatch");
+    assert (fdr_if.data.metadata.bitstream_length == meta.bitstream_length)
+      else $fatal(1, "metadata.bitstream_length mismatch");
+
+    $display("PASS: fdr_top produced valid output");
+`ifdef MODELSIM
+    $stop;
+`else
+    $finish;
 `endif
+  end
 
 `ifdef VCD
   initial begin
