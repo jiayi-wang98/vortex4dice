@@ -1,4 +1,4 @@
-//need to figure out how the active mask will be packaged
+//need to figure out how the active mask will be  packaged
 module decode
   import dice_pkg::*;
   import dice_frontend_pkg::*;
