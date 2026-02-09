@@ -4,6 +4,14 @@
 
 module addr_swizzle_tb;
 
+import DE_pkg::*;
+import dice_pkg::*;
+
+  initial begin
+    $fsdbDumpfile("addr_swizzle_tb.fsdb");
+    $fsdbDumpvars("+all");
+  end
+
   // parameters (should match DUT)
   localparam NUM_BANK = 32;
 
@@ -46,9 +54,6 @@ module addr_swizzle_tb;
     $finish;
   end
   
-  initial begin
-    $fsdbDumpfile("addr_swizzle_tb.fsdb");
-    $fsdbDumpvars(0, addr_swizzle_tb);
-  end
+
 
 endmodule

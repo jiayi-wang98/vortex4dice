@@ -25,16 +25,16 @@ fdb_proj =
 fdb_campaign = 
 fdb_tool = 
 [hb]
-postSimFile = /data/amanoj3/vortex4dice/dice_new/tb/cgra_core/dispatcher/regfile/addr_swizzle_tb.fsdb
-syncTime = 0
-viewport = 0 42 1800 967 0 0 283 1798
-activeNode = "addr_swizzle_tb"
-activeScope = "addr_swizzle_tb"
-activeFile = "/homes/amanoj3/vortex4dice/dice_new/tb/cgra_core/dispatcher/regfile/addr_swizzle_tb.sv"
+postSimFile = /data/amanoj3/vortex4dice/dice_new/tb/cgra_core/dispatcher/regfile/dice_rf_ctrl_tb.fsdb
+syncTime = 15435
+viewport = 0 27 1800 976 0 0 518 1798
+activeNode = "dice_rf_ctrl_tb"
+activeScope = "dice_rf_ctrl_tb"
+activeFile = "/data/amanoj3/vortex4dice/dice_new/tb/cgra_core/dispatcher/regfile/dice_rf_ctrl_tb.sv"
 interactiveMode = False
 viewType = Source
 simulatorMode = False
-sourceBeginLine = 8
+sourceBeginLine = 4
 baMode = False
 srcLineNum = True
 AutoWrap = True
@@ -51,23 +51,23 @@ DnDtraceCrossHierOnly = True
 leadingZero = False
 signalPane = False
 SourceVerticalScrollLines = 5
-Scope1 = "addr_swizzle_tb"
-multipleSelection = 1 19 4 0 0
+Scope1 = "dice_rf_ctrl_tb"
+multipleSelection = 1 4 2 0 0
 sdfCheckUndef = FALSE
 simFlow = FALSE
 [hb.design]
 importCmd = "-dbdir" "/data/amanoj3/vortex4dice/dice_new/tb/cgra_core/dispatcher/regfile/simv.daidir" 
 invokeDir = /data/amanoj3/vortex4dice/dice_new/tb/cgra_core/dispatcher/regfile
 [hb.sourceTab.1]
-scope = addr_swizzle_tb
-File = /homes/amanoj3/vortex4dice/dice_new/tb/cgra_core/dispatcher/regfile/addr_swizzle_tb.sv
-Line = 9
+scope = dice_rf_ctrl_tb
+File = /data/amanoj3/vortex4dice/dice_new/tb/cgra_core/dispatcher/regfile/dice_rf_ctrl_tb.sv
+Line = 5
 [nMemoryManager]
-WaveformFile = /data/amanoj3/vortex4dice/dice_new/tb/cgra_core/dispatcher/regfile/addr_swizzle_tb.fsdb
+WaveformFile = /data/amanoj3/vortex4dice/dice_new/tb/cgra_core/dispatcher/regfile/dice_rf_ctrl_tb.fsdb
 UserActionNum = 0
 nMemWindowNum = 0
 [wave.0]
-viewPort = 0 11 1800 309 100 65
+viewPort = 0 25 1800 721 293 114
 primaryWindow = TRUE
 SessionFile = /data/amanoj3/vortex4dice/dice_new/tb/cgra_core/dispatcher/regfile/verdiLog/novas_autosave.ses.wave.0
 displayGrid = FALSE
