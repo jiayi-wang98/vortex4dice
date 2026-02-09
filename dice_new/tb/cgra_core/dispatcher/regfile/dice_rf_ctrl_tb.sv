@@ -45,7 +45,7 @@ import dice_pkg::*;
     logic [(4*TID_WIDTH)-1:0]         rd_tid_i;
     logic [NUM_PORTS-1:0]             rd_bitmap_i;
     logic [NUM_PORTS*DATA_WIDTH-1:0]  rd_data_o;
-
+    logic                             rf_rd_valid_o;
     //-------------------------------------------------------------------------
     // Write Interface Signals (CGRA)
     //-------------------------------------------------------------------------
@@ -120,7 +120,7 @@ import dice_pkg::*;
         , .rd_tid_i           (rd_tid_i)
         , .rd_bitmap_i        (rd_bitmap_i)
         , .rd_data_o          (rd_data_o)
-
+        , .rf_rd_valid_o      (rf_rd_valid_o)
         // CGRA write interface
         , .cgra_tid_i         (cgra_tid_i)
         , .cgra_data_i        (cgra_data_i)
@@ -354,6 +354,7 @@ import dice_pkg::*;
 
             @(posedge clk_i);
             @(posedge clk_i);
+            $display("rf_rd_valid_o: %0b", rf_rd_valid_o);
             for (int i = 0; i < NUM_PORTS; i++) begin
                 $display("Read data from bank %0d: %0h", i, rd_data_o[i*DATA_WIDTH +: DATA_WIDTH]);
             end
@@ -376,6 +377,8 @@ import dice_pkg::*;
         write_cgra_only(0);
         @(posedge clk_i);
         read_cgra_only(0);
+        @(posedge clk_i);
+        $display("rf_rd_valid_o: %0b", rf_rd_valid_o);
         // End simulation
         #100;
         $display("=== dice_rf_ctrl Testbench End ===");

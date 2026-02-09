@@ -30,8 +30,8 @@ import dice_pkg::*;
 
     // output
     , output logic [NUM_PORTS*TID_WIDTH-1:0] rd_sel_o 
-    , output logic [NUM_PORTS-1:0]           rd_valid_o
-
+    , output logic [NUM_PORTS-1:0]           rd_en_o
+    , output logic                           rd_valid_o
 );
 
     // Extract TIDs from packed input (up to 4 TIDs)
@@ -56,7 +56,7 @@ import dice_pkg::*;
         // Initialize outputs to zero
 
         rd_sel_o = '0;
-        rd_valid_o = '0;
+        rd_en_o = '0;
 
         if (rd_en_i && rd_tid_valid_i) begin
             case (rd_unroll_factor_i)
@@ -65,7 +65,7 @@ import dice_pkg::*;
 
                 2'b00: begin
                     // Set valid bits from shifted bitmap
-                    rd_valid_o = shifted_bitmap;
+                    rd_en_o = shifted_bitmap;
 
                     // For each bank with valid bit set, place the TID
                     for (int i = 0; i < NUM_PORTS; i++) begin
@@ -89,6 +89,14 @@ import dice_pkg::*;
                     // Invalid unroll factor, outputs remain zero
                 end
             endcase
+        end
+    end
+
+    always_ff @(posedge clk_i) begin
+        if (reset_i) begin
+            rd_valid_o <= '0;
+        end else begin
+            rd_valid_o <= rd_tid_valid_i;
         end
     end
 

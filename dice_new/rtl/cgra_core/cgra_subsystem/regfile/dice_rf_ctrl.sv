@@ -39,6 +39,8 @@ import dice_pkg::*;
     , input logic [(4*TID_WIDTH)-1:0]         rd_tid_i
     , input logic [NUM_PORTS-1:0]             rd_bitmap_i
     , output logic [NUM_PORTS*DATA_WIDTH-1:0] rd_data_o
+    , output logic                            rf_rd_valid_o
+    // TODO: add v_o signal for cgra, so when rf_v_o and disp_v_o, compute 
 
 
     // Write Input
@@ -220,7 +222,8 @@ import dice_pkg::*;
         , .rd_bitmap_i (rd_bitmap_i)
 
         , .rd_sel_o (rf_rd_addr)
-        , .rd_valid_o (rf_rd_en)
+        , .rd_en_o (rf_rd_en)
+        , .rd_valid_o (rf_rd_valid_o)
     );
 
     
