@@ -11,10 +11,9 @@ module cta_status_table
 
     // From Block Retire Table (BRT)
     input block_retire_status_t brt_info_i,
-    input logic                 brt_info_we_i,
 
     // From cta controller
-    input logic clear_entry_valid_i,
+    input logic                            clear_entry_valid_i,
     input logic [DICE_HW_CTA_ID_WIDTH-1:0] clear_entry_hw_id_i,
 
     // Exposed status for each CTA
@@ -35,30 +34,23 @@ module cta_status_table
     end
 
     //update the status from the BRT
-    if (brt_info_we_i) begin
-      for (int i = 0; i < DICE_NUM_MAX_CTA_PER_CORE; i++) begin
-        cta_status_d[i].has_pending_eblock = brt_info_i.hw_cta_pending[i];
-      end
+    for (int i = 0; i < DICE_NUM_MAX_CTA_PER_CORE; i++) begin
+      cta_status_d[i].has_pending_eblock = brt_info_i.hw_cta_pending[i];
     end
 
     //update the status from the branch predictor
     if (branch_predict_info_we_i) begin
       bp_cta_id = branch_predict_info_i.hw_cta_id;
-      cta_status_d[bp_cta_id].prefetch_cleared = branch_predict_info_i.unresolved_control_divergence;
+      cta_status_d[bp_cta_id].unresolved_control_divergence = branch_predict_info_i.unresolved_control_divergence;
       cta_status_d[bp_cta_id].is_return = branch_predict_info_i.is_return;
       cta_status_d[bp_cta_id].predict_pc = branch_predict_info_i.predict_pc;
-      cta_status_d[bp_cta_id].is_barrier = branch_predict_info_i.is_barrier;
     end
 
     //clear the status from the cta controller
     if (clear_entry_valid_i) begin
-      cta_status_d[clear_entry_hw_id_i].has_pending_eblock = 1'b0;
       cta_status_d[clear_entry_hw_id_i].unresolved_control_divergence = 1'b0;
       cta_status_d[clear_entry_hw_id_i].is_return = 1'b0;
       cta_status_d[clear_entry_hw_id_i].predict_pc = '0;
-      cta_status_d[clear_entry_hw_id_i].is_barrier = 1'b0;
-      cta_status_d[clear_entry_hw_id_i].prefetch_cleared = 1'b0;
-      cta_status_d[clear_entry_hw_id_i].is_prefetch = 1'b0;
     end
   end
 
@@ -75,15 +67,5 @@ module cta_status_table
   end
 
   assign cta_status_o = cta_status_q;
-
-`ifndef SYNTHESIS
-  // Status is cleared in the next cycle after clear_entry_valid_i
-  always_ff @(posedge clk_i) begin
-    if (clear_entry_valid_i) begin
-      assert (cta_status_d[clear_entry_hw_id_i].has_pending_eblock == 1'b0)
-      else $error("CleanStatusAfterClear: Status not cleared (check immediate update)");
-    end
-  end
-`endif
 
 endmodule

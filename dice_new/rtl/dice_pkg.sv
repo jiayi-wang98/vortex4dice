@@ -69,16 +69,11 @@ package dice_pkg;
     dice_cta_id_t      cta_id;
   } dice_cta_desc_t;  // CTA descriptor passed to CGRA core front end
 
-
-  //POTENTIAL ADDITIONS FOR STATUS TABLE
   typedef struct packed {
     logic unresolved_control_divergence;
     logic [DICE_ADDR_WIDTH-1:0] predict_pc;
-    logic has_pending_eblock;  // was still_pending_in_BRT
-    logic is_return;  // was return_pending
-    logic is_barrier;  // New
-    logic prefetch_cleared;  // New
-    logic is_prefetch;  // New (used in cta_scheduler)
+    logic has_pending_eblock;
+    logic is_return;
   } dice_cta_status_t;  // CTA status descriptor
 
   typedef struct packed {
@@ -86,7 +81,6 @@ package dice_pkg;
     logic                            unresolved_control_divergence;
     logic [DICE_ADDR_WIDTH-1:0]      predict_pc;
     logic                            is_return;
-    logic                            is_barrier;
   } branch_predict_interface_t;  // Branch prediction interface descriptor
 
   // CTA size encoding for SIMT stack allocation
