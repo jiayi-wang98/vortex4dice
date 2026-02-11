@@ -10,7 +10,7 @@ interface prf_if
   // Request channel (FDR → PRF)
   logic                            req_valid;
   logic                            req_ready;
-  logic [$clog2(DICE_PR_NUM)-1:0]  req_addr;
+  logic [PR_INDEX_WIDTH-1:0]       req_addr;
 
   // Response channel (PRF → FDR)
   logic                                       rsp_valid;

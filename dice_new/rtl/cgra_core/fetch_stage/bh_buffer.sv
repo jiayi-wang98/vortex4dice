@@ -1,3 +1,5 @@
+// TODO: Change the BH interface to assert consumed instead of ready
+
 module bh_buffer
   import dice_frontend_pkg::*;
   import dice_pkg::*;
@@ -10,7 +12,7 @@ module bh_buffer
 
     // Input from CGRA Buffer
     input  logic [DATA_WIDTH-1:0]                    data_in_i,
-    input  logic [TID_WIDTH-1:0]                     tid_offset_i,
+    input  logic [DICE_TID_WIDTH-1:0]                tid_offset_i,
     input  logic                                     valid_in_i,
     input  logic                                     last_in_i, // This implementation may need to be modified
     output logic                                     buffer_consumed_o,
@@ -37,11 +39,15 @@ module bh_buffer
     case (state_q)
       StateIdle: begin
         if (valid_in_i) begin
-          state_d = StateFill;
+          if (last_in_i) begin
+            state_d = StateDrain;
+          end else begin
+            state_d = StateFill;
+          end
         end
       end
       StateFill: begin
-        if (last_in_i) begin
+        if (valid_in_i && last_in_i) begin
           state_d = StateDrain;
         end
       end
@@ -67,7 +73,7 @@ module bh_buffer
       state_q <= state_d;
       buffer_consumed_q <= buffer_consumed_d;
       if (valid_in_i) begin
-        pred_buffer[tid_offset_i:tid_offset_i+DATA_WIDTH-1] <= data_in_i;
+        pred_buffer[tid_offset_i +: DATA_WIDTH] <= data_in_i;
       end
     end
   end

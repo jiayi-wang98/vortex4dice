@@ -139,7 +139,7 @@ module active_cta_table
       // Reset output buffer
       output_buffer_valid_q <= 1'b0;
       output_buffer_cta_id_q <= '0;
-      output_buffer_cta_size_q <= '0;
+      output_buffer_cta_size_q <= CTA_SIZE_1;
       output_buffer_kernel_id_q <= '0;
       output_buffer_cta_thread_count_q <= '0;
 
@@ -181,7 +181,7 @@ module active_cta_table
         // Only output buffer consumed - clear buffer
         output_buffer_valid_q <= 1'b0;
         output_buffer_cta_id_q <= '0;
-        output_buffer_cta_size_q <= '0;
+        output_buffer_cta_size_q <= CTA_SIZE_1;
         output_buffer_kernel_id_q <= '0;
         output_buffer_cta_thread_count_q <= '0;
       end
