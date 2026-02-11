@@ -37,7 +37,7 @@ $DICE_HOME/dice_new/rtl/cgra_core/cta_schedule/cta_schedule_stage.sv
 
 // FDR Stage Modules
 $DICE_HOME/dice_new/rtl/cgra_core/fetch_stage/bitstream_fetch_load.sv
-$DICE_HOME/dice_new/rtl/cgra_core/fetch_stage/branch_handler.sv
+$DICE_HOME/dice_new/rtl/cgra_core/fetch_stage/bh_buffer.sv
 $DICE_HOME/dice_new/rtl/cgra_core/fetch_stage/branch_resolver.sv
 $DICE_HOME/dice_new/rtl/cgra_core/fetch_stage/decode.sv
 $DICE_HOME/dice_new/rtl/cgra_core/fetch_stage/divergence_monitor.sv

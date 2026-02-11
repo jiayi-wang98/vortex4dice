@@ -20,4 +20,6 @@ ${DICE_HOME}/dice_new/rtl/interfaces/fdr_if.sv
 ${DICE_HOME}/dice_new/rtl/dice_ram/dice_ram_1w1r.sv
 ${DICE_HOME}/dice_new/rtl/dice_ram/dice_ram_1rw.sv
 ${DICE_HOME}/dice_new/rtl/cgra_core/fetch_stage/branch_handler.sv
+${DICE_HOME}/dice_new/rtl/cgra_core/fetch_stage/bh_fifo.sv
+${DICE_HOME}/dice_new/rtl/cgra_core/fetch_stage/bh_buffer.sv
 branch_handler_tb.sv
