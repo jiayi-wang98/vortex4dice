@@ -21,11 +21,17 @@ module fdr_top
     // SIMT Stack Status Interface
     simt_stack_status_if.slave simt_status_if,
 
-    // SIMT Stack Update Interface
-    dice_bh_simt_if.master simt_stack_update_if,
+    // Branch handler/status-table signals (to CS stage)
+    output branch_predict_interface_t bh_branch_predict_info_o,
+    output logic                      bh_branch_predict_info_we_o,
+    input dice_cta_status_t [DICE_NUM_MAX_CTA_PER_CORE-1:0] cta_status_data_i,
 
-    // Branch Handler Interface (status table access)
-    branch_handler_if.master bh_if,
+    // SIMT Stack Update signals (to CS stage)
+    output logic                            simt_update_valid_o,
+    input logic                             simt_update_ready_i,
+    output simt_stack_update_t              simt_update_stack_data_o,
+    output logic [DICE_HW_CTA_ID_WIDTH-1:0] simt_update_hw_cta_id_o,
+    output cta_size_e                       simt_update_hw_cta_size_o,
 
     // BH Buffer - Backend Interface
     // Backend drives predicate data into bh_buffer; bh_buffer feeds branch_handler
@@ -63,7 +69,7 @@ module fdr_top
   logic         branch_req_valid_internal;
   logic         is_barrier_internal;
 
-  // Branch prediction (branch_handler → bh_if)
+  // Branch prediction (branch_handler → CS stage)
   branch_predict_interface_t predict_interface_internal;
   logic predict_we_internal;
 
@@ -95,10 +101,10 @@ module fdr_top
   assign fdr_if.data.real_active_mask      = branch_mask_internal;
 
   // =========================================================================
-  // Branch Handler Interface Assignments
+  // Branch prediction signal assignments
   // =========================================================================
-  assign bh_if.bh_data = predict_interface_internal;
-  assign bh_if.branch_predict_info_write_enable = predict_we_internal;
+  assign bh_branch_predict_info_o    = predict_interface_internal;
+  assign bh_branch_predict_info_we_o = predict_we_internal;
 
   // =========================================================================
   // BH Buffer (predicate aggregation from backend)
@@ -165,18 +171,12 @@ module fdr_top
       .simt_stack_update_o          (bh_simt_update)
   );
 
-  // SIMT Stack Update Interface Wiring (direct from branch_handler)
-  assign simt_stack_update_if.update_valid = bh_update_valid;
-  assign simt_stack_update_if.update_stack_data.update_with_divergence  = bh_simt_update.update_with_divergence;
-  assign simt_stack_update_if.update_stack_data.update_next_pc          = bh_simt_update.update_next_pc;
-
-  // TODO: check this
-  assign simt_stack_update_if.update_stack_data.predicate_regs_value    = {{(SIMT_STACK_COUNT*SIMT_STACK_THREAD_WIDTH - DICE_NUM_MAX_THREADS_PER_CORE){1'b0}}, bh_simt_update.predicate_regs_value};
-  assign simt_stack_update_if.update_stack_data.branch_not_taken_pc     = bh_simt_update.branch_not_taken_pc;
-  assign simt_stack_update_if.update_stack_data.branch_reconvergence_pc = bh_simt_update.branch_reconvergence_pc;
-  assign simt_stack_update_if.hw_cta_id                                = bh_simt_update.hw_cta_id;
-  assign simt_stack_update_if.hw_cta_size                              = bh_simt_update.hw_cta_size;
-  assign bh_update_ready = simt_stack_update_if.update_ready;
+  // SIMT stack update signal wiring (direct from branch_handler)
+  assign simt_update_valid_o       = bh_update_valid;
+  assign simt_update_stack_data_o  = bh_simt_update;
+  assign simt_update_hw_cta_id_o   = bh_simt_update.hw_cta_id;
+  assign simt_update_hw_cta_size_o = bh_simt_update.hw_cta_size;
+  assign bh_update_ready           = simt_update_ready_i;
 
   // Meta Fetch
   meta_fetch #(
@@ -234,9 +234,9 @@ module fdr_top
       .prefetch_block_i   (schedule_if.data.schedule_prefetch_block),
       .simt_stack_pc_i    (simt_stack_pc),
       .bitstream_loaded_i (done_streaming_internal),
-      .unresolved_div_i   (bh_if.cta_status_data[current_hw_cta_id].unresolved_control_divergence),
-      .barrier_complete_i (bh_if.cta_status_data[current_hw_cta_id].is_barrier),
-      .prefetch_cleared_i (bh_if.cta_status_data[current_hw_cta_id].prefetch_cleared),
+      .unresolved_div_i   (cta_status_data_i[current_hw_cta_id].unresolved_control_divergence),
+      .barrier_complete_i (1'b1),
+      .prefetch_cleared_i (1'b0),
       .fdr_valid_o        (fdr_if.valid),
       .ex_ready_i         (fdr_if.ready),
       .fire_eblock_o      (fire_eblock_internal),

@@ -22,10 +22,22 @@ module dice_core
 );
   // Internal Interfaces
   cta_sched_if         schedule_if          (); // between cta scheduler and fdr stages
-  branch_handler_if    bh_if                (); // between fdr and cta scheduler stages (branch handler, simt stack update, simt status)
   fdr_if               fdr_out_if           (); // between fdr and backend stages
-  dice_bh_simt_if      simt_stack_update_if (); // between branch handler and simt stack controller stages
   simt_stack_status_if simt_status_if       (); // exposes simt stack entries to modules that need it
+  cgra_cm_if           cm0_if               ();
+  cgra_cm_if           cm1_if               ();
+
+  // FDR -> scheduler status table/branch prediction wires
+  branch_predict_interface_t bh_branch_predict_info;
+  logic                      bh_branch_predict_info_we;
+  dice_cta_status_t [DICE_NUM_MAX_CTA_PER_CORE-1:0] cta_status_data;
+
+  // FDR -> scheduler SIMT update wires
+  logic                            simt_update_valid;
+  logic                            simt_update_ready;
+  simt_stack_update_t              simt_update_stack_data;
+  logic [DICE_HW_CTA_ID_WIDTH-1:0] simt_update_hw_cta_id;
+  cta_size_e                       simt_update_hw_cta_size;
 
   // Eblock flush wires (FDR -> Scheduler)
   logic                       eblock_flush_valid;
@@ -54,10 +66,16 @@ module dice_core
       .eblock_commit_id_i      (),
       .eblock_flush_valid_i    (eblock_flush_valid),
       .eblock_flush_id_i       (eblock_flush_id),
-      .status_table_bh_if      (bh_if),
+      .bh_branch_predict_info_i(bh_branch_predict_info),
+      .bh_branch_predict_info_we_i(bh_branch_predict_info_we),
+      .cta_status_data_o       (cta_status_data),
       .brt_info_i              (),
       .brt_info_write_enable_i (),
-      .simt_stack_update       (simt_stack_update_if),
+      .simt_update_valid_i     (simt_update_valid),
+      .simt_update_ready_o     (simt_update_ready),
+      .simt_update_stack_data_i(simt_update_stack_data),
+      .simt_update_hw_cta_id_i (simt_update_hw_cta_id),
+      .simt_update_hw_cta_size_i(simt_update_hw_cta_size),
       .simt_status_if          (simt_status_if)
   );
 
@@ -69,8 +87,14 @@ module dice_core
       .schedule_if(schedule_if),
       .fdr_if(fdr_out_if),
       .simt_status_if(simt_status_if),
-      .simt_stack_update_if(simt_stack_update_if),
-      .bh_if(bh_if),
+      .bh_branch_predict_info_o(bh_branch_predict_info),
+      .bh_branch_predict_info_we_o(bh_branch_predict_info_we),
+      .cta_status_data_i(cta_status_data),
+      .simt_update_valid_o(simt_update_valid),
+      .simt_update_ready_i(simt_update_ready),
+      .simt_update_stack_data_o(simt_update_stack_data),
+      .simt_update_hw_cta_id_o(simt_update_hw_cta_id),
+      .simt_update_hw_cta_size_o(simt_update_hw_cta_size),
       .bh_buf_data_i       (),  // TODO: connect to backend predicate data
       .bh_buf_tid_offset_i (),  // TODO: connect to backend TID offset
       .bh_buf_valid_i      (),  // TODO: connect to backend valid

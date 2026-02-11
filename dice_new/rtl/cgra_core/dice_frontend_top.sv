@@ -49,12 +49,17 @@ module dice_frontend_top
     // Scheduler -> FDR
     cta_sched_if schedule_if();
 
-    // FDR <-> Scheduler: Status Table Access (via Branch Handler IF)
-    // FDR is Master (requests info/update), Scheduler is Slave (holds table)
-    branch_handler_if bh_if();
+    // FDR -> Scheduler: status table/branch prediction wires
+    branch_predict_interface_t bh_branch_predict_info;
+    logic                      bh_branch_predict_info_we;
+    dice_cta_status_t [DICE_NUM_MAX_CTA_PER_CORE-1:0] cta_status_data;
 
-    // FDR -> Scheduler: SIMT Stack Update
-    dice_bh_simt_if simt_stack_update_if();
+    // FDR -> Scheduler: SIMT Stack Update wires
+    logic                            simt_update_valid;
+    logic                            simt_update_ready;
+    simt_stack_update_t              simt_update_stack_data;
+    logic [DICE_HW_CTA_ID_WIDTH-1:0] simt_update_hw_cta_id;
+    cta_size_e                       simt_update_hw_cta_size;
 
     // Scheduler -> FDR: SIMT Stack Status
     simt_stack_status_if simt_status_if();
@@ -76,10 +81,16 @@ module dice_frontend_top
         .eblock_commit_id_i      (eblock_commit_id_i),
         .eblock_flush_valid_i    (eblock_flush_valid_internal),
         .eblock_flush_id_i       (eblock_flush_id_internal),
-        .status_table_bh_if      (bh_if), // Slave
+        .bh_branch_predict_info_i(bh_branch_predict_info),
+        .bh_branch_predict_info_we_i(bh_branch_predict_info_we),
+        .cta_status_data_o       (cta_status_data),
         .brt_info_i              (brt_info_i),
         .brt_info_write_enable_i (brt_info_write_enable_i),
-        .simt_stack_update       (simt_stack_update_if), // Slave
+        .simt_update_valid_i     (simt_update_valid),
+        .simt_update_ready_o     (simt_update_ready),
+        .simt_update_stack_data_i(simt_update_stack_data),
+        .simt_update_hw_cta_id_i (simt_update_hw_cta_id),
+        .simt_update_hw_cta_size_i(simt_update_hw_cta_size),
         .simt_status_if          (simt_status_if)        // Master
     );
 
@@ -97,8 +108,14 @@ module dice_frontend_top
         .schedule_if           (schedule_if),       // Slave
         .fdr_if                (fdr_if),            // Master (Port)
         .simt_status_if        (simt_status_if),    // Slave
-        .simt_stack_update_if  (simt_stack_update_if), // Master
-        .bh_if                 (bh_if),             // Master
+        .bh_branch_predict_info_o(bh_branch_predict_info),
+        .bh_branch_predict_info_we_o(bh_branch_predict_info_we),
+        .cta_status_data_i     (cta_status_data),
+        .simt_update_valid_o   (simt_update_valid),
+        .simt_update_ready_i   (simt_update_ready),
+        .simt_update_stack_data_o(simt_update_stack_data),
+        .simt_update_hw_cta_id_o(simt_update_hw_cta_id),
+        .simt_update_hw_cta_size_o(simt_update_hw_cta_size),
         .bh_buf_data_i         (bh_buf_data_i),
         .bh_buf_tid_offset_i   (bh_buf_tid_offset_i),
         .bh_buf_valid_i        (bh_buf_valid_i),
