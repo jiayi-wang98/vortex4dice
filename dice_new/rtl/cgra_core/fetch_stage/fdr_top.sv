@@ -37,7 +37,11 @@ module fdr_top
 
     // CGRA Configuration Memory Interfaces
     cgra_cm_if.master cm0_if,
-    cgra_cm_if.master cm1_if
+    cgra_cm_if.master cm1_if,
+
+    // Eblock flush notification (predict-miss - scheduler)
+    output logic                       eblock_flush_valid_o,
+    output logic [EBLOCK_ID_WIDTH-1:0] eblock_flush_id_o
 );
 
   // Internal Signals - Meta Fetch / Decoder
@@ -239,5 +243,9 @@ module fdr_top
       .clear_prefetch_o   (clear_prefetch_internal),
       .predict_miss_o     (predict_miss_internal)
   );
+
+  // Eblock flush: release the current eblock in the scheduler on predict-miss
+  assign eblock_flush_valid_o = predict_miss_internal;
+  assign eblock_flush_id_o    = schedule_if.data.schedule_eblock_id;
 
 endmodule

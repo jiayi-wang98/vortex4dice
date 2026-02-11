@@ -59,6 +59,10 @@ module dice_frontend_top
     // Scheduler -> FDR: SIMT Stack Status
     simt_stack_status_if simt_status_if();
 
+    // FDR -> Scheduler: Eblock flush on predict-miss
+    logic                       eblock_flush_valid_internal;
+    logic [EBLOCK_ID_WIDTH-1:0] eblock_flush_id_internal;
+
     // =========================================================================
     // CTA Schedule Stage Instantiation
     // =========================================================================
@@ -70,6 +74,8 @@ module dice_frontend_top
         .schedule_if             (schedule_if),
         .eblock_commit_valid_i   (eblock_commit_valid_i),
         .eblock_commit_id_i      (eblock_commit_id_i),
+        .eblock_flush_valid_i    (eblock_flush_valid_internal),
+        .eblock_flush_id_i       (eblock_flush_id_internal),
         .status_table_bh_if      (bh_if), // Slave
         .brt_info_i              (brt_info_i),
         .brt_info_write_enable_i (brt_info_write_enable_i),
@@ -99,7 +105,9 @@ module dice_frontend_top
         .bh_buf_last_i         (bh_buf_last_i),
         .bh_buf_consumed_o     (bh_buf_consumed_o),
         .cm0_if                (cm0_if),
-        .cm1_if                (cm1_if)
+        .cm1_if                (cm1_if),
+        .eblock_flush_valid_o  (eblock_flush_valid_internal),
+        .eblock_flush_id_o     (eblock_flush_id_internal)
     );
 
 endmodule

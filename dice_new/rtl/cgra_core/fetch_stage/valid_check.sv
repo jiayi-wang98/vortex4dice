@@ -1,10 +1,7 @@
 /**
  * Valid Checker Module
- * checks if e-block can be passed from FDR to DE stage.
-
-
-  need to make it so that when it flushes that stage, it updates the cta scheduler and indicate
-  that the eblock ID is no longer in the pipeline.
+ * Checks if e-block can be passed from FDR to DE stage.
+ * On predict-miss, fdr_top sends flush notification to the scheduler.
  */
 module valid_check
   import dice_pkg::*;

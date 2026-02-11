@@ -27,6 +27,10 @@ module dice_core
   dice_bh_simt_if      simt_stack_update_if (); // between branch handler and simt stack controller stages
   simt_stack_status_if simt_status_if       (); // exposes simt stack entries to modules that need it
 
+  // Eblock flush wires (FDR -> Scheduler)
+  logic                       eblock_flush_valid;
+  logic [EBLOCK_ID_WIDTH-1:0] eblock_flush_id;
+
   // CTA Dispatcher interfaces (internal, wired to flat top-level ports)
   cta_dispatch_if cta_dispatch_if_inst ();
   cta_complete_if cta_complete_if_inst ();
@@ -48,6 +52,8 @@ module dice_core
       .schedule_if             (schedule_if),
       .eblock_commit_valid_i   (),
       .eblock_commit_id_i      (),
+      .eblock_flush_valid_i    (eblock_flush_valid),
+      .eblock_flush_id_i       (eblock_flush_id),
       .status_table_bh_if      (bh_if),
       .brt_info_i              (),
       .brt_info_write_enable_i (),
@@ -71,7 +77,9 @@ module dice_core
       .bh_buf_last_i       (),  // TODO: connect to backend last
       .bh_buf_consumed_o   (),  // TODO: connect to backend consumed
       .cm0_if(cm0_if),
-      .cm1_if(cm1_if)
+      .cm1_if(cm1_if),
+      .eblock_flush_valid_o(eblock_flush_valid),
+      .eblock_flush_id_o   (eblock_flush_id)
   );
 
 endmodule

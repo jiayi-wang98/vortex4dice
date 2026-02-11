@@ -21,9 +21,13 @@ module cta_schedule_stage
     input logic                       eblock_commit_valid_i,
     input logic [EBLOCK_ID_WIDTH-1:0] eblock_commit_id_i,
 
+    // E-block flush interface (from FDR predict-miss)
+    input logic                       eblock_flush_valid_i,
+    input logic [EBLOCK_ID_WIDTH-1:0] eblock_flush_id_i,
+
     // Branch handler / predictor interface (from FDR/execution)
 
-          branch_handler_if.slave status_table_bh_if,
+    branch_handler_if.slave status_table_bh_if,
     // Block Retire Table interface
     input block_retire_status_t   brt_info_i,
     input logic                   brt_info_write_enable_i,
@@ -80,22 +84,22 @@ module cta_schedule_stage
 
   assign status_table_bh_if.cta_status_data = cta_status_real;
 
-  // Adapter for cta_scheduler which uses cta_status_t
+  // ADAPTER FOR CTA SCHEDULER
   cta_status_t [DICE_NUM_MAX_CTA_PER_CORE-1:0] scheduler_status_adapter;
 
   always_comb begin
     for (int i = 0; i < DICE_NUM_MAX_CTA_PER_CORE; i++) begin
-      scheduler_status_adapter[i].hw_cta_id   = (DICE_CTA_ID_WIDTH + 1)'(i);
+      scheduler_status_adapter[i].hw_cta_id   = (DICE_CTA_ID_WIDTH)'(i);
       scheduler_status_adapter[i].is_prefetch = cta_status_real[i].is_prefetch;
       scheduler_status_adapter[i].predict_pc  = cta_status_real[i].predict_pc;
     end
   end
 
-  // SIMT stack update wiring - now uses interface signals directly
+  // SIMT STACK UPDATE
   logic simt_stack_update_ready;
   assign simt_stack_update.update_ready = simt_stack_update_ready;
 
-  // SIMT stack initialization wiring (cta_controller → simt_stack_controller)
+  // SIMT STACK INITIALIZATION
   logic                                         simt_init_valid;
   logic [$clog2(DICE_NUM_MAX_CTA_PER_CORE)-1:0] simt_init_hw_cta_id;
   cta_size_e                                   simt_init_hw_cta_size;
@@ -104,14 +108,15 @@ module cta_schedule_stage
   logic                                         simt_init_ready;
 
 
-  // Create validity bitmap from active_cta_entries
-  logic [        DICE_NUM_MAX_CTA_PER_CORE-1:0] active_cta_validty_bitmap;
+  // ACTIVE CTA TABLE VALIDITY BITMAP
+  logic [DICE_NUM_MAX_CTA_PER_CORE-1:0] active_cta_validty_bitmap;
   always_comb begin
     for (int i = 0; i < DICE_NUM_MAX_CTA_PER_CORE; i++) begin
       active_cta_validty_bitmap[i] = active_cta_entries[i].cta_valid;
     end
   end
 
+  // ACTIVE CTA TABLE CLEAR
   logic clear_entry_valid;
   logic [DICE_HW_CTA_ID_WIDTH-1:0] clear_entry_hw_id;
 
@@ -159,11 +164,11 @@ module cta_schedule_stage
       .out_valid_o           (active_table_out_valid),
       .out_ready_i           (active_table_out_ready),
       .out_cta_id_o          (active_table_out_cta_id),
-      .out_cta_size_o        (),
-      .out_kernel_id_o       (),
+      .out_cta_size_o        (), // unused
+      .out_kernel_id_o       (), // unused
       .out_cta_thread_count_o(active_table_out_cta_thread_count),
       .active_cta_entries_o  (active_cta_entries),
-      .full_o                (),
+      .full_o                (), // unused
       .next_empty_cta_index_o(active_table_next_empty_idx)
   );
 
@@ -178,7 +183,9 @@ module cta_schedule_stage
       .cta_next_pc_i          (stack_top_next_pc),
       .stack_top_active_mask_i(stack_top_active_mask),
       .eblock_commit_valid_i  (eblock_commit_valid_i),
-      .eblock_commit_id_i     ((DICE_EBLOCK_ID_WIDTH)'(eblock_commit_id_i)),
+      .eblock_commit_id_i     (eblock_commit_id_i),
+      .eblock_flush_valid_i   (eblock_flush_valid_i),
+      .eblock_flush_id_i      (eblock_flush_id_i),
       .scheduled_eblock       (schedule_if)
   );
 
@@ -200,31 +207,29 @@ module cta_schedule_stage
 
   // SIMT Stack Controller
   simt_stack_controller simt_stack_controller_inst (
-      .clk_i(clk_i),
-      .rst_i(rst_i),
-      // Now using interface signals for hw_cta_id/size
-      .hw_cta_id_i(simt_stack_update.hw_cta_id),
-      .hw_cta_size_i(simt_stack_update.hw_cta_size),
-      .update_valid_i(simt_stack_update.update_valid),
-      .update_with_divergence_i(simt_stack_update.update_stack_data.update_with_divergence),
-      .update_next_pc_i(simt_stack_update.update_stack_data.update_next_pc),
-      .predicate_regs_value_i     (simt_stack_update.update_stack_data.predicate_regs_value[
-                                      DICE_NUM_MAX_CTA_PER_CORE*ThreadWidth-1:0]),
-      .branch_not_taken_pc_i(simt_stack_update.update_stack_data.branch_not_taken_pc),
-      .branch_reconvergence_pc_i(simt_stack_update.update_stack_data.branch_reconvergence_pc),
-      .update_ready_o(simt_stack_update_ready),
-      .init_valid_i(simt_init_valid),
-      .init_hw_cta_id_i(simt_init_hw_cta_id),
-      .init_hw_cta_size_i(simt_init_hw_cta_size),
-      .init_pc_i(simt_init_pc),
-      .init_reconvergence_pc_i(simt_init_reconvergence_pc),
-      .init_ready_o(simt_init_ready),
-      .stack_top_valid_o(stack_top_valid),
-      .stack_top_next_pc_o(stack_top_next_pc),
-      .stack_top_reconvergence_pc_o(stack_top_reconvergence_pc),
-      .stack_top_active_mask_o(stack_top_active_mask),
-      .stack_empty_o(stack_empty),
-      .stack_full_o(stack_full)
+      .clk_i                        (clk_i),
+      .rst_i                        (rst_i),
+      .hw_cta_id_i                  (simt_stack_update.hw_cta_id),
+      .hw_cta_size_i                (simt_stack_update.hw_cta_size),
+      .update_valid_i               (simt_stack_update.update_valid),
+      .update_with_divergence_i     (simt_stack_update.update_stack_data.update_with_divergence),
+      .update_next_pc_i             (simt_stack_update.update_stack_data.update_next_pc),
+      .predicate_regs_value_i       (simt_stack_update.update_stack_data.predicate_regs_value),
+      .branch_not_taken_pc_i        (simt_stack_update.update_stack_data.branch_not_taken_pc),
+      .branch_reconvergence_pc_i    (simt_stack_update.update_stack_data.branch_reconvergence_pc),
+      .update_ready_o               (simt_stack_update_ready),
+      .init_valid_i                 (simt_init_valid),
+      .init_hw_cta_id_i             (simt_init_hw_cta_id),
+      .init_hw_cta_size_i           (simt_init_hw_cta_size),
+      .init_pc_i                    (simt_init_pc),
+      .init_reconvergence_pc_i      (simt_init_reconvergence_pc),
+      .init_ready_o                 (simt_init_ready),
+      .stack_top_valid_o            (stack_top_valid),
+      .stack_top_next_pc_o          (stack_top_next_pc),
+      .stack_top_reconvergence_pc_o (stack_top_reconvergence_pc),
+      .stack_top_active_mask_o      (stack_top_active_mask),
+      .stack_empty_o                (stack_empty),
+      .stack_full_o                 (stack_full)
   );
 
 
