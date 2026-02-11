@@ -1,5 +1,3 @@
-// TODO: Change the BH interface to assert consumed instead of ready
-
 module bh_buffer
   import dice_frontend_pkg::*;
   import dice_pkg::*;
@@ -14,7 +12,7 @@ module bh_buffer
     input  logic [DATA_WIDTH-1:0]                    data_in_i,
     input  logic [DICE_TID_WIDTH-1:0]                tid_offset_i,
     input  logic                                     valid_in_i,
-    input  logic                                     last_in_i, // This implementation may need to be modified
+    input  logic                                     last_in_i,
     output logic                                     buffer_consumed_o,
 
     // Output to Branch Handler
@@ -23,63 +21,75 @@ module bh_buffer
     input  logic                                     consumed_i
   );
 
-  typedef enum logic [1:0] {
-    StateIdle,
-    StateFill,
-    StateDrain
-  } state_e;
+  logic [1:0][DICE_NUM_MAX_THREADS_PER_CORE-1:0] pred_slots_q, pred_slots_d;
+  logic [1:0]                                    slot_full_q, slot_full_d;
 
-  state_e state_q, state_d;
-  logic [DICE_NUM_MAX_THREADS_PER_CORE-1:0] pred_buffer;
+  logic rd_ptr_q, rd_ptr_d;
+  logic wr_ptr_q, wr_ptr_d;
+
+  logic fill_active_q, fill_active_d;
+  logic fill_slot_q, fill_slot_d;
+
   logic buffer_consumed_q, buffer_consumed_d;
 
   always_comb begin
-    state_d = state_q;
+    pred_slots_d      = pred_slots_q;
+    slot_full_d       = slot_full_q;
+    rd_ptr_d          = rd_ptr_q;
+    wr_ptr_d          = wr_ptr_q;
+    fill_active_d     = fill_active_q;
+    fill_slot_d       = fill_slot_q;
     buffer_consumed_d = 1'b0;
-    case (state_q)
-      StateIdle: begin
-        if (valid_in_i) begin
-          if (last_in_i) begin
-            state_d = StateDrain;
-          end else begin
-            state_d = StateFill;
-          end
-        end
-      end
-      StateFill: begin
-        if (valid_in_i && last_in_i) begin
-          state_d = StateDrain;
-        end
-      end
-      StateDrain: begin
-        if (consumed_i) begin
-          state_d = StateIdle;
-          buffer_consumed_d = 1'b1;
-        end
-      end
-      default: begin
-        state_d = StateIdle;
-      end
-    endcase
-  end
 
+    if (consumed_i && slot_full_q[rd_ptr_q]) begin
+      slot_full_d[rd_ptr_q]  = 1'b0;
+      pred_slots_d[rd_ptr_q] = '0;
+      rd_ptr_d               = ~rd_ptr_q;
+      buffer_consumed_d      = 1'b1;
+    end
 
-  always_ff @(posedge clk_i) begin
-    if (rst_i) begin
-      pred_buffer <= '0;
-      state_q <= StateIdle;
-      buffer_consumed_q <= 1'b0;
-    end else begin
-      state_q <= state_d;
-      buffer_consumed_q <= buffer_consumed_d;
-      if (valid_in_i) begin
-        pred_buffer[tid_offset_i +: DATA_WIDTH] <= data_in_i;
+    if (valid_in_i) begin
+      if (!fill_active_d) begin
+        if (!slot_full_d[wr_ptr_d]) begin
+          fill_active_d = 1'b1;
+          fill_slot_d   = wr_ptr_d;
+        end
+      end
+
+      if (fill_active_d) begin
+        pred_slots_d[fill_slot_d][tid_offset_i +: DATA_WIDTH] = data_in_i;
+
+        if (last_in_i) begin
+          slot_full_d[fill_slot_d] = 1'b1;
+          fill_active_d            = 1'b0;
+          wr_ptr_d                 = ~fill_slot_d;
+        end
       end
     end
   end
 
-  assign valid_out_o = (state_q == StateDrain);
-  assign pred_out_o = pred_buffer;
+  always_ff @(posedge clk_i) begin
+    if (rst_i) begin
+      pred_slots_q      <= '0;
+      slot_full_q       <= '0;
+      rd_ptr_q          <= 1'b0;
+      wr_ptr_q          <= 1'b0;
+      fill_active_q     <= 1'b0;
+      fill_slot_q       <= 1'b0;
+      buffer_consumed_q <= 1'b0;
+    end else begin
+      pred_slots_q      <= pred_slots_d;
+      slot_full_q       <= slot_full_d;
+      rd_ptr_q          <= rd_ptr_d;
+      wr_ptr_q          <= wr_ptr_d;
+      fill_active_q     <= fill_active_d;
+      fill_slot_q       <= fill_slot_d;
+      buffer_consumed_q <= buffer_consumed_d;
+    end
+  end
+
+  assign valid_out_o       = slot_full_q[rd_ptr_q];
+  assign pred_out_o        = pred_slots_q[rd_ptr_q];
   assign buffer_consumed_o = buffer_consumed_q;
 
 endmodule
