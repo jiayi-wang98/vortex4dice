@@ -20,7 +20,7 @@ module bh_buffer
     // Output to Branch Handler
     output logic [DICE_NUM_MAX_THREADS_PER_CORE-1:0] pred_out_o,
     output logic                                     valid_out_o,
-    input  logic                                     ready_out_i
+    input  logic                                     consumed_i
   );
 
   typedef enum logic [1:0] {
@@ -52,7 +52,7 @@ module bh_buffer
         end
       end
       StateDrain: begin
-        if (ready_out_i && valid_out_o) begin
+        if (consumed_i) begin
           state_d = StateIdle;
           buffer_consumed_d = 1'b1;
         end

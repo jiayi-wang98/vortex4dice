@@ -6,7 +6,7 @@ module simt_stack_controller
     input logic rst_i,
 
     // ============== BRANCH HANDLER ==============
-    input logic [$clog2(DICE_NUM_MAX_CTA_PER_CORE)-1:0] hw_cta_id_i,
+    input logic [DICE_HW_CTA_ID_WIDTH-1:0] hw_cta_id_i,
     input cta_size_e hw_cta_size_i,  // CTA_SIZE_1/2/4
 
     // Update request interface (valid/ready handshake) - BRANCH HANDLER
@@ -22,7 +22,7 @@ module simt_stack_controller
 
     // ============== CTA CONTROLLER ==============
     input logic init_valid_i,
-    input logic [$clog2(DICE_NUM_MAX_CTA_PER_CORE)-1:0] init_hw_cta_id_i,
+    input logic [DICE_HW_CTA_ID_WIDTH-1:0] init_hw_cta_id_i,
     input cta_size_e init_hw_cta_size_i,
     input logic [DICE_ADDR_WIDTH-1:0] init_pc_i,
     input logic [DICE_ADDR_WIDTH-1:0] init_reconvergence_pc_i,

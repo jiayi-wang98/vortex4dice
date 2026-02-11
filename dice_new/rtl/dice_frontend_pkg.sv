@@ -121,28 +121,29 @@ package dice_frontend_pkg;
   } cta_status_t;
 
   typedef struct packed {
-    logic                                               update_with_divergence;   // 0 = no divergence, 1 = with divergence
-    logic [DICE_ADDR_WIDTH-1:0]                         update_next_pc;           // No div: next PC, With div: branch taken PC
+    logic [DICE_HW_CTA_ID_WIDTH-1:0] hw_cta_id;
+    cta_size_e                       hw_cta_size;             // CTA_SIZE_1/2/4
+    logic                            update_with_divergence;  // 0 = no divergence, 1 = with divergence
+    logic [DICE_ADDR_WIDTH-1:0]      update_next_pc;          // No divergence: next PC
+
     // Divergence case inputs (only used when update_with_divergence = 1)
-    logic [SIMT_STACK_COUNT*SIMT_STACK_THREAD_WIDTH-1:0] predicate_regs_value;
-    logic [DICE_ADDR_WIDTH-1:0]                         branch_not_taken_pc;
-    logic [DICE_ADDR_WIDTH-1:0]                         branch_reconvergence_pc;
+    thread_mask_t                    predicate_regs_value;
+    logic [DICE_ADDR_WIDTH-1:0]      branch_not_taken_pc;
+    logic [DICE_ADDR_WIDTH-1:0]      branch_reconvergence_pc;
   } simt_stack_update_t;
 
-
-  /**
-   * Pending Branch Info Structure
-   * Stores branch metadata when resolution is deferred due to pending eblocks.
-   * Used by divergence_monitor to resolve branches once dependencies clear.
-   */
   typedef struct packed {
-    logic [PR_INDEX_WIDTH-1:0]      pred_reg;      // Predicate register index
-    logic                           neg_pred;      // Polarity (0=jump if pred=1, 1=jump if pred=0)
-    logic [DICE_ADDR_WIDTH-1:0]     taken_pc;      // Branch taken target PC
-    logic [DICE_ADDR_WIDTH-1:0]     not_taken_pc;  // Fall-through PC
-    logic [DICE_ADDR_WIDTH-1:0]     reconv_pc;     // Reconvergence point PC
-  } pending_branch_info_t;
-
+      logic valid;
+      // CTA info
+      logic [DICE_HW_CTA_ID_WIDTH-1:0] hw_cta_id;
+      cta_size_e cta_size;
+      // Branch info
+      logic [DICE_ADDR_WIDTH-1:0] next_pc;
+      logic [DICE_ADDR_WIDTH-1:0] branch_not_taken_pc;
+      logic [DICE_ADDR_WIDTH-1:0] branch_reconvergence_pc;
+      logic branch_neg_pred;
+      logic is_return;
+  } branch_info_t;
 
   // =========================================================
   // SIMT Stack Structures
