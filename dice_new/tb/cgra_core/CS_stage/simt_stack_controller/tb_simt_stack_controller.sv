@@ -1,11 +1,11 @@
 // =============================================================================
-// Testbench: simt_stack_controller_tb.sv (simplified happy-path)
+// Testbench: tb_simt_stack_controller.sv (simplified happy-path)
 // =============================================================================
 
 `timescale 1ns / 1ps
 `include "dice_define.vh"
 
-module simt_stack_controller_tb;
+module tb_simt_stack_controller;
   import dice_pkg::*;
   import dice_frontend_pkg::*;
 
@@ -108,7 +108,7 @@ module simt_stack_controller_tb;
   initial begin
     logic [DICE_ADDR_WIDTH-1:0] init_pc;
 
-    $display("simt_stack_controller_tb (happy-path)");
+    $display("tb_simt_stack_controller (happy-path)");
 
     reset_dut();
 
@@ -139,8 +139,8 @@ module simt_stack_controller_tb;
 
 `ifdef VCD
   initial begin
-    $dumpfile("simt_stack_controller_tb.vcd");
-    $dumpvars(0, simt_stack_controller_tb);
+    $dumpfile("tb_simt_stack_controller.vcd");
+    $dumpvars(0, tb_simt_stack_controller);
   end
 `endif
 

@@ -1,11 +1,11 @@
 // =============================================================================
-// Testbench: cta_scheduler_tb.sv (simplified happy-path)
+// Testbench: tb_cta_scheduler.sv (simplified happy-path)
 // =============================================================================
 
 `timescale 1ns / 1ps
 `include "dice_define.vh"
 
-module cta_scheduler_tb;
+module tb_cta_scheduler;
   import dice_pkg::*;
   import dice_frontend_pkg::*;
 
@@ -82,7 +82,7 @@ module cta_scheduler_tb;
   initial begin
     logic [DICE_ADDR_WIDTH-1:0] start_pc;
 
-    $display("cta_scheduler_tb (happy-path)");
+    $display("tb_cta_scheduler (happy-path)");
 
     reset_dut();
 
@@ -191,8 +191,8 @@ module cta_scheduler_tb;
 
 `ifdef VCD
   initial begin
-    $dumpfile("cta_scheduler_tb.vcd");
-    $dumpvars(0, cta_scheduler_tb);
+    $dumpfile("tb_cta_scheduler.vcd");
+    $dumpvars(0, tb_cta_scheduler);
   end
 `endif
 

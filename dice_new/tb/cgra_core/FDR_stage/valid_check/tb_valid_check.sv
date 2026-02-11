@@ -10,9 +10,10 @@ module tb_valid_check;
   import dice_frontend_pkg::*;
 
   localparam int ClkPeriod = 10;
-  localparam int Timeout = 200;
+  localparam int TimeoutCycles = 200;
 
-  logic clk, rst;
+  logic clk;
+  logic rst;
   int cycle_count;
 
   // DUT I/O
@@ -49,7 +50,7 @@ module tb_valid_check;
   );
 
   initial begin
-    clk = 0;
+    clk = 1'b0;
     forever #(ClkPeriod / 2) clk = ~clk;
   end
 
@@ -57,24 +58,24 @@ module tb_valid_check;
     if (rst) cycle_count <= 0;
     else begin
       cycle_count <= cycle_count + 1;
-      if (cycle_count >= Timeout) $fatal(1, "TIMEOUT");
+      if (cycle_count >= TimeoutCycles) $fatal(1, "TIMEOUT");
     end
   end
 
   task automatic reset_inputs();
-    rst = 1;
-    barrier_indicator_i = 0;
-    decode_done_i       = 0;
+    rst = 1'b1;
+    barrier_indicator_i = 1'b0;
+    decode_done_i       = 1'b0;
     eblock_pc_i         = '0;
-    prefetch_block_i    = 0;
+    prefetch_block_i    = 1'b0;
     simt_stack_pc_i     = '0;
-    bitstream_loaded_i  = 0;
-    unresolved_div_i    = 0;
-    barrier_complete_i  = 0;
-    prefetch_cleared_i  = 0;
-    ex_ready_i          = 0;
+    bitstream_loaded_i  = 1'b0;
+    unresolved_div_i    = 1'b0;
+    barrier_complete_i  = 1'b0;
+    prefetch_cleared_i  = 1'b0;
+    ex_ready_i          = 1'b0;
     repeat (2) @(posedge clk);
-    rst = 0;
+    rst = 1'b0;
     @(posedge clk);
   endtask
 
@@ -85,14 +86,14 @@ module tb_valid_check;
 
     eblock_pc_i        = 32'h0000_1000;
     simt_stack_pc_i    = 32'h0000_1000;
-    bitstream_loaded_i = 1;
-    decode_done_i      = 1;
-    barrier_indicator_i = 0;
-    prefetch_block_i    = 0;
-    unresolved_div_i    = 0;
-    barrier_complete_i  = 1;
-    prefetch_cleared_i  = 0;
-    ex_ready_i          = 1;
+    bitstream_loaded_i = 1'b1;
+    decode_done_i      = 1'b1;
+    barrier_indicator_i = 1'b0;
+    prefetch_block_i    = 1'b0;
+    unresolved_div_i    = 1'b0;
+    barrier_complete_i  = 1'b1;
+    prefetch_cleared_i  = 1'b0;
+    ex_ready_i          = 1'b1;
     #1;
 
     assert (fdr_valid_o == 1'b1)

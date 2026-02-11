@@ -11,11 +11,8 @@ ${DICE_HOME}/hw/rtl/mem/VX_mem_bus_if.sv
 ${DICE_HOME}/dice_new/rtl/interfaces/cta_dispatch_if.sv
 ${DICE_HOME}/dice_new/rtl/interfaces/cta_complete_if.sv
 ${DICE_HOME}/dice_new/rtl/interfaces/cta_sched_if.sv
-${DICE_HOME}/dice_new/rtl/interfaces/branch_handler_if.sv
-${DICE_HOME}/dice_new/rtl/interfaces/dice_bh_simt_if.sv
 ${DICE_HOME}/dice_new/rtl/interfaces/simt_stack_status_if.sv
 ${DICE_HOME}/dice_new/rtl/interfaces/cgra_cm_if.sv
-${DICE_HOME}/dice_new/rtl/interfaces/prf_if.sv
 ${DICE_HOME}/dice_new/rtl/interfaces/fdr_if.sv
 ${DICE_HOME}/dice_new/rtl/dice_ram/dice_ram_1w1r.sv
 ${DICE_HOME}/dice_new/rtl/dice_ram/dice_ram_1rw.sv
@@ -26,4 +23,4 @@ ${DICE_HOME}/dice_new/rtl/cgra_core/cta_schedule/cta_status_table.sv
 ${DICE_HOME}/dice_new/rtl/cgra_core/cta_schedule/simt_stack.sv
 ${DICE_HOME}/dice_new/rtl/cgra_core/cta_schedule/simt_stack_controller.sv
 ${DICE_HOME}/dice_new/rtl/cgra_core/cta_schedule/cta_schedule_stage.sv
-cta_schedule_stage_tb.sv
+tb_cta_schedule_stage.sv

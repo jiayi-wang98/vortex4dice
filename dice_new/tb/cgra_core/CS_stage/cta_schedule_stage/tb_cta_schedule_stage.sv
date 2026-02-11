@@ -1,11 +1,11 @@
 // =============================================================================
-// Testbench: cta_schedule_stage_tb.sv (simplified happy-path)
+// Testbench: tb_cta_schedule_stage.sv (simplified happy-path)
 // =============================================================================
 
 `timescale 1ns / 1ps
 `include "dice_define.vh"
 
-module cta_schedule_stage_tb;
+module tb_cta_schedule_stage;
   import dice_pkg::*;
   import dice_frontend_pkg::*;
 
@@ -19,15 +19,23 @@ module cta_schedule_stage_tb;
   cta_dispatch_if      dispatch_if();
   cta_complete_if      complete_if();
   cta_sched_if         schedule_if();
-  branch_handler_if    status_table_bh_if();
-  dice_bh_simt_if      simt_stack_update();
   simt_stack_status_if simt_status_if();
 
   // Additional inputs (not in interfaces)
   logic                       eblock_commit_valid_i;
   logic [EBLOCK_ID_WIDTH-1:0] eblock_commit_id_i;
+  logic                       eblock_flush_valid_i;
+  logic [EBLOCK_ID_WIDTH-1:0] eblock_flush_id_i;
+  branch_predict_interface_t  bh_branch_predict_info_i;
+  logic                       bh_branch_predict_info_we_i;
+  dice_cta_status_t [DICE_NUM_MAX_CTA_PER_CORE-1:0] cta_status_data_o;
   block_retire_status_t       brt_info_i;
   logic                       brt_info_write_enable_i;
+  logic                       simt_update_valid_i;
+  logic                       simt_update_ready_o;
+  simt_stack_update_t         simt_update_stack_data_i;
+  logic [DICE_HW_CTA_ID_WIDTH-1:0] simt_update_hw_cta_id_i;
+  cta_size_e                  simt_update_hw_cta_size_i;
 
   int cycle_count;
 
@@ -48,10 +56,18 @@ module cta_schedule_stage_tb;
       .schedule_if            (schedule_if),
       .eblock_commit_valid_i  (eblock_commit_valid_i),
       .eblock_commit_id_i     (eblock_commit_id_i),
-      .status_table_bh_if     (status_table_bh_if),
+      .eblock_flush_valid_i   (eblock_flush_valid_i),
+      .eblock_flush_id_i      (eblock_flush_id_i),
+      .bh_branch_predict_info_i(bh_branch_predict_info_i),
+      .bh_branch_predict_info_we_i(bh_branch_predict_info_we_i),
+      .cta_status_data_o      (cta_status_data_o),
       .brt_info_i             (brt_info_i),
       .brt_info_write_enable_i(brt_info_write_enable_i),
-      .simt_stack_update      (simt_stack_update),
+      .simt_update_valid_i    (simt_update_valid_i),
+      .simt_update_ready_o    (simt_update_ready_o),
+      .simt_update_stack_data_i(simt_update_stack_data_i),
+      .simt_update_hw_cta_id_i(simt_update_hw_cta_id_i),
+      .simt_update_hw_cta_size_i(simt_update_hw_cta_size_i),
       .simt_status_if         (simt_status_if)
   );
 
@@ -71,17 +87,19 @@ module cta_schedule_stage_tb;
 
     eblock_commit_valid_i = 1'b0;
     eblock_commit_id_i    = '0;
+    eblock_flush_valid_i  = 1'b0;
+    eblock_flush_id_i     = '0;
 
-    status_table_bh_if.branch_predict_info_write_enable = 1'b0;
-    status_table_bh_if.bh_data = '0;
+    bh_branch_predict_info_we_i = 1'b0;
+    bh_branch_predict_info_i    = '0;
 
     brt_info_i = '0;
     brt_info_write_enable_i = 1'b0;
 
-    simt_stack_update.update_valid = 1'b0;
-    simt_stack_update.hw_cta_id = '0;
-    simt_stack_update.hw_cta_size = CTA_SIZE_1;
-    simt_stack_update.update_stack_data = '0;
+    simt_update_valid_i       = 1'b0;
+    simt_update_hw_cta_id_i   = '0;
+    simt_update_hw_cta_size_i = CTA_SIZE_1;
+    simt_update_stack_data_i  = '0;
 
     repeat (5) @(posedge clk);
     rst = 1'b0;
@@ -92,7 +110,7 @@ module cta_schedule_stage_tb;
     dice_cta_desc_t desc;
     logic [DICE_ADDR_WIDTH-1:0] start_pc;
 
-    $display("cta_schedule_stage_tb (happy-path)");
+    $display("tb_cta_schedule_stage (happy-path)");
 
     reset_dut();
 
@@ -138,8 +156,8 @@ module cta_schedule_stage_tb;
 
 `ifdef VCD
   initial begin
-    $dumpfile("cta_schedule_stage_tb.vcd");
-    $dumpvars(0, cta_schedule_stage_tb);
+    $dumpfile("tb_cta_schedule_stage.vcd");
+    $dumpvars(0, tb_cta_schedule_stage);
   end
 `endif
 

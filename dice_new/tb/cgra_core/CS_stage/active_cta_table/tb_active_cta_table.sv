@@ -1,11 +1,11 @@
 // =============================================================================
-// Testbench: active_cta_table_tb.sv (simplified happy-path)
+// Testbench: tb_active_cta_table.sv (simplified happy-path)
 // =============================================================================
 
 `timescale 1ns / 1ps
 `include "dice_define.vh"
 
-module active_cta_table_tb;
+module tb_active_cta_table;
   import dice_pkg::*;
   import dice_frontend_pkg::*;
 
@@ -92,7 +92,7 @@ module active_cta_table_tb;
   initial begin
     dice_cta_desc_t desc;
 
-    $display("active_cta_table_tb (happy-path)");
+    $display("tb_active_cta_table (happy-path)");
 
     reset_dut();
 
@@ -139,8 +139,8 @@ module active_cta_table_tb;
 
 `ifdef VCD
   initial begin
-    $dumpfile("active_cta_table_tb.vcd");
-    $dumpvars(0, active_cta_table_tb);
+    $dumpfile("tb_active_cta_table.vcd");
+    $dumpvars(0, tb_active_cta_table);
   end
 `endif
 

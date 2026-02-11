@@ -18,19 +18,22 @@ module tb_bitstream_fetch_load;
 
   logic clk;
   logic rst;
+
   int cycle_count;
 
   always_ff @(posedge clk or posedge rst) begin
     if (rst) cycle_count <= 0;
     else begin
       cycle_count <= cycle_count + 1;
-      if (cycle_count >= TimeoutCycles) $fatal(1, "TIMEOUT");
+      if (cycle_count >= TimeoutCycles) begin
+        $fatal(1, "TIMEOUT");
+      end
     end
   end
 
-  // DUT I/O
-  logic                       meta_valid_i;
+  // DUT Signals
   logic                       flush_i;
+  logic                       meta_valid_i;
   logic [DICE_ADDR_WIDTH-1:0] bitstream_addr_i;
   logic [ChunkSize-1:0]       cm0_data_o;
   logic [NumChunks-1:0]       cm0_chunk_en_o;

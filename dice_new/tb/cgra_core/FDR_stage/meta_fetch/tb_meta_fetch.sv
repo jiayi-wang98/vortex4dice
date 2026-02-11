@@ -9,16 +9,34 @@ module tb_meta_fetch;
   import dice_pkg::*;
   import dice_frontend_pkg::*;
 
-  localparam int TagWidth = DICE_ADDR_WIDTH;
   localparam int ClkPeriod = 10;
   localparam int TimeoutCycles = 2000;
+  localparam int TagWidth = DICE_ADDR_WIDTH;
 
-  logic clk, rst;
+  logic clk;
+  logic rst;
+
   int cycle_count;
 
-  logic schedule_valid_i, schedule_ready_o, meta_valid_o, fire_eblock_i, flush_i;
+  always_ff @(posedge clk or posedge rst) begin
+    if (rst) begin
+      cycle_count <= 0;
+    end else begin
+      cycle_count <= cycle_count + 1;
+      if (cycle_count >= TimeoutCycles) begin
+        $fatal(1, "TIMEOUT");
+      end
+    end
+  end
+
+  // DUT Signals
+  logic                       schedule_valid_i;
   logic [DICE_ADDR_WIDTH-1:0] fdr_next_pc_i;
-  pgraph_meta_t outgoing_meta_o;
+  logic                       schedule_ready_o;
+  pgraph_meta_t               outgoing_meta_o;
+  logic                       meta_valid_o;
+  logic                       fire_eblock_i;
+  logic                       flush_i;
 
   VX_mem_bus_if #(
       .DATA_SIZE(VX_gpu_pkg::VX_MEM_DATA_WIDTH / 8),
@@ -41,29 +59,21 @@ module tb_meta_fetch;
   );
 
   initial begin
-    clk = 0;
+    clk = 1'b0;
     forever #(ClkPeriod / 2) clk = ~clk;
   end
 
-  always_ff @(posedge clk or posedge rst) begin
-    if (rst) cycle_count <= 0;
-    else begin
-      cycle_count <= cycle_count + 1;
-      if (cycle_count >= TimeoutCycles) $fatal(1, "TIMEOUT");
-    end
-  end
-
   task automatic reset_dut();
-    rst = 1;
-    schedule_valid_i = 0;
-    fdr_next_pc_i = '0;
-    fire_eblock_i = 0;
-    flush_i = 0;
-    meta_fetch_bus_if.req_ready = 1;
-    meta_fetch_bus_if.rsp_valid = 0;
+    rst                       = 1'b1;
+    schedule_valid_i          = 1'b0;
+    fdr_next_pc_i             = '0;
+    fire_eblock_i             = 1'b0;
+    flush_i                   = 1'b0;
+    meta_fetch_bus_if.req_ready = 1'b1;
+    meta_fetch_bus_if.rsp_valid = 1'b0;
     meta_fetch_bus_if.rsp_data  = '0;
     repeat (5) @(posedge clk);
-    rst = 0;
+    rst = 1'b0;
     @(posedge clk);
   endtask
 

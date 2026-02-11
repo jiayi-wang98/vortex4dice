@@ -13,9 +13,10 @@ module tb_fdr_top;
   localparam int ChunkSize = VX_gpu_pkg::VX_MEM_DATA_WIDTH;
   localparam int NumChunks = (DICE_BITSTREAM_SIZE + ChunkSize - 1) / ChunkSize;
   localparam int ClkPeriod = 10;
-  localparam int Timeout = 5000;
+  localparam int TimeoutCycles = 5000;
 
-  logic clk, rst;
+  logic clk;
+  logic rst;
   int cycle_count;
 
   VX_mem_bus_if #(
@@ -31,11 +32,27 @@ module tb_fdr_top;
   cta_sched_if schedule_if ();
   fdr_if fdr_if ();
   simt_stack_status_if simt_status_if();
-  dice_bh_simt_if simt_stack_update_if();
-  prf_if prf_if();
-  branch_handler_if bh_if();
+  branch_predict_interface_t bh_branch_predict_info_o;
+  logic                      bh_branch_predict_info_we_o;
+  dice_cta_status_t [DICE_NUM_MAX_CTA_PER_CORE-1:0] cta_status_data_i;
+  logic                            simt_update_valid_o;
+  logic                            simt_update_ready_i;
+  simt_stack_update_t              simt_update_stack_data_o;
+  logic [DICE_HW_CTA_ID_WIDTH-1:0] simt_update_hw_cta_id_o;
+  cta_size_e                       simt_update_hw_cta_size_o;
   cgra_cm_if cm0_if();
   cgra_cm_if cm1_if();
+
+  // BH Buffer stubs
+  logic [DICE_NUM_MAX_THREADS_PER_CORE-1:0] bh_buf_data;
+  logic [DICE_TID_WIDTH-1:0]                bh_buf_tid_offset;
+  logic                                     bh_buf_valid;
+  logic                                     bh_buf_last;
+  logic                                     bh_buf_consumed;
+
+  // Eblock flush outputs
+  logic                       eblock_flush_valid;
+  logic [EBLOCK_ID_WIDTH-1:0] eblock_flush_id;
 
   fdr_top #(
       .TAG_WIDTH     (TagWidth),
@@ -48,15 +65,27 @@ module tb_fdr_top;
       .schedule_if            (schedule_if),
       .fdr_if                 (fdr_if),
       .simt_status_if         (simt_status_if),
-      .simt_stack_update_if   (simt_stack_update_if),
-      .prf_if                 (prf_if),
-      .bh_if                  (bh_if),
+      .bh_branch_predict_info_o(bh_branch_predict_info_o),
+      .bh_branch_predict_info_we_o(bh_branch_predict_info_we_o),
+      .cta_status_data_i      (cta_status_data_i),
+      .simt_update_valid_o    (simt_update_valid_o),
+      .simt_update_ready_i    (simt_update_ready_i),
+      .simt_update_stack_data_o(simt_update_stack_data_o),
+      .simt_update_hw_cta_id_o(simt_update_hw_cta_id_o),
+      .simt_update_hw_cta_size_o(simt_update_hw_cta_size_o),
+      .bh_buf_data_i          (bh_buf_data),
+      .bh_buf_tid_offset_i    (bh_buf_tid_offset),
+      .bh_buf_valid_i         (bh_buf_valid),
+      .bh_buf_last_i          (bh_buf_last),
+      .bh_buf_consumed_o      (bh_buf_consumed),
       .cm0_if                 (cm0_if),
-      .cm1_if                 (cm1_if)
+      .cm1_if                 (cm1_if),
+      .eblock_flush_valid_o   (eblock_flush_valid),
+      .eblock_flush_id_o      (eblock_flush_id)
   );
 
   initial begin
-    clk = 0;
+    clk = 1'b0;
     forever #(ClkPeriod / 2) clk = ~clk;
   end
 
@@ -64,38 +93,38 @@ module tb_fdr_top;
     if (rst) cycle_count <= 0;
     else begin
       cycle_count <= cycle_count + 1;
-      if (cycle_count >= Timeout) $fatal(1, "TIMEOUT");
+      if (cycle_count >= TimeoutCycles) $fatal(1, "TIMEOUT");
     end
   end
 
   task automatic reset_dut();
-    rst = 1;
+    rst = 1'b1;
 
-    schedule_if.valid = 0;
+    schedule_if.valid = 1'b0;
     schedule_if.data  = '0;
 
-    fdr_if.ready = 1;
+    fdr_if.ready = 1'b1;
 
     simt_status_if.status = '0;
 
-    metacache_mem_if.req_ready = 1;
-    metacache_mem_if.rsp_valid = 0;
+    metacache_mem_if.req_ready = 1'b1;
+    metacache_mem_if.rsp_valid = 1'b0;
     metacache_mem_if.rsp_data  = '0;
 
-    bitstream_cache_mem_if.req_ready = 1;
-    bitstream_cache_mem_if.rsp_valid = 0;
+    bitstream_cache_mem_if.req_ready = 1'b1;
+    bitstream_cache_mem_if.rsp_valid = 1'b0;
     bitstream_cache_mem_if.rsp_data  = '0;
 
-    prf_if.req_ready = 1;
-    prf_if.rsp_valid = 0;
-    prf_if.rsp_data  = '0;
+    bh_buf_data       = '0;
+    bh_buf_tid_offset = '0;
+    bh_buf_valid      = 1'b0;
+    bh_buf_last       = 1'b0;
 
-    simt_stack_update_if.update_ready = 1;
-
-    bh_if.cta_status_data = '0;
+    simt_update_ready_i = 1'b1;
+    cta_status_data_i   = '0;
 
     repeat (5) @(posedge clk);
-    rst = 0;
+    rst = 1'b0;
     @(posedge clk);
   endtask
 
@@ -134,7 +163,7 @@ module tb_fdr_top;
     simt_status_if.status[0].empty = 1'b0;
     simt_status_if.status[0].full = 1'b0;
 
-    bh_if.cta_status_data = '0;
+    cta_status_data_i = '0;
 
     wait (schedule_if.ready == 1'b1);
     schedule_if.data  = sched;
@@ -170,8 +199,8 @@ module tb_fdr_top;
     end
 
     wait (fdr_if.valid == 1'b1);
-    assert (fdr_if.data.schedule_next_pc == start_pc)
-      else $fatal(1, "schedule_next_pc mismatch");
+    assert (fdr_if.data.schedule_hw_cta_id == sched.schedule_hw_cta_id)
+      else $fatal(1, "schedule_hw_cta_id mismatch");
     assert (fdr_if.data.metadata.bitstream_length == meta.bitstream_length)
       else $fatal(1, "metadata.bitstream_length mismatch");
 

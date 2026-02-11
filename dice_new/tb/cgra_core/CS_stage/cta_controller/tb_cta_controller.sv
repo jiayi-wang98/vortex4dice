@@ -1,11 +1,11 @@
 // =============================================================================
-// Testbench: cta_controller_tb.sv (simplified happy-path)
+// Testbench: tb_cta_controller.sv (simplified happy-path)
 // =============================================================================
 
 `timescale 1ns / 1ps
 `include "dice_define.vh"
 
-module cta_controller_tb;
+module tb_cta_controller;
   import dice_pkg::*;
   import dice_frontend_pkg::*;
 
@@ -113,7 +113,7 @@ module cta_controller_tb;
     dice_cta_desc_t desc;
     logic [DICE_ADDR_WIDTH-1:0] start_pc;
 
-    $display("cta_controller_tb (happy-path)");
+    $display("tb_cta_controller (happy-path)");
 
     reset_dut();
 
@@ -157,8 +157,8 @@ module cta_controller_tb;
 
 `ifdef VCD
   initial begin
-    $dumpfile("cta_controller_tb.vcd");
-    $dumpvars(0, cta_controller_tb);
+    $dumpfile("tb_cta_controller.vcd");
+    $dumpvars(0, tb_cta_controller);
   end
 `endif
 
