@@ -26,7 +26,6 @@ module dice_core
   fdr_if               fdr_out_if           (); // between fdr and backend stages
   dice_bh_simt_if      simt_stack_update_if (); // between branch handler and simt stack controller stages
   simt_stack_status_if simt_status_if       (); // exposes simt stack entries to modules that need it
-  prf_if               prf_if               (); // between branch handler and predicated
 
   // CTA Dispatcher interfaces (internal, wired to flat top-level ports)
   cta_dispatch_if cta_dispatch_if_inst ();
@@ -62,12 +61,16 @@ module dice_core
       .metacache_mem_if(metacache_mem_if),
       .bitstream_cache_mem_if(bitstream_cache_mem_if),
       .schedule_if(schedule_if),
-      .fdr_if(fdr_out_if),  //modify to include hw size 0-3 rather than cta x*y*z
+      .fdr_if(fdr_out_if),
       .simt_status_if(simt_status_if),
       .simt_stack_update_if(simt_stack_update_if),
-      .prf_if(prf_if),
       .bh_if(bh_if),
-      .cm0_if(cm0_if),  //these intercaes could be combined into one
+      .bh_buf_data_i       (),  // TODO: connect to backend predicate data
+      .bh_buf_tid_offset_i (),  // TODO: connect to backend TID offset
+      .bh_buf_valid_i      (),  // TODO: connect to backend valid
+      .bh_buf_last_i       (),  // TODO: connect to backend last
+      .bh_buf_consumed_o   (),  // TODO: connect to backend consumed
+      .cm0_if(cm0_if),
       .cm1_if(cm1_if)
   );
 

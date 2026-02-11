@@ -103,6 +103,9 @@ module cta_scheduler_tb;
     cta_next_pc_i[0] = start_pc;
     stack_top_active_mask_i[0] = {ThreadWidth{1'b1}};
 
+
+    repeat (5) @(posedge clk);
+
     wait (scheduled_eblock.valid == 1'b1);
     assert (scheduled_eblock.data.schedule_next_pc == start_pc)
       else $fatal(1, "schedule_next_pc mismatch");

@@ -45,8 +45,7 @@ module tb_bitstream_fetch_load;
   ) cache_bus_if ();
 
   bitstream_fetch_load #(
-      .TAG_WIDTH     (TagWidth),
-      .BITSTREAM_SIZE(BitstreamSize)
+      .TAG_WIDTH(TagWidth)
   ) u_dut (
       .clk_i           (clk),
       .rst_i           (rst),
