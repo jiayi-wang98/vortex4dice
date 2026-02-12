@@ -133,16 +133,16 @@ package dice_frontend_pkg;
   } simt_stack_update_t;
 
   typedef struct packed {
-      logic valid;
       // CTA info
       logic [DICE_HW_CTA_ID_WIDTH-1:0] hw_cta_id;
-      cta_size_e cta_size;
-      // Branch info
-      logic [DICE_ADDR_WIDTH-1:0] next_pc;
-      logic [DICE_ADDR_WIDTH-1:0] branch_not_taken_pc;
-      logic [DICE_ADDR_WIDTH-1:0] branch_reconvergence_pc;
-      logic branch_neg_pred;
-      logic is_return;
+      cta_size_e                       cta_size;
+      logic                            branch_ena;
+      logic                            branch_uni;
+      logic [DICE_ADDR_WIDTH-1:0]      branch_taken_pc;
+      logic [DICE_ADDR_WIDTH-1:0]      branch_not_taken_pc;
+      logic [DICE_ADDR_WIDTH-1:0]      branch_reconvergence_pc;
+      logic                            branch_neg_pred;
+      logic                            is_return;
   } branch_info_t;
 
   // =========================================================
