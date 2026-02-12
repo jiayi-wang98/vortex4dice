@@ -1,4 +1,4 @@
-// Ping Pong Buffer for Branch Handler
+// Ping Pong Buffer for Branch  Handler
 
 module bh_buffer
   import dice_frontend_pkg::*;
