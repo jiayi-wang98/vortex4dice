@@ -1,3 +1,5 @@
+//TODO: modify this to use the new branch predict interface
+
 module cta_status_table
   import dice_pkg::*;
   import dice_frontend_pkg::*;

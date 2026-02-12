@@ -1,18 +1,13 @@
 /*
 Overview:
 
-This module holds the information for the eblock in the FDR stage
-
-
-CS/FDR stage border is now going to be controlled by this module so we don't need to register some stuff
-
-
-    - i think this could be simplified a lot but for the time being i am keeping it as is for readability
-    - probably don't need to register the branch meta, we can just pass it through
+-This module holds the information for the eblock in the FDR stage
+-Routes data towards the simt stack and status table
+-Determines if the current eblock is a divergent branch
 */
 
 
-module bh_curr_meta 
+module bh_curr_meta
     import dice_frontend_pkg::*;
     import dice_pkg::*;
 (
@@ -21,7 +16,8 @@ module bh_curr_meta
 
     // New Metadata
     input logic new_meta_pulse_i,
-    
+    input logic meta_valid_i,
+
     input branch_meta_t branch_meta_i,
     input logic [DICE_ADDR_WIDTH-1:0] pc_i,
     input logic [DICE_HW_CTA_ID_WIDTH-1:0] hw_cta_id_i,
@@ -34,15 +30,15 @@ module bh_curr_meta
     input logic wr_to_simt_i,              // parent signals SIMT write completed
     input logic wr_to_status_table_i,      // parent signals status table write completed
 
-    output logic fdr_stage_buffer_ready_o,
+    output logic bh_done_o,
 
     // Status
     output logic valid_o,
 
     // To FIFO
     output branch_info_t branch_info_o,
-    
-    // To status table
+
+    // To status table -> Branch prediction interface
     output logic [DICE_ADDR_WIDTH-1:0] predict_pc_o,
     output logic unresolved_control_o,
     output logic is_return_o,
@@ -71,12 +67,6 @@ module bh_curr_meta
   assign reconv_pc_calc    = pc_i + (branch_meta_i.branch_reconv_offset * DICE_METADATA_WIDTH);
   assign predict_taken     = (taken_pc_calc < pc_i);
 
-
-
-  //--- CORRECT: REGISTERS THAT HOLD CURRENT INFORMATION ---
-  branch_info_t               fdr_branch_meta_q;
-  logic                       fdr_branch_meta_valid_q;
-  
   // Determine what we write to the status table and simt stack
   logic                       divergent_branch_q;
 
@@ -86,8 +76,8 @@ module bh_curr_meta
 
   // SIMT Stack Info
   logic [DICE_ADDR_WIDTH-1:0] next_pc_q;
-  
-  
+
+
   // Internal signals to orchestrate writes to status table and simt stack
   logic                       unresolved_control_q;
   logic                       eblock_pushed_to_fifo_q, eblock_pushed_to_fifo_d;
@@ -105,7 +95,7 @@ module bh_curr_meta
           is_return_q             <= 1'b0;
           next_pc_q               <= '0;
           unresolved_control_q    <= 1'b0;
-          eblock_pushed_to_fifo_q <= 1'b0;          
+          eblock_pushed_to_fifo_q <= 1'b0;
       end else if (flush_i) begin
           fdr_branch_meta_valid_q <= 1'b0;
           unresolved_control_q    <= 1'b0;
@@ -120,7 +110,7 @@ module bh_curr_meta
           fdr_branch_meta_q.branch_not_taken_pc       <= not_taken_pc_calc;
           fdr_branch_meta_q.branch_reconvergence_pc   <= reconv_pc_calc;
           fdr_branch_meta_q.branch_neg_pred           <= branch_meta_i.branch_neg_pred;
-          
+
           eblock_pushed_to_fifo_q                     <= 1'b0;
           fdr_branch_meta_valid_q                     <= 1'b1;
           divergent_branch_q                          <= is_divergent_branch;
@@ -172,7 +162,7 @@ module bh_curr_meta
 
 
   //--- Output assignments---
-  assign fdr_stage_buffer_ready_o = (~need_to_write_to_status_table || written_to_status_table_q) 
+  assign bh_done_o = (~need_to_write_to_status_table || written_to_status_table_q)
                                     && (~need_to_write_to_simt_stack || written_to_simt_stack_q)
                                     && eblock_pushed_to_fifo_q
                                     && fdr_branch_meta_valid_q;
@@ -182,18 +172,18 @@ module bh_curr_meta
   assign predict_pc_o                 = fdr_branch_predict_pc_q;
   assign unresolved_control_o         = divergent_branch_q;
   assign is_return_o                  = is_return_q;
-  
+
   //--- Pending write signals: assert when we need to write but haven't yet ---
-  assign pending_wr_to_simt_o = need_to_write_to_simt_stack 
-                                && ~written_to_simt_stack_q 
-                                && fdr_branch_meta_valid_q 
-                                && ~wr_to_simt_i 
+  assign pending_wr_to_simt_o = need_to_write_to_simt_stack
+                                && ~written_to_simt_stack_q
+                                && fdr_branch_meta_valid_q
+                                && ~wr_to_simt_i
                                 && ~unresolved_control_q;
 
-  assign pending_wr_to_status_table_o = need_to_write_to_status_table 
-                                && ~written_to_status_table_q 
-                                && fdr_branch_meta_valid_q 
-                                && ~wr_to_status_table_i 
+  assign pending_wr_to_status_table_o = need_to_write_to_status_table
+                                && ~written_to_status_table_q
+                                && fdr_branch_meta_valid_q
+                                && ~wr_to_status_table_i
                                 && ~unresolved_control_q;
 
   assign next_pc_o = next_pc_q;

@@ -77,10 +77,11 @@ package dice_pkg;
   } dice_cta_status_t;  // CTA status descriptor
 
   typedef struct packed {
+    logic [2:0]                      valid_edits_bitmap;
     logic [DICE_HW_CTA_ID_WIDTH-1:0] hw_cta_id;
-    logic                            unresolved_control_divergence;
-    logic [DICE_ADDR_WIDTH-1:0]      predict_pc;
-    logic                            is_return;
+    logic                            unresolved_control_divergence; // [100]
+    logic [DICE_ADDR_WIDTH-1:0]      predict_pc; // [010]
+    logic                            is_return; // [001]
   } branch_predict_interface_t;  // Branch prediction interface descriptor
 
   // CTA size encoding for SIMT stack allocation

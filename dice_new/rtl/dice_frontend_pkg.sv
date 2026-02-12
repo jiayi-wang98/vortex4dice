@@ -167,6 +167,8 @@ package dice_frontend_pkg;
     logic                              full;
   } simt_stack_status_entry_t;
 
+
+
   typedef struct packed {
     logic                            clear_divergence_valid;
     logic [DICE_HW_CTA_ID_WIDTH-1:0] clear_divergence_cta_id;
