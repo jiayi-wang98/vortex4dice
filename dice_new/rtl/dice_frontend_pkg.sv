@@ -142,7 +142,6 @@ package dice_frontend_pkg;
       logic [DICE_ADDR_WIDTH-1:0]      branch_not_taken_pc;
       logic [DICE_ADDR_WIDTH-1:0]      branch_reconvergence_pc;
       logic                            branch_neg_pred;
-      logic                            is_return;
   } branch_info_t;
 
   // =========================================================
