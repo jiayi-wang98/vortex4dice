@@ -98,17 +98,56 @@ module tb_vx_cache_with_temporal;
         .mem_rsp_ready(mem_rsp_ready)
     );
 
-    // --- Helper Task ---
     task send_read_request(input [31:0] addr, input [TID_WIDTH-1:0] tid);
+    begin
+        @(posedge clk);
+        incmd_valid   = 1;
+        incmd_address = addr;
+        incmd_tid     = tid;
+        incmd_size    = 2'b11; // 8-byte read
+        
+        // Wait for the Cache to accept the address
+        wait(dut.incmd_ready == 1'b1); 
+        @(posedge clk);
+        incmd_valid   = 0;
+
+        // --- ADD THIS: Wait for the actual data to return ---
+        $display("[TB] Sent Read Req for Addr: %h, waiting for response...", addr);
+        fork
+            begin
+                wait(core_rsp_valid == 1'b1);
+                $display("[TB] Received response for Addr: %h", addr);
+            end
+            begin
+                #(CLK_PERIOD * 200); // Timeout safety
+                if (!core_rsp_valid) $display("[TB] TIMEOUT: No response for Addr: %h", addr);
+            end
+        join_any
+        disable fork; 
+    end
+endtask
+
+    // --- Write Task ---
+    task send_write_request(
+        input [31:0] addr, 
+        input [DATA_WIDTH-1:0] data, 
+        input [DATA_WIDTH/8-1:0] mask, 
+        input [TID_WIDTH-1:0] tid
+    );
         begin
             @(posedge clk);
-            incmd_valid   = 1;
-            incmd_address = addr;
-            incmd_tid     = tid;
-            incmd_size    = 2'b11; // 8-byte read
+            incmd_valid        = 1;
+            incmd_address      = addr;
+            incmd_tid          = tid;
+            incmd_write_enable = 1;        // Enable Write
+            incmd_write_data   = data;     // Data to write
+            incmd_write_mask   = mask;     // Byte-enable mask (e.g., 8'hFF)
+            incmd_size         = 2'b00;    // 8-byte write
+            
             wait(dut.incmd_ready == 1'b1); 
             @(posedge clk);
-            incmd_valid   = 0;
+            incmd_valid        = 0;
+            incmd_write_enable = 0;
         end
     endtask
 
@@ -116,53 +155,47 @@ module tb_vx_cache_with_temporal;
     // Simple version: extraction from the tag
 // Current: [MAX_REG_WIDTH + TID_BITMAP_WIDTH +: TID_WIDTH]
 // New suggested slice based on your Verdi {4000} trace:
-wire [9:0] rsp_tid = core_rsp_tag[17:8];
+wire [9:0] rsp_tid = core_rsp_tag[64:55];
     always @(posedge clk) begin
         if (core_rsp_valid && core_rsp_ready) begin
             $display("[MONITOR] Time: %0t | TID: %0d | Data: %h", $time, rsp_tid, core_rsp_data);
         end
     end
-
-   // --- Main Initial Block ---
-    initial begin
-        // Init
+initial begin
+        // --- Initialization & Reset ---
         incmd_valid = 0;
         outcmd_ready = 1;
         core_rsp_ready = 1; 
-        
-        // Reset
         rst = 1;
         #(CLK_PERIOD * 10);
         rst = 0;
         repeat(5) @(posedge clk);
 
-        $display("--- Starting Memory Pattern Sweep (Adjusted for Word Alignment) ---");
+    // --- Step 1: Verification of Write-Read Path ---
+    $display("--- Starting Directed Write-Read Test ---");
+    
+    send_write_request(32'h0000_0F00, 64'hAAAA_AAAA_AAAA_AAAA, 8'hFF, 0); 
+    send_write_request(32'h0000_0F08, 64'hBBBB_BBBB_BBBB_BBBB, 8'hFF, 0); 
+    send_write_request(32'h0000_0F10, 64'hCCCC_CCCC_CCCC_CCCC, 8'hFF, 0); 
+    
+    // INCREASE THIS DELAY: Give the Line Fill time to finish
+    #(CLK_PERIOD * 500); 
 
-        // Step 3: Read Walking 1s (Indices 0 to 7)
-        // Shifting left by 2 to compensate for internal hardware divide-by-4
+    // Read back
+    send_read_request(32'h0000_0F00, 0);
+    #(CLK_PERIOD * 20); // Small gap between reads
+    send_read_request(32'h0000_0F08, 0);
+    #(CLK_PERIOD * 20);
+    send_read_request(32'h0000_0F10, 0);
+
+        $display("--- Starting Linear Word Sweep ---");
         for (int j = 0; j < 8; j++) begin
-            send_read_request(.addr((j * 32) << 2), .tid(j));
+            send_read_request(.addr(j * 8), .tid(j)); // Increments by 8 bytes [cite: 344]
             #(CLK_PERIOD * 10); 
         end
 
-        // Step 4: Read 'AAAA' Pattern (Index 8)
-        // 0x100 shifted becomes the target address
-        send_read_request(.addr(32'h0000_0100 << 2), .tid(8));
-        #(CLK_PERIOD * 10);
-
-        // Step 5: Read '5555' Pattern (Index 12)
-        send_read_request(.addr(32'h0000_0180 << 2), .tid(12));
-        #(CLK_PERIOD * 10);
-
-       $display("--- Testing Original Block Reading ---");
-        // We stay on the same line (0xF00) but change the word offset
-        send_read_request(.addr(32'h0000_0F00), .tid(120)); // Targets Word 0 (0000...deadbeef)
-        send_read_request(.addr(32'h0000_0F08), .tid(121)); // Targets Word 1 (1111...deadbeef)
-        send_read_request(.addr(32'h0000_0F10), .tid(122)); // Targets Word 2 (2222...deadbeef)
-        send_read_request(.addr(32'h0000_0F18), .tid(123)); // Targets Word 3 (3333...deadbeef)
-        // Long wait at the end to see the results
         #(CLK_PERIOD * 100);
-        $display("--- Sweep Complete ---");
+        $display("--- All Tests Complete ---");
         $finish;
     end
 

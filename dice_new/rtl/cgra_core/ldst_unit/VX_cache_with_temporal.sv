@@ -81,17 +81,6 @@ module VX_cache_with_temporal #(
     } outcmd_tag_t; 
     
     
-/*
-// Grouped Struct and Assignment (48-bit Tag / 44-bit UUID)
-typedef struct packed {
-    logic [20:0] reserved;           // 21 bits padding
-    logic [3:0]  outcmd_block_id;    // 4 bits
-    logic [9:0]  outcmd_base_tid;    // 10 bits
-    logic [4:0]  outcmd_tid_bitmap;  // 5 bits
-    logic [5:0]  outcmd_ld_dest_reg; // 6 bits
-    logic [1:0]  outcmd_word_offset; // 2 bits (LSB)
-} outcmd_tag_t; // Total: 48 bits
-*/
 outcmd_tag_t core_req_tag;
 
 assign core_req_tag = {
@@ -141,48 +130,69 @@ assign core_req_tag = {
         .outcmd_address_map(outcmd_address_map),
         .outcmd_ready(core_req_ready) 
     );
+    // --- ADAPTER LOGIC START ---
+    logic [ADDR_WIDTH-1:0] steered_address;
+    logic [DATA_WIDTH-1:0] steered_write_data;
+    logic [DATA_WIDTH/8-1:0] steered_write_mask;
+    logic [1:0] word_select_idx;
+
+    always_comb begin
+        // Find which word is active based on the TMCU bitmap 
+        if      (outcmd_tid_bitmap[0]) word_select_idx = 2'd0; 
+        else if (outcmd_tid_bitmap[1]) word_select_idx = 2'd1; 
+        else if (outcmd_tid_bitmap[2]) word_select_idx = 2'd2; 
+        else if (outcmd_tid_bitmap[3]) word_select_idx = 2'd3; 
+        else                           word_select_idx = 2'd0;
+
+        // 1. SELECT DATA: Grab the 64-bit word from the 256-bit line [cite: 358]
+        steered_write_data = outcmd_write_data[word_select_idx*64 +: 64];
+
+        // 2. SELECT MASK: Grab the 8-bit mask from the 32-bit line mask [cite: 358]
+        steered_write_mask = outcmd_write_mask[word_select_idx*8 +: 8];
+
+        // 3. PATCH ADDRESS: Inject offset bits so the Cache sees bit 3 change 
+        steered_address = outcmd_address | (32'(word_select_idx * 8));
+    end
+    // --- ADAPTER LOGIC END ---
 
     VX_cache_top #(
-    .NUM_REQS(NUM_REQS),
-    .LINE_SIZE(CACHE_LINE_SIZE),
-    .NUM_BANKS(NUM_BANKS),
-    .TAG_WIDTH(OUTCMD_TAG_WIDTH),
-    .WORD_SIZE(8),
-    .MEM_TAG_WIDTH(MEM_TAG_WIDTH)
+        .NUM_REQS(1),          // Reverting to single request port 
+        .LINE_SIZE(CACHE_LINE_SIZE),
+        .NUM_BANKS(1),         // Reverting to single bank [cite: 6]
+        .TAG_WIDTH(OUTCMD_TAG_WIDTH),
+        .WORD_SIZE(8), 
+        .MEM_TAG_WIDTH(MEM_TAG_WIDTH)
     ) cache_inst (
-    .clk(clk),
-    .reset(rst),
-    .core_req_valid('{outcmd_valid}),            // Array literal with 1 element
-    .core_req_rw('{outcmd_write_enable}),
-    .core_req_byteen('{outcmd_write_mask}),
-    .core_req_addr('{outcmd_address}),
-    .core_req_flags('{default: 0}),
-    .core_req_data('{outcmd_write_data}),
-    .core_req_tag('{core_req_tag}),
-    .core_req_ready('{core_req_ready}),
+        .clk(clk),
+        .reset(rst),
+        // Use '{}' to wrap scalar signals into the expected unpacked arrays 
+        .core_req_valid('{outcmd_valid}),
+        .core_req_rw('{outcmd_write_enable}),
+        .core_req_byteen('{steered_write_mask}), 
+        .core_req_addr('{steered_address}),      
+        .core_req_data('{steered_write_data}),   
+        .core_req_tag('{core_req_tag}),
+        .core_req_ready('{core_req_ready}),
+        .core_req_flags('{default: 0}),
 
-    .core_rsp_valid('{core_rsp_valid}),
-    .core_rsp_data('{core_rsp_data}),
-    .core_rsp_tag('{core_rsp_tag}),
-    .core_rsp_ready('{incmd_ready}), 
+        .core_rsp_valid('{core_rsp_valid}),
+        .core_rsp_data('{core_rsp_data}),
+        .core_rsp_tag('{core_rsp_tag}),
+        .core_rsp_ready('{incmd_ready}), 
 
-    .mem_req_valid('{mem_req_valid}),
-    .mem_req_rw('{mem_req_rw}),
-    .mem_req_byteen('{mem_req_byteen}),
-    .mem_req_addr('{mem_req_addr}),
-    .mem_req_data('{mem_req_data}),
-    .mem_req_tag('{mem_req_tag}),
-    .mem_req_ready('{mem_req_ready}), 
+        // Fix PCTM errors by wrapping memory signals in array literals [cite: 373]
+        .mem_req_valid('{mem_req_valid}),
+        .mem_req_rw('{mem_req_rw}),
+        .mem_req_byteen('{mem_req_byteen}),
+        .mem_req_addr('{mem_req_addr}),
+        .mem_req_data('{mem_req_data}),
+        .mem_req_tag('{mem_req_tag}),
+        .mem_req_ready('{mem_req_ready}), 
 
-    .mem_rsp_valid('{mem_rsp_valid}), 
-    .mem_rsp_data('{mem_rsp_data}),
-    .mem_rsp_tag('{mem_rsp_tag}),
-    .mem_rsp_ready('{mem_rsp_ready})
-);
-wire [63:0] final_aligned_data;
-assign final_aligned_data = {core_rsp_data[11:0], core_rsp_data[63:12]};
-
-endmodule
-
-
-   
+        .mem_rsp_valid('{mem_rsp_valid}), 
+        .mem_rsp_data('{mem_rsp_data}),
+        .mem_rsp_tag('{mem_rsp_tag}),
+        .mem_rsp_ready('{mem_rsp_ready})
+    );
+    
+endmodule 
