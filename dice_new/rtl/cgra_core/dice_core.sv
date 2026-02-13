@@ -101,4 +101,75 @@ module dice_core
       .eblock_flush_id_o   (eblock_flush_id)
   );
 
+
+  
+  dispatcher u_dispatcher (
+      .clk(),
+      .rst_n(),
+      .unrolling_factor(),
+      .input_register_bitmap(),
+      .active_mask(),
+      .cta_size(),
+      .fetch_done(),
+      .wb_valid(),
+      .wb_tid_bitmap(),
+      .ld_dest_reg(),
+      .dispatch_fifo_pop(),
+      .dispatch_tid_0(),
+      .dispatch_valid_0(),
+      .dispatch_tid_1(),
+      .dispatch_valid_1(),
+      .dispatch_tid_2(),
+      .dispatch_valid_2(),
+      .dispatch_tid_3(),
+      .dispatch_valid_3(),
+      .dispatch_fifo_empty(),
+      .dispatcher_busy(),
+      .dispatcher_done()
+  );
+
+
+dice_rf_ctrl u_dice_rf_ctrl (
+    .clk_i(),
+    .reset_i(),
+
+    // Read Input Ports
+    .rd_tid_valid_i(),
+    .rd_tid_ready_o(),
+    .rd_unroll_factor_i(),
+    .rd_en_i(),
+    .rd_tid_i(),
+    .rd_bitmap_i(),
+    .rd_data_o(),
+    .rf_rd_valid_o(),
+
+    // Write Input Ports
+    .cgra_tid_i(),
+    .cgra_data_i(),
+    .wr_bitmap_i(),
+    .cgra_valid_i(),
+    .ldst_wr_i(),
+    .ldst_valid_i(),
+    .ldst_ready_o(),
+
+    .clear_i(),
+    .spec_rd_enable_i(),
+    .spec_reg_sel_i(),
+    .const_reg_i(),
+    .tid_x_i(),
+    .tid_y_i(),
+    .tid_z_i(),
+    .ntid_x_i(),
+    .ntid_y_i(),
+    .ntid_z_i(),
+    .ctaid_x_i(),
+    .ctaid_y_i(),
+    .ctaid_z_i(),
+    .nctaid_x_i(),
+    .nctaid_y_i(),
+    .nctaid_z_i(),
+    .spec_reg_out_o()
+);
+
+
 endmodule
