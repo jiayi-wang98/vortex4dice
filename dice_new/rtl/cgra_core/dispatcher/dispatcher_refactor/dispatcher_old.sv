@@ -1,101 +1,78 @@
-`include "dice_pkg.sv"
-`include "dice_frontend_pkg.sv"
-module dispatcher
-    import dice_pkg::*
-    import dice_frontend_pkg::*,
-(
+module dispatcher(
     input logic clk,
     input logic rst_n,
-
-    // metadata input package
-    input pgraph_meta_t pgraph_meta_i;
     
-    // Runtime execution context inputs
-    input logic [DICE_NUM_MAX_THREADS_PER_CORE-1:0] active_mask,           // 1024-bit active mask // DICE_NUM_MAX_THREADS_PER_CORE?
-    input cta_size_e cta_size,                 // 0=256, 1=512, 2=1024
+    // Input signals
+    input logic [1:0] unrolling_factor,         // 0=1, 1=2, 2=4 way unrolling
+    input logic [65:0] input_register_bitmap,   // 32 GPR + 32 Constant + 2 Predicate registers
+    input logic [1023:0] active_mask,           // 1024-bit active mask
+    input logic [1:0] cta_size,                 // 0=256, 1=512, 2=1024
     input logic fetch_done,                     // Previous stage ready signal
     
     // Write-back interface for scoreboards
     input logic wb_valid,                       // Valid signal for write-back command
-    input logic [DICE_NUM_MAX_THREADS_PER_CORE-1:0] wb_tid_bitmap,         // 1024-bit bitmap of TIDs to release registers // DICE_NUM_MAX_THREADS_PER_CORE?
+    input logic [1023:0] wb_tid_bitmap,         // 1024-bit bitmap of TIDs to release registers
+    input logic [7:0] ld_dest_reg,             // Register number to be released (0-31:GPR, 32-63:Const, 64-65:Pred)
     
     // Ready-to-dispatch FIFO pop interface
     input logic dispatch_fifo_pop,       // Pop signals for ready-to-dispatch FIFO
-    output logic dispatch_fifo_empty,        // 1 if ALL FIFOs are empty
     
     // Output signals - dispatched threads
-    // output logic [9:0] dispatch_tid_0,         // TID for lane 0
-    // output logic dispatch_valid_0,             // Valid for lane 0
-    // output logic [9:0] dispatch_tid_1,         // TID for lane 1
-    // output logic dispatch_valid_1,             // Valid for lane 1
-    // output logic [9:0] dispatch_tid_2,         // TID for lane 2
-    // output logic dispatch_valid_2,             // Valid for lane 2
-    // output logic [9:0] dispatch_tid_3,         // TID for lane 3
-    // output logic dispatch_valid_3,             // Valid for lane 3
-
-    output logic [4*DICE_TID_WIDTH-1:0] dispatch_tid_o, // Combined TID output for all lanes
-    output logic dispatch_valid_o,                      // Combined valid signal for all lanes
+    output logic [9:0] dispatch_tid_0,         // TID for lane 0
+    output logic dispatch_valid_0,             // Valid for lane 0
+    output logic [9:0] dispatch_tid_1,         // TID for lane 1
+    output logic dispatch_valid_1,             // Valid for lane 1
+    output logic [9:0] dispatch_tid_2,         // TID for lane 2
+    output logic dispatch_valid_2,             // Valid for lane 2
+    output logic [9:0] dispatch_tid_3,         // TID for lane 3
+    output logic dispatch_valid_3,             // Valid for lane 3
+    output logic dispatch_fifo_empty,        // 1 if ALL FIFOs are empty
     
     // Status outputs
     output logic dispatcher_busy,              // Dispatcher is active
     output logic dispatcher_done               // Current CTA dispatch complete
 );
-    // Local parameters derived from package parameters
-    localparam int NUM_LANES = 4;  // 4-way SIMD dispatcher
-    localparam int NUM_SCOREBOARDS = 4;  // One scoreboard per 256 TIDs
-    localparam int THREADS_PER_SCOREBOARD = DICE_NUM_MAX_THREADS_PER_CORE / NUM_SCOREBOARDS;
-    localparam int SCOREBOARD_TID_WIDTH = $clog2(THREADS_PER_SCOREBOARD);  // 8 bits for 256 threads
-    localparam int CHUNK_SIZE = THREADS_PER_SCOREBOARD;  // 256 threads per chunk
-    localparam int NUM_CHUNKS = DICE_NUM_MAX_THREADS_PER_CORE / CHUNK_SIZE;  // 4 chunks
-    localparam int CHUNK_ADDR_WIDTH = $clog2(NUM_CHUNKS);  // 2 bits for 4 chunks
-
+    
     // Next thread logic signals
     logic thread_fifo_pop;
-    logic [DICE_TID_WIDTH-1:0] thread_next_tid_0, thread_next_tid_1, thread_next_tid_2, thread_next_tid_3;
+    logic [9:0] thread_next_tid_0, thread_next_tid_1, thread_next_tid_2, thread_next_tid_3;
     logic thread_valid_0, thread_valid_1, thread_valid_2, thread_valid_3;
     logic thread_fifo_data_valid;
     logic thread_fifo_empty, thread_fifo_full;
     logic thread_chunk_done;
     logic restart;
-    logic [CHUNK_SIZE-1:0] current_chunk;           // 256-bit chunk from active mask
-    logic [CHUNK_ADDR_WIDTH-1:0] chunk_base_addr;           // Current chunk index (0-3)
+    logic [255:0] current_chunk;           // 256-bit chunk from active mask
+    logic [1:0] chunk_base_addr;           // Current chunk index (0-3)
     logic [1:0] latched_unrolling_factor;  // Latched unrolling factor
     
-    // Scoreboard signals // BITMAP BASED SCOREBAORD INTERFACE USING METADATA INPUT BITMAP SUBJECT TO CHANGE
+    // Scoreboard signals
     logic [31:0] gpr_bitmap;                   // GPR portion of input registers
     logic [31:0] const_bitmap;                 // Constant portion of input registers
     logic [1:0] pred_bitmap;                   // Predicate portion of input registers
-
-    // Extract register bitmaps (adapt based on REG_NUM)
-    // Assuming REG_NUM = 66 (32 GPR + 32 Const + 2 Pred)
-    assign gpr_bitmap = pgraph_meta_i.in_regs_bitmap[31:0];
-    assign const_bitmap = pgraph_meta_i.in_regs_bitmap[63:32];
-    assign pred_bitmap = pgraph_meta_i.in_regs_bitmap[65:64];
-
-    logic collision [NUM_SCOREBOARDS];                       // Collision results from regular scoreboards
+    logic collision [4];                       // Collision results from regular scoreboards
     logic const_collision;                     // Collision result from constant scoreboard
-    logic [SCOREBOARD_TID_WIDTH-1:0] check_tid [NUM_LANES];                 // TIDs to check for collision
-    logic [SCOREBOARD_TID_WIDTH-1:0] reserve_tid [NUM_LANES];               // TIDs to reserve
-    logic [NUM_LANES-1:0] sb_rd_valid;                   // Read valid signals for scoreboards
-    logic [NUM_LANES-1:0] sb_rsv_valid;                  // Reserve valid signals for scoreboards
+    logic [7:0] check_tid [4];                 // TIDs to check for collision
+    logic [7:0] reserve_tid [4];               // TIDs to reserve
+    logic [3:0] sb_rd_valid;                   // Read valid signals for scoreboards
+    logic [3:0] sb_rsv_valid;                  // Reserve valid signals for scoreboards
     logic const_rd_valid;                      // Read valid for constant scoreboard
     logic const_rsv_valid;                     // Reserve valid for constant scoreboard
-    logic clear_scoreboard;                    // Signal to clear scoreboards
     // syn_keep
-    logic [THREADS_PER_SCOREBOARD-1:0] wb_tid_sb [NUM_SCOREBOARDS];               // Write-back bitmaps for each scoreboard
+    logic [255:0] wb_tid_sb [4];               // Write-back bitmaps for each scoreboard
     
     // Ready-to-dispatch FIFO signals
-    logic [DICE_TID_WIDTH:0] ready_fifo_push_data [NUM_LANES];
-    logic [DICE_TID_WIDTH:0] ready_fifo_pop_data [NUM_LANES];
-    logic [NUM_LANES-1:0] ready_fifo_pop_data_valid;
-    logic [NUM_LANES-1:0] ready_fifo_empty;
-    logic [NUM_LANES-1:0] ready_fifo_full;
+    logic [10:0] ready_fifo_push_data [4];
+    logic [10:0] ready_fifo_pop_data [4];
+    logic [3:0] ready_fifo_pop_data_valid;
+    logic [3:0] ready_fifo_empty;
+    logic [3:0] ready_fifo_full;
     logic last_chunk_done; // Indicates if the last chunk is done processing
 
-    logic [CHUNK_ADDR_WIDTH-1:0] lane_sb_sel [NUM_LANES];              // Which scoreboard (0-3) for each lane
-    logic [NUM_LANES-1:0] lane_collision;               // Per-lane collision results
-    logic [NUM_LANES-1:0] sb_rd_valid_per_sb [NUM_SCOREBOARDS];       // [scoreboard][lane] - tracks which lanes check which SB
-    logic [NUM_LANES-1:0] sb_rsv_valid_per_sb [NUM_SCOREBOARDS];      // [scoreboard][lane] - for reserve operationsNUM_LANES-1
+    logic [1:0] lane_sb_sel [4];              // Which scoreboard (0-3) for each lane
+    logic [3:0] lane_collision;               // Per-lane collision results
+    logic [3:0] sb_rd_valid_per_sb [4];       // [scoreboard][lane] - tracks which lanes check which SB
+    logic [3:0] sb_rsv_valid_per_sb [4];      // [scoreboard][lane] - for reserve operations
+
     
     // ============================================================
     // Component Instantiations
@@ -108,14 +85,13 @@ module dispatcher
         .chunk_base_addr(chunk_base_addr),
         .latched_unrolling_factor(latched_unrolling_factor),
         .pred_bitmap(pred_bitmap),
-        .clear_scoreboard(clear_scoreboard),
         .dispatcher_busy(dispatcher_busy),
         .dispatcher_done(dispatcher_done),
         .restart(restart),
 
         .active_mask(active_mask),
-        .input_register_bitmap(pgraph_meta_i.in_regs_bitmap),
-        .unrolling_factor(pgraph_meta_i.unrolling_factor),
+        .input_register_bitmap(input_register_bitmap),
+        .unrolling_factor(unrolling_factor),
         .cta_size(cta_size),
         .dispatch_valid_0(dispatch_valid_0),
         .dispatch_valid_1(dispatch_valid_1),
@@ -152,28 +128,28 @@ module dispatcher
     );
     
     // Extract TIDs for scoreboard checking (only when data is valid)
-    assign check_tid[0] = thread_next_tid_0[SCOREBOARD_TID_WIDTH-1:0];  // Use lower 8 bits of TID
-    assign check_tid[1] = thread_next_tid_1[SCOREBOARD_TID_WIDTH-1:0];
-    assign check_tid[2] = thread_next_tid_2[SCOREBOARD_TID_WIDTH-1:0];
-    assign check_tid[3] = thread_next_tid_3[SCOREBOARD_TID_WIDTH-1:0];
+    assign check_tid[0] = thread_next_tid_0[7:0];  // Use lower 8 bits of TID
+    assign check_tid[1] = thread_next_tid_1[7:0];
+    assign check_tid[2] = thread_next_tid_2[7:0];
+    assign check_tid[3] = thread_next_tid_3[7:0];
     
-    assign reserve_tid[0] = ready_fifo_pop_data[0][SCOREBOARD_TID_WIDTH-1:0];
-    assign reserve_tid[1] = ready_fifo_pop_data[1][SCOREBOARD_TID_WIDTH-1:0];
-    assign reserve_tid[2] = ready_fifo_pop_data[2][SCOREBOARD_TID_WIDTH-1:0];
-    assign reserve_tid[3] = ready_fifo_pop_data[3][SCOREBOARD_TID_WIDTH-1:0];
+    assign reserve_tid[0] = ready_fifo_pop_data[0][7:0];
+    assign reserve_tid[1] = ready_fifo_pop_data[1][7:0];
+    assign reserve_tid[2] = ready_fifo_pop_data[2][7:0];
+    assign reserve_tid[3] = ready_fifo_pop_data[3][7:0];
 
     // Extract scoreboard selectro from upper TID bits
-    assign lane_sb_sel[0] = thread_next_tid_0[DICE_TID_WIDTH-1:SCOREBOARD_TID_WIDTH];  // Which scoreboard lane 0 should check
-    assign lane_sb_sel[1] = thread_next_tid_1[DICE_TID_WIDTH-1:SCOREBOARD_TID_WIDTH];
-    assign lane_sb_sel[2] = thread_next_tid_2[DICE_TID_WIDTH-1:SCOREBOARD_TID_WIDTH];
-    assign lane_sb_sel[3] = thread_next_tid_3[DICE_TID_WIDTH-1:SCOREBOARD_TID_WIDTH];
+    assign lane_sb_sel[0] = thread_next_tid_0[9:8];  // Which scoreboard lane 0 should check
+    assign lane_sb_sel[1] = thread_next_tid_1[9:8];
+    assign lane_sb_sel[2] = thread_next_tid_2[9:8];
+    assign lane_sb_sel[3] = thread_next_tid_3[9:8];
     
     // Valid signals for scoreboards - only check when thread FIFO has valid data
     always_comb begin
         // Initialize: no lanes checking any scoreboards
-        for (int sb = 0; sb < NUM_SCOREBOARDS; sb++) begin
-            sb_rd_valid_per_sb[sb] = '0;
-            sb_rsv_valid_per_sb[sb] = '0;
+        for (int sb = 0; sb < 4; sb++) begin
+            sb_rd_valid_per_sb[sb] = 4'b0000;
+            sb_rsv_valid_per_sb[sb] = 4'b0000;
         end
         
         // Route READ requests: each valid lane checks its target scoreboard
@@ -188,24 +164,23 @@ module dispatcher
         
         // Route RESERVE requests: based on TID from ready FIFO
         if (sb_rsv_valid[0]) // If lane 0 is reserving
-            sb_rsv_valid_per_sb[ready_fifo_pop_data[0][DICE_TID_WIDTH-1:SCOREBOARD_TID_WIDTH]][0] = 1'b1;
+            sb_rsv_valid_per_sb[ready_fifo_pop_data[0][9:8]][0] = 1'b1;
         if (sb_rsv_valid[1])
-            sb_rsv_valid_per_sb[ready_fifo_pop_data[1][DICE_TID_WIDTH-1:SCOREBOARD_TID_WIDTH]][1] = 1'b1;
+            sb_rsv_valid_per_sb[ready_fifo_pop_data[1][9:8]][1] = 1'b1;
         if (sb_rsv_valid[2])
-            sb_rsv_valid_per_sb[ready_fifo_pop_data[2][DICE_TID_WIDTH-1:SCOREBOARD_TID_WIDTH]][2] = 1'b1;
+            sb_rsv_valid_per_sb[ready_fifo_pop_data[2][9:8]][2] = 1'b1;
         if (sb_rsv_valid[3])
-            sb_rsv_valid_per_sb[ready_fifo_pop_data[3][DICE_TID_WIDTH-1:SCOREBOARD_TID_WIDTH]][3] = 1'b1;
+            sb_rsv_valid_per_sb[ready_fifo_pop_data[3][9:8]][3] = 1'b1;
     end
     
     // Aggregate: each scoreboard's rd_valid is OR of all lanes checking it
-    always_comb begin
-        for (int sb = 0; sb < NUM_SCOREBOARDS; sb++) begin
-            sb_rd_valid[sb] = |sb_rd_valid_per_sb[sb];
-        end
-    end
+    assign sb_rd_valid[0] = |sb_rd_valid_per_sb[0];  
+    assign sb_rd_valid[1] = |sb_rd_valid_per_sb[1];  
+    assign sb_rd_valid[2] = |sb_rd_valid_per_sb[2];  
+    assign sb_rd_valid[3] = |sb_rd_valid_per_sb[3];  
 
     always_comb begin
-        for (int lane = 0; lane < NUM_LANES; lane++) begin
+        for (int lane = 0; lane < 4; lane++) begin
             // Each lane gets collision result from its target scoreboard
             lane_collision[lane] = collision[lane_sb_sel[lane]];
         end
@@ -219,25 +194,23 @@ module dispatcher
     // Only pass write-back signals when wb_valid is asserted
     always_comb begin
         if (wb_valid) begin
-            // wb_tid_sb[0] = wb_tid_bitmap[255:0];    // TIDs 0-255   (upper 2 bits = 00)
-            // wb_tid_sb[1] = wb_tid_bitmap[511:256];  // TIDs 256-511 (upper 2 bits = 01)
-            // wb_tid_sb[2] = wb_tid_bitmap[767:512];  // TIDs 512-767 (upper 2 bits = 10)
-            // wb_tid_sb[3] = wb_tid_bitmap[1023:768]; // TIDs 768-1023(upper 2 bits = 11)
-            for (int sb = 0; sb < NUM_SCOREBOARDS; sb++) begin
-                wb_tid_sb[sb] = wb_tid_bitmap[(sb+1)*THREADS_PER_SCOREBOARD-1:sb*THREADS_PER_SCOREBOARD];
-            end 
+            wb_tid_sb[0] = wb_tid_bitmap[255:0];    // TIDs 0-255   (upper 2 bits = 00)
+            wb_tid_sb[1] = wb_tid_bitmap[511:256];  // TIDs 256-511 (upper 2 bits = 01)
+            wb_tid_sb[2] = wb_tid_bitmap[767:512];  // TIDs 512-767 (upper 2 bits = 10)
+            wb_tid_sb[3] = wb_tid_bitmap[1023:768]; // TIDs 768-1023(upper 2 bits = 11)
         end else begin
             // No write-back when not valid
-            for (int sb = 0; sb < NUM_SCOREBOARDS; sb++) begin
-                wb_tid_sb[sb] = '0;
-            end
+            wb_tid_sb[0] = 256'b0;
+            wb_tid_sb[1] = 256'b0;
+            wb_tid_sb[2] = 256'b0;
+            wb_tid_sb[3] = 256'b0;
         end
     end
     
     // Scoreboards for collision detection (4 scoreboards, one for each TID range)
     genvar i;
     generate
-        for (i = 0; i < NUM_SCOREBOARDS; i++) begin : gen_scoreboards
+        for (i = 0; i < 4; i++) begin : gen_scoreboards
             scoreboard sb (
                 .clk(clk),
                 .rst_n(rst_n),
@@ -247,9 +220,8 @@ module dispatcher
                 .rsv_tid(reserve_tid[i]),
                 .rsv_valid(sb_rsv_valid[i]),            // Valid signal for reserve operation
                 .wb_tid_bitmap(wb_tid_sb[i]),           // Each scoreboard gets its 256-bit slice
-                .ld_dest_reg(pgraph_meta_i.ld_dest_reg),         // Convert to 7 bits for scoreboard (GPR+Pred only)
-                // .clear_scoreboard(clear_scoreboard),
-                .wb_valid(wb_valid && ((pgraph_meta_i.ld_dest_reg[0] <= 7'd31) || (pgraph_meta_i.ld_dest_reg[0] >= 7'd64))), // Check first valid entry; Valid for GPR+Pred only
+                .ld_dest_reg(ld_dest_reg[6:0]),         // Convert to 7 bits for scoreboard (GPR+Pred only)
+                .wb_valid(wb_valid && ((ld_dest_reg <= 8'd31) || (ld_dest_reg >= 8'd64))), // Valid for GPR+Pred only
                 .collision(collision[i])
             );
         end
@@ -263,8 +235,8 @@ module dispatcher
         .rd_valid(const_rd_valid),              // Valid when any lane needs checking
         .rsv_const_map(const_bitmap),           // Reserve the same constants
         .rsv_valid(const_rsv_valid),            // Valid when any lane is reserving
-        .wb_const_bitmap(32'b1 << (pgraph_meta_i.ld_dest_reg - 8'd32)),  // Single constant register to release
-        .wb_valid(wb_valid && (pgraph_meta_i.ld_dest_reg >= 8'd32) && (pgraph_meta_i.ld_dest_reg <= 8'd63)),  // Valid only for constant regs
+        .wb_const_bitmap(32'b1 << (ld_dest_reg - 8'd32)),  // Single constant register to release
+        .wb_valid(wb_valid && (ld_dest_reg >= 8'd32) && (ld_dest_reg <= 8'd63)),  // Valid only for constant regs
         .collision(const_collision)
     );
     
@@ -287,7 +259,7 @@ module dispatcher
     assign thread_fifo_pop = !thread_fifo_empty && all_lane_can_dispatch && ready_fifo_not_full;
     
     // Collision-free dispatch logic
-    logic [NUM_LANES-1:0] ready_fifo_push_en; // per-lane push enable
+    logic [3:0] ready_fifo_push_en; // per-lane push enable
 
     //flag of if current valid tids are checking collision
     logic is_checking_collision, is_checking_collision_next; //flag of current tids is checking collision and have not been pushed to ready fifo yet
@@ -318,7 +290,7 @@ module dispatcher
         //firstly, if there is a group of tids is checking collision, if no valid tids then do not push
         //then check if previous tids are blocked by collision, if no previous tids or not blocked, then can push
         //finally check if ready fifo is full, if not full, then can push
-        for (int i = 0; i < NUM_LANES; i++) begin
+        for (int i = 0; i < 4; i++) begin
             ready_fifo_push_en[i] = is_checking_collision &&  
                                 !lane_collision[i] && !const_collision && 
                                 !ready_fifo_full[i];
@@ -332,10 +304,10 @@ module dispatcher
     
     // Ready-to-dispatch FIFOs using sync_fifo module
     generate
-        for (i = 0; i < NUM_LANES; i++) begin : gen_ready_fifos
+        for (i = 0; i < 4; i++) begin : gen_ready_fifos
             sync_fifo #(
-                .DATA_WIDTH(DICE_TID_WIDTH + 1),        // 11 bits: {valid, tid[9:0](DICE_TID_WIDTH)}
-                .DEPTH(4)                               // 4 entries deep
+                .DATA_WIDTH(11),        // 11 bits: {valid, tid[9:0]}
+                .DEPTH(4)               // 4 entries deep
             ) ready_fifo (
                 .clk(clk),
                 .rst_n(rst_n),
@@ -352,23 +324,20 @@ module dispatcher
     endgenerate
     
     // Output assignments - using registered FIFO outputs
-    logic [DICE_TID_WIDTH-1:0] dispatch_tid_0, dispatch_tid_1, dispatch_tid_2, dispatch_tid_3; 
-    logic dispatch_valid_0, dispatch_valid_1, dispatch_valid_2, dispatch_valid_3;
-
-    assign dispatch_tid_0 = ready_fifo_pop_data[0][DICE_TID_WIDTH-1:0];
-    assign dispatch_valid_0 = ready_fifo_pop_data_valid[0] && ready_fifo_pop_data[0][DICE_TID_WIDTH];
-    assign dispatch_tid_1 = ready_fifo_pop_data[1][DICE_TID_WIDTH-1:0];
-    assign dispatch_valid_1 = ready_fifo_pop_data_valid[1] && ready_fifo_pop_data[1][DICE_TID_WIDTH];
-    assign dispatch_tid_2 = ready_fifo_pop_data[2][DICE_TID_WIDTH-1:0];
-    assign dispatch_valid_2 = ready_fifo_pop_data_valid[2] && ready_fifo_pop_data[2][DICE_TID_WIDTH];
-    assign dispatch_tid_3 = ready_fifo_pop_data[3][DICE_TID_WIDTH-1:0];
-    assign dispatch_valid_3 = ready_fifo_pop_data_valid[3] && ready_fifo_pop_data[3][DICE_TID_WIDTH];
+    assign dispatch_tid_0 = ready_fifo_pop_data[0][9:0];
+    assign dispatch_valid_0 = ready_fifo_pop_data_valid[0] && ready_fifo_pop_data[0][10];
+    assign dispatch_tid_1 = ready_fifo_pop_data[1][9:0];
+    assign dispatch_valid_1 = ready_fifo_pop_data_valid[1] && ready_fifo_pop_data[1][10];
+    assign dispatch_tid_2 = ready_fifo_pop_data[2][9:0];
+    assign dispatch_valid_2 = ready_fifo_pop_data_valid[2] && ready_fifo_pop_data[2][10];
+    assign dispatch_tid_3 = ready_fifo_pop_data[3][9:0];
+    assign dispatch_valid_3 = ready_fifo_pop_data_valid[3] && ready_fifo_pop_data[3][10];
     
-    // Set output to one bus and one valid signal
-    assign dispatch_tid_o = {dispatch_tid_3, dispatch_tid_2, dispatch_tid_1, dispatch_tid_0};
-    assign dispatch_valid_o = dispatch_valid_3 || dispatch_valid_2 || dispatch_valid_1 || dispatch_valid_0;
+    // OLD: does not take into account unrolling differences
+    // assign dispatch_fifo_empty = ready_fifo_empty[0] && ready_fifo_empty[1] && 
+    //                              ready_fifo_empty[2] && ready_fifo_empty[3];
 
-    // Unrolling-aware logic
+    // NEW: Unrolling-aware logic
     logic dispatch_fifo_empty_comb;
     always_comb begin
         case (latched_unrolling_factor)

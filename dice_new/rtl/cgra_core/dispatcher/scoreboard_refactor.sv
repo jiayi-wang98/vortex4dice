@@ -51,7 +51,7 @@ module scoreboard(
     input logic [7:0]  rsv_tid,           // TID to reserve registers
     input logic rsv_valid,                // Valid signal for reserve operation
     input logic [255:0] wb_tid_bitmap,    // Bitmap of TIDs to release registers
-    input logic [6:0]  ld_dest_reg,       // Register number to be released (0-31: GPR, 32: CR, 33: PR)
+    input logic [6:0]  ld_dest_reg,       // Register number to be released (0-31: GPR, 32: CR, 33: PR) \\ SHOUULD BE PARAMETERIZED TO SIZE OF LD_DEST_REG BITMAP
     input logic wb_valid,                 // Valid signal for write-back operation
     
     // Output signals
