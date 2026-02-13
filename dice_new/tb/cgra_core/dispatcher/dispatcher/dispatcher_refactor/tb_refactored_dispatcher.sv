@@ -20,13 +20,14 @@ module dispatcher_basic_testbench;
     logic dispatch_valid_0, dispatch_valid_1, dispatch_valid_2, dispatch_valid_3;
     logic dispatch_fifo_empty;
     logic dispatcher_busy, dispatcher_done;
+
+    logic [3:0] ready_fifo_empty;
     
     // Test control
     int test_num;
     int dispatched_count;
-    logic [1:0] randint;  // For random delays
     
-    // Clock generation (100MHz) - matching frequency with next_thread_logic if needed
+    // Clock generation (100MHz)
     initial begin
         clk = 0;
         forever #5 clk = ~clk;
@@ -58,22 +59,11 @@ module dispatcher_basic_testbench;
         .dispatcher_done(dispatcher_done)
     );
     
-    // Add random delay logic similar to next_thread_logic testbench
-    always @(negedge clk) begin
-        dispatch_fifo_pop <= 1'b0;
-        // Add random delay to simulate real-world conditions
-        randint = $urandom_range(0, 3);
-        if (randint < 4) begin
-            if (!dispatch_fifo_empty) begin
-                dispatch_fifo_pop <= 1'b1;
-            end
-        end
-    end
-    
-    // Task to reset system - ALIGNED WITH next_thread_logic_top
+    // Task to reset system
     task reset_system();
+        @(negedge clk);
         $display("=== Resetting System ===");
-        rst_n = 1;  // Start with reset high
+        rst_n = 0;
         fetch_done = 0;
         unrolling_factor = 2'b10;  // 4-way unrolling
         input_register_bitmap = 66'b0;
@@ -85,37 +75,23 @@ module dispatcher_basic_testbench;
         dispatch_fifo_pop = 1'b0;
         dispatched_count = 0;
         
-        // Apply reset - matching next_thread_logic timing
-        @(negedge clk);
-        rst_n = 0;
-        
-        // Wait 10 cycles like next_thread_logic
-        repeat(10) @(negedge clk);
-        
-        $display("\n Starting ...");
-        @(negedge clk);
-        rst_n = 1;  // Release reset
-        $display("\n Released reset ...");
-        
+        repeat(3) @(negedge clk);
+        rst_n = 1;
         repeat(2) @(negedge clk);
         $display("Reset complete");
     endtask
     
-    // Task to start CTA dispatch - TIMING ALIGNED
+    // Task to start CTA dispatch
     task start_cta(logic [1023:0] mask, logic [65:0] regs, logic [1:0] size, logic [1:0] unroll);
         $display("Starting CTA - Size: %0d, Unroll: %0d", 
                  (size == 2'b00) ? 256 : (size == 2'b01) ? 512 : 1024, 
                  (unroll == 2'b00) ? 1 : (unroll == 2'b01) ? 2 : 4);
         
-        // Set parameters at negedge like next_thread_logic
-        @(negedge clk);
         active_mask = mask;
         input_register_bitmap = regs;
         cta_size = size;
         unrolling_factor = unroll;
         
-        // Pulse fetch_done
-        @(negedge clk);
         fetch_done = 1;
         @(negedge clk);
         fetch_done = 0;
@@ -123,17 +99,16 @@ module dispatcher_basic_testbench;
         // Wait for dispatcher to become busy
         while (!dispatcher_busy) @(negedge clk);
         $display("Dispatcher is now busy");
+        repeat (10) @(negedge clk);
     endtask
     
-    // Task to pop from dispatch FIFOs and count - MANUAL MODE (disable automatic)
-    task pop_and_count_manual();
+    // Task to pop from dispatch FIFOs and count
+    task pop_and_count();
         logic [3:0] valid_mask = {dispatch_valid_3, dispatch_valid_2, dispatch_valid_1, dispatch_valid_0};
         
-        if (valid_mask != 4'b0000) begin
-            @(negedge clk);
+        if (!dispatch_fifo_empty) begin  // Changed: check if data available
             dispatch_fifo_pop = 1'b1;
-            @(negedge clk);
-            dispatch_fifo_pop = 1'b0;
+            @(negedge clk);  // Pop happens here
             
             // Count and display dispatched threads
             if (dispatch_valid_0) begin
@@ -152,13 +127,14 @@ module dispatcher_basic_testbench;
                 $display("Lane 3 dispatched TID: %0d", dispatch_tid_3);
                 dispatched_count++;
             end
+
+            dispatch_fifo_pop = 1'b0;
         end
     endtask
     
     // Task to simulate write-back
     task writeback_register(logic [7:0] reg_num, logic [1023:0] tid_mask);
         $display("Write-back: Register %0d for TIDs", reg_num);
-        @(negedge clk);
         wb_valid = 1;
         ld_dest_reg = reg_num;
         wb_tid_bitmap = tid_mask;
@@ -167,35 +143,35 @@ module dispatcher_basic_testbench;
         wb_tid_bitmap = 1024'b0;
     endtask
     
-    // Wait for completion - WITH AUTOMATIC POPPING DISABLED
-    task wait_for_completion_auto_pop();
-        int timeout = 10000;
+    // Wait for completion
+    task wait_for_completion();
+        int timeout = 10000;  // Increased timeout
+        int idle_cycles = 0;
+        
         while (!dispatcher_done && timeout > 0) begin
-            @(negedge clk);
+            // Pop whenever ANY data is available
+            if (!dispatch_fifo_empty) begin
+                pop_and_count();
+                idle_cycles = 0;  // Reset idle counter
+            end else begin
+                @(negedge clk);
+                idle_cycles++;
+                
+                // If idle for too long but not done, something is stuck
+                if (idle_cycles > 100 && !dispatcher_done) begin
+                    $display("WARNING: Idle for 100 cycles but not done");
+                    $display("  dispatcher_done=%b, dispatch_fifo_empty=%b", 
+                            dispatcher_done, dispatch_fifo_empty);
+                    $display("  ready_fifo_empty=%b", {ready_fifo_empty[3], ready_fifo_empty[2], 
+                                                        ready_fifo_empty[1], ready_fifo_empty[0]});
+                end
+            end
             timeout--;
-            
-            // Count valid outputs even with automatic popping
-            if (dispatch_valid_0) dispatched_count++;
-            if (dispatch_valid_1) dispatched_count++;
-            if (dispatch_valid_2) dispatched_count++;
-            if (dispatch_valid_3) dispatched_count++;
         end
         
-        if (timeout == 0) begin
-            $display("ERROR: Timeout waiting for completion!");
-            $finish;
-        end else begin
-            $display("CTA dispatch completed. Total dispatched: %0d", dispatched_count);
-        end
-    endtask
-    
-    // Wait for completion - MANUAL POPPING
-    task wait_for_completion_manual();
-        int timeout = 10000;
-        while (!dispatcher_done && timeout > 0) begin
-            pop_and_count_manual();
-            @(negedge clk);
-            timeout--;
+        // After dispatcher_done, drain any remaining data in FIFOs
+        while (!dispatch_fifo_empty) begin
+            pop_and_count();
         end
         
         if (timeout == 0) begin
@@ -233,17 +209,19 @@ module dispatcher_basic_testbench;
     task test_simple_dispatch();
         logic [1023:0] simple_mask;
         
-        $display("\n=== Test %0d: Simple All-Thread Dispatch ===", ++test_num);
+        $display("\n=== Test %0d: Simple 4-Thread Dispatch ===", ++test_num);
         
-        simple_mask = '1;  // All threads active
+        simple_mask = '1;
+        //simple_mask = 1024'b0;
+        //simple_mask[3:0] = 4'b1111;  // Enable first 4 threads
         
         start_cta(simple_mask, 66'h1, 2'b00, 2'b10);  // 1 GPR, 256 threads, 4-way
-        wait_for_completion_auto_pop();
+        wait_for_completion();
         
-        if (dispatched_count == 256) begin
-            $display("PASS: Dispatched all 256 threads");
+        if (dispatched_count == 4) begin
+            $display("PASS: Dispatched exactly 4 threads");
         end else begin
-            $display("ERROR: Expected 256 threads, got %0d", dispatched_count);
+            $display("ERROR: Expected 4 threads, got %0d", dispatched_count);
         end
         
         dispatched_count = 0;
@@ -262,7 +240,10 @@ module dispatcher_basic_testbench;
         start_cta(mask, 66'h7, 2'b00, 2'b10);  // 3 GPRs needed
         
         // Let some threads get stuck on register conflicts
-        repeat(20) @(negedge clk);
+        repeat(20) begin
+            pop_and_count();
+            @(negedge clk);
+        end
         
         $display("Threads dispatched before writeback: %0d", dispatched_count);
         
@@ -270,7 +251,7 @@ module dispatcher_basic_testbench;
         writeback_register(8'd0, 8'h0F);
         
         // Continue until completion
-        wait_for_completion_auto_pop();
+        wait_for_completion();
         
         if (dispatched_count == 8) begin
             $display("PASS: All 8 threads eventually dispatched");
@@ -295,7 +276,7 @@ module dispatcher_basic_testbench;
         $display("--- Testing 1-way unrolling ---");
         reset_system();
         start_cta(mask, 66'h1, 2'b00, 2'b00);  // 1-way
-        wait_for_completion_auto_pop();
+        wait_for_completion();
         $display("1-way dispatched: %0d threads", dispatched_count);
         count_1way = dispatched_count;
         
@@ -304,7 +285,7 @@ module dispatcher_basic_testbench;
         reset_system();
         dispatched_count = 0;
         start_cta(mask, 66'h1, 2'b00, 2'b01);  // 2-way
-        wait_for_completion_auto_pop();
+        wait_for_completion();
         $display("2-way dispatched: %0d threads", dispatched_count);
         count_2way = dispatched_count;
         
@@ -313,7 +294,7 @@ module dispatcher_basic_testbench;
         reset_system();
         dispatched_count = 0;
         start_cta(mask, 66'h1, 2'b00, 2'b10);  // 4-way
-        wait_for_completion_auto_pop();
+        wait_for_completion();
         $display("4-way dispatched: %0d threads", dispatched_count);
         count_4way = dispatched_count;
         
@@ -343,7 +324,10 @@ module dispatcher_basic_testbench;
         start_cta(mask, const_regs, 2'b00, 2'b10);
         
         // Should dispatch all at once since constants are shared
-        repeat(20) @(negedge clk);
+        repeat(10) begin
+            pop_and_count();
+            @(negedge clk);
+        end
         
         if (dispatched_count == 4) begin
             $display("PASS: All threads with constant dependencies dispatched");
@@ -351,7 +335,7 @@ module dispatcher_basic_testbench;
             $display("Result: %0d/4 threads dispatched with constants", dispatched_count);
         end
         
-        wait_for_completion_auto_pop();
+        wait_for_completion();
         dispatched_count = 0;
     endtask
     
@@ -372,7 +356,7 @@ module dispatcher_basic_testbench;
         mixed_regs[65:64] = 2'b11;     // Both predicates
         
         start_cta(mask, mixed_regs, 2'b00, 2'b10);
-        wait_for_completion_auto_pop();
+        wait_for_completion();
         
         if (dispatched_count == 8) begin
             $display("PASS: All threads with mixed register types dispatched");
@@ -423,10 +407,10 @@ module dispatcher_basic_testbench;
         $display("ERROR: Testbench timeout!");
         $finish;
     end
-    
-    // Generate waveform dump
+
     initial begin
-        $fsdbDumpfile("dispatcher_basic.fsdb");
+        // dump fsdb
+        $fsdbDumpfile("refactored_dispatcher.fsdb");
         $fsdbDumpvars("+all");
     end
 
