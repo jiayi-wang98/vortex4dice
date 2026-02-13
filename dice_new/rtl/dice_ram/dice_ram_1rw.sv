@@ -2,7 +2,8 @@
 module dice_ram_1rw #(
     parameter DATA_WIDTH = 32,
     parameter DEPTH = 1024,
-    parameter ADDR_WIDTH = $clog2(DEPTH)
+    parameter ADDR_WIDTH = $clog2(DEPTH),
+    parameter string INIT_FILE = ""   // <-- ADD THIS
 )(
     input logic clk,
     
@@ -33,17 +34,12 @@ module dice_ram_1rw #(
     
     // Read/Write operation
     always_ff @(posedge clk) begin
-        if (en) begin
-            if (we) begin
-                // Write operation
-                ram_array[addr] <= wdata;
-                // Optional: write-through behavior
-                // rdata_reg <= wdata;
-            end else begin
-                // Read operation
-                rdata_reg <= ram_array[addr];
-            end
-        end
+        if (en && !we) rdata_reg <= ram_array[addr];
     end
+
+    always @(posedge clk) begin
+        if (en && we) ram_array[addr] <= wdata;
+    end
+
 
 endmodule
