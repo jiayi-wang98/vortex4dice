@@ -1,6 +1,10 @@
 /**
  * Valid Checker Module
- * checks if e-block can be passed from FDR to DE stage.
+ * Checks if e-block can be passed from FDR to DE stage.
+ * On predict-miss, fdr_top sends flush notification to the scheduler.
+
+
+ I DON'T THINK THAT THIS NEEDS A SIGNAL FROM THE BH ABOUT THE CORRECT MASK BECAUSE THE WILL ALWAYS HAPPEN WHEN THE EBLOCK'S DIVERGENCE IS RESOLVED
  */
 module valid_check
   import dice_pkg::*;

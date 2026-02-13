@@ -28,6 +28,10 @@ module cta_scheduler
     input logic                            eblock_commit_valid_i,
     input logic [DICE_EBLOCK_ID_WIDTH-1:0] eblock_commit_id_i,
 
+    // External interface to release flushed e-blocks (from FDR predict-miss)
+    input logic                            eblock_flush_valid_i,
+    input logic [DICE_EBLOCK_ID_WIDTH-1:0] eblock_flush_id_i,
+
     // Scheduler outputs
     cta_sched_if.master scheduled_eblock
 );
@@ -185,6 +189,10 @@ module cta_scheduler
       // Handle e-block commit (invalidation)
       if (eblock_commit_valid_i == 1'b1) begin
         eblock_live_q[eblock_commit_id_i] <= 1'b0;
+      end
+
+      if (eblock_flush_valid_i == 1'b1) begin
+        eblock_live_q[eblock_flush_id_i] <= 1'b0;
       end
 
       // Handle successful scheduling
