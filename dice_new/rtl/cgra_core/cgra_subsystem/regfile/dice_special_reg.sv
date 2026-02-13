@@ -6,9 +6,9 @@ module dice_special_reg#(
     parameter int MAX_CTA_ID = 65535,
     parameter int CTA_ID_WIDTH = $clog2(MAX_CTA_ID)
 )(
-    input logic clk,
-    input logic rst_n,
-    input logic clr,
+    input logic clk_i,
+    input logic reset_i,
+    input logic clear_i,
 
     //config
     input logic rd_en,
@@ -32,10 +32,10 @@ module dice_special_reg#(
     output logic [DATA_WIDTH-1:0] out_data
 );  
 
-    always_ff @(posedge clk or negedge rst_n) begin
-        if (!rst_n) begin
+    always_ff @(posedge clk_i) begin
+        if (reset_i) begin
             out_data <= '0;
-        end else if (clr) begin
+        end else if (clear_i) begin
             out_data <= '0;
         end else if (rd_en) begin
             case (rd_sel)
