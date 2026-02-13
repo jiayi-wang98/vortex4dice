@@ -17,9 +17,6 @@
 // =========================================================
 // Packages (compiled first; ordered by dependency)
 // =========================================================
-// Waiver file to suppress lint warnings for external packages
-verilator_waiver.vlt
-
 // VX_gpu_pkg depends on VX_define.vh (no package imports)
 hw/rtl/VX_gpu_pkg.sv
 // dice_pkg depends on dice_define.vh, no package imports
@@ -32,19 +29,21 @@ dice_new/rtl/dice_frontend_pkg.sv
 // =========================================================
 hw/rtl/mem/VX_mem_bus_if.sv
 dice_new/rtl/dice_ram/dice_ram_1w1r.sv
+dice_new/rtl/dice_ram/dice_ram_1rw.sv
+dice_new/rtl/interfaces/cta_dispatch_if.sv
+dice_new/rtl/interfaces/cta_complete_if.sv
 dice_new/rtl/interfaces/cta_sched_if.sv
+dice_new/rtl/interfaces/simt_stack_status_if.sv
+dice_new/rtl/interfaces/cgra_cm_if.sv
 dice_new/rtl/interfaces/fdr_if.sv
-dice_new/rtl/interfaces/branch_handler_if.sv
-dice_new/rtl/interfaces/dice_bh_simt_if.sv
 
 // =========================================================
 // FDR Stage (fetch_stage) Source Files
 // =========================================================
 dice_new/rtl/cgra_core/fetch_stage/decode.sv
 dice_new/rtl/cgra_core/fetch_stage/valid_check.sv
-dice_new/rtl/cgra_core/fetch_stage/branch_handler.sv
-dice_new/rtl/cgra_core/fetch_stage/branch_resolver.sv
-dice_new/rtl/cgra_core/fetch_stage/divergence_monitor.sv
+dice_new/rtl/cgra_core/fetch_stage/rising_edge_detector.sv
+dice_new/rtl/cgra_core/fetch_stage/branch_handler_no_branches.sv
 dice_new/rtl/cgra_core/fetch_stage/meta_fetch.sv
 dice_new/rtl/cgra_core/fetch_stage/bitstream_fetch_load.sv
 dice_new/rtl/cgra_core/fetch_stage/fdr_top.sv
