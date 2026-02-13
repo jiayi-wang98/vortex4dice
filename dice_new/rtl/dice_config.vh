@@ -6,6 +6,19 @@
 // =========================================================
 
 `define DICE_ADDR_WIDTH              32
+`define DICE_MAX_KERNEL_SIZE         65536
+`define DICE_MAX_GRID_SIZE           65536
+`define DICE_NUM_CGRA_CLUSTERS        1
+// Available registers
+`define DICE_GPR_NUM                 16 // General Purpose Registers
+`define DICE_PR_NUM                  8  // Predicate Registers
+`define DICE_CR_NUM                  8  // Constant Registers
+
+// Available CGRA memory ports
+`define DICE_CGRA_MEM_PORTS          4
+
+// Architectural configurations
+`define DICE_ADDR_WIDTH              32
 `define DICE_MAX_KERNEL_ID           65536
 `define DICE_MAX_GRID_SIZE           65536
 `define DICE_NUM_CGRA_CLUSTERS        4
@@ -17,5 +30,12 @@
 `define DICE_L1_LINE_SIZE            128   // in Bytes
 `define DICE_L2_LINE_SIZE            128   // in Bytes
 `define DICE_L3_LINE_SIZE            128   // in Bytes
+
+// P-graph configuration
+`define DICE_MAX_PGRAPHS              256   // Maximum p-graphs per kernel
+`define DICE_METADATA_WIDTH          64    // Metadata width ---- DETERMINE WHAT THIS SHOULD BE
+
+// SIMT Stack configuration
+`define DICE_SIMT_STACK_DEPTH        32    // Maximum SIMT stack depth per CTA
 
 `endif // DICE_CONFIG_VH
