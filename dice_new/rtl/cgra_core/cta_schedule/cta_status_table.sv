@@ -1,5 +1,3 @@
-//TODO: modify this to use the new branch predict interface
-
 module cta_status_table
   import dice_pkg::*;
   import dice_frontend_pkg::*;
@@ -43,9 +41,12 @@ module cta_status_table
     //update the status from the branch predictor
     if (branch_predict_info_we_i) begin
       bp_cta_id = branch_predict_info_i.hw_cta_id;
-      cta_status_d[bp_cta_id].unresolved_control_divergence = branch_predict_info_i.unresolved_control_divergence;
-      cta_status_d[bp_cta_id].is_return = branch_predict_info_i.is_return;
-      cta_status_d[bp_cta_id].predict_pc = branch_predict_info_i.predict_pc;
+      if (branch_predict_info_i.valid_edits_bitmap[2])
+        cta_status_d[bp_cta_id].unresolved_control_divergence = branch_predict_info_i.unresolved_control_divergence;
+      if (branch_predict_info_i.valid_edits_bitmap[1])
+        cta_status_d[bp_cta_id].predict_pc = branch_predict_info_i.predict_pc;
+      if (branch_predict_info_i.valid_edits_bitmap[0])
+        cta_status_d[bp_cta_id].is_return = branch_predict_info_i.is_return;
     end
 
     //clear the status from the cta controller
