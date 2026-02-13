@@ -33,14 +33,6 @@ module fdr_top
     output logic [DICE_HW_CTA_ID_WIDTH-1:0] simt_update_hw_cta_id_o,
     output cta_size_e                       simt_update_hw_cta_size_o,
 
-    // BH Buffer - Backend Interface
-    // Backend drives predicate data into bh_buffer; bh_buffer feeds branch_handler
-    input  logic [DICE_NUM_MAX_THREADS_PER_CORE-1:0] bh_buf_data_i,
-    input  logic [DICE_TID_WIDTH-1:0]                bh_buf_tid_offset_i,
-    input  logic                                     bh_buf_valid_i,
-    input  logic                                     bh_buf_last_i,
-    output logic                                     bh_buf_consumed_o,
-
     // CGRA Configuration Memory Interfaces
     cgra_cm_if.master cm0_if,
     cgra_cm_if.master cm1_if,
@@ -103,30 +95,9 @@ module fdr_top
   // =========================================================================
   // Branch prediction signal assignments
   // =========================================================================
+  assign predict_we_internal       = |predict_interface_internal.valid_edits_bitmap;
   assign bh_branch_predict_info_o    = predict_interface_internal;
   assign bh_branch_predict_info_we_o = predict_we_internal;
-
-  // =========================================================================
-  // BH Buffer (predicate aggregation from backend)
-  // =========================================================================
-  logic [DICE_NUM_MAX_THREADS_PER_CORE-1:0] bh_buffer_pred_internal;
-  logic                                     bh_buffer_valid_internal;
-  logic                                     bh_consumed_internal;
-
-  bh_buffer #(
-      .DATA_WIDTH(DICE_NUM_MAX_THREADS_PER_CORE)
-  ) u_bh_buffer (
-      .clk_i            (clk_i),
-      .rst_i            (rst_i),
-      .data_in_i        (bh_buf_data_i),
-      .tid_offset_i     (bh_buf_tid_offset_i),
-      .valid_in_i       (bh_buf_valid_i),
-      .last_in_i        (bh_buf_last_i),
-      .buffer_consumed_o(bh_buf_consumed_o),
-      .pred_out_o       (bh_buffer_pred_internal),
-      .valid_out_o      (bh_buffer_valid_internal),
-      .consumed_i       (bh_consumed_internal)
-  );
 
   // =========================================================================
   // Branch Handler
@@ -134,36 +105,25 @@ module fdr_top
   logic         bh_update_valid;
   logic         bh_update_ready;
   simt_stack_update_t bh_simt_update;
+  assign branch_mask_valid = branch_req_valid_internal;
 
-  branch_handler u_branch_handler (
+  branch_handler_no_branches u_branch_handler (
       .clk_i                        (clk_i),
       .rst_i                        (rst_i),
 
-      // Valid / flush
-      .fire_eblock_i                (fire_eblock_internal),
-      .flush_i                      (predict_miss_internal),
-
       // Status table
       .branch_predict_info_o        (predict_interface_internal),
-      .branch_predict_info_we_o     (predict_we_internal),
 
       // Decode
       .branch_meta_i                (branch_meta_internal),
       .branch_meta_valid_i          (branch_req_valid_internal),
       .real_active_thread_mask_o    (branch_mask_internal),
-      .real_active_thread_mask_valid_o(branch_mask_valid),
 
       // CS - FDR Stage buffer
-      .prefetch_block_i             (schedule_if.data.schedule_prefetch_block),
-      .prefetch_active_mask_i       (schedule_if.data.schedule_active_mask),
+      .cs_active_mask_i             (schedule_if.data.schedule_active_mask),
       .pc_i                         (schedule_if.data.schedule_next_pc),
       .cta_size_i                   (schedule_if.data.schedule_hw_cta_size),
       .hw_cta_id_i                  (current_hw_cta_id),
-
-      // bh_buffer
-      .bh_buffer_pred_i             (bh_buffer_pred_internal),
-      .bh_buffer_valid_i            (bh_buffer_valid_internal),
-      .bh_buffer_consumed_o         (bh_consumed_internal),
 
       // SIMT Stacks
       .update_valid_o               (bh_update_valid),

@@ -17,7 +17,6 @@ $DICE_HOME/dice_new/rtl/interfaces/cta_complete_if.sv
 $DICE_HOME/dice_new/rtl/interfaces/cta_sched_if.sv
 $DICE_HOME/dice_new/rtl/interfaces/simt_stack_status_if.sv
 $DICE_HOME/dice_new/rtl/interfaces/cgra_cm_if.sv
-$DICE_HOME/dice_new/rtl/interfaces/prf_if.sv
 $DICE_HOME/dice_new/rtl/interfaces/fdr_if.sv
 
 // Memory/RAM Dependencies
@@ -35,10 +34,9 @@ $DICE_HOME/dice_new/rtl/cgra_core/cta_schedule/cta_schedule_stage.sv
 
 // FDR Stage Modules
 $DICE_HOME/dice_new/rtl/cgra_core/fetch_stage/bitstream_fetch_load.sv
-$DICE_HOME/dice_new/rtl/cgra_core/fetch_stage/bh_buffer.sv
-$DICE_HOME/dice_new/rtl/cgra_core/fetch_stage/branch_resolver.sv
+$DICE_HOME/dice_new/rtl/cgra_core/fetch_stage/rising_edge_detector.sv
+$DICE_HOME/dice_new/rtl/cgra_core/fetch_stage/branch_handler_no_branches.sv
 $DICE_HOME/dice_new/rtl/cgra_core/fetch_stage/decode.sv
-$DICE_HOME/dice_new/rtl/cgra_core/fetch_stage/divergence_monitor.sv
 $DICE_HOME/dice_new/rtl/cgra_core/fetch_stage/meta_fetch.sv
 $DICE_HOME/dice_new/rtl/cgra_core/fetch_stage/valid_check.sv
 $DICE_HOME/dice_new/rtl/cgra_core/fetch_stage/fdr_top.sv

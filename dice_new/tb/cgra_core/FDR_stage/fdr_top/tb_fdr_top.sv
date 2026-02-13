@@ -43,13 +43,6 @@ module tb_fdr_top;
   cgra_cm_if cm0_if();
   cgra_cm_if cm1_if();
 
-  // BH Buffer stubs
-  logic [DICE_NUM_MAX_THREADS_PER_CORE-1:0] bh_buf_data;
-  logic [DICE_TID_WIDTH-1:0]                bh_buf_tid_offset;
-  logic                                     bh_buf_valid;
-  logic                                     bh_buf_last;
-  logic                                     bh_buf_consumed;
-
   // Eblock flush outputs
   logic                       eblock_flush_valid;
   logic [EBLOCK_ID_WIDTH-1:0] eblock_flush_id;
@@ -73,11 +66,6 @@ module tb_fdr_top;
       .simt_update_stack_data_o(simt_update_stack_data_o),
       .simt_update_hw_cta_id_o(simt_update_hw_cta_id_o),
       .simt_update_hw_cta_size_o(simt_update_hw_cta_size_o),
-      .bh_buf_data_i          (bh_buf_data),
-      .bh_buf_tid_offset_i    (bh_buf_tid_offset),
-      .bh_buf_valid_i         (bh_buf_valid),
-      .bh_buf_last_i          (bh_buf_last),
-      .bh_buf_consumed_o      (bh_buf_consumed),
       .cm0_if                 (cm0_if),
       .cm1_if                 (cm1_if),
       .eblock_flush_valid_o   (eblock_flush_valid),
@@ -114,11 +102,6 @@ module tb_fdr_top;
     bitstream_cache_mem_if.req_ready = 1'b1;
     bitstream_cache_mem_if.rsp_valid = 1'b0;
     bitstream_cache_mem_if.rsp_data  = '0;
-
-    bh_buf_data       = '0;
-    bh_buf_tid_offset = '0;
-    bh_buf_valid      = 1'b0;
-    bh_buf_last       = 1'b0;
 
     simt_update_ready_i = 1'b1;
     cta_status_data_i   = '0;

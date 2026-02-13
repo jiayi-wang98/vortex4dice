@@ -95,11 +95,6 @@ module dice_core
       .simt_update_stack_data_o(simt_update_stack_data),
       .simt_update_hw_cta_id_o(simt_update_hw_cta_id),
       .simt_update_hw_cta_size_o(simt_update_hw_cta_size),
-      .bh_buf_data_i       (),  // TODO: connect to backend predicate data
-      .bh_buf_tid_offset_i (),  // TODO: connect to backend TID offset
-      .bh_buf_valid_i      (),  // TODO: connect to backend valid
-      .bh_buf_last_i       (),  // TODO: connect to backend last
-      .bh_buf_consumed_o   (),  // TODO: connect to backend consumed
       .cm0_if(cm0_if),
       .cm1_if(cm1_if),
       .eblock_flush_valid_o(eblock_flush_valid),

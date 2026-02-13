@@ -25,13 +25,6 @@ module dice_frontend_top
     cgra_cm_if.master cm0_if,
     cgra_cm_if.master cm1_if,
 
-    // BH Buffer - Backend Interface
-    input  logic [DICE_NUM_MAX_THREADS_PER_CORE-1:0] bh_buf_data_i,
-    input  logic [DICE_TID_WIDTH-1:0]                bh_buf_tid_offset_i,
-    input  logic                                     bh_buf_valid_i,
-    input  logic                                     bh_buf_last_i,
-    output logic                                     bh_buf_consumed_o,
-
     // FDR Output Interface (to Backend)
     fdr_if.master fdr_if,
 
@@ -116,11 +109,6 @@ module dice_frontend_top
         .simt_update_stack_data_o(simt_update_stack_data),
         .simt_update_hw_cta_id_o(simt_update_hw_cta_id),
         .simt_update_hw_cta_size_o(simt_update_hw_cta_size),
-        .bh_buf_data_i         (bh_buf_data_i),
-        .bh_buf_tid_offset_i   (bh_buf_tid_offset_i),
-        .bh_buf_valid_i        (bh_buf_valid_i),
-        .bh_buf_last_i         (bh_buf_last_i),
-        .bh_buf_consumed_o     (bh_buf_consumed_o),
         .cm0_if                (cm0_if),
         .cm1_if                (cm1_if),
         .eblock_flush_valid_o  (eblock_flush_valid_internal),
