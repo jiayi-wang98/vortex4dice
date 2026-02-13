@@ -27,6 +27,7 @@ module dispatcher(
     output logic [9:0] dispatch_tid_3,         // TID for lane 3
     output logic dispatch_valid_3,             // Valid for lane 3
     output logic dispatch_fifo_empty,        // 1 if ALL FIFOs are empty
+    output logic [31:0] gpr_bitmap_o,
     
     // Status outputs
     output logic dispatcher_busy,              // Dispatcher is active
@@ -103,6 +104,8 @@ module dispatcher(
         .clk(clk),
         .rst_n(rst_n)
     );
+
+    assign gpr_bitmap_o = gpr_bitmap;
     
     // Next Thread Logic Top - Updated interface with chunk_done
     next_thread_logic_top next_thread_top (

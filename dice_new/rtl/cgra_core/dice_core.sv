@@ -102,21 +102,22 @@ module dice_core
   );
 
 
+
   
   dispatcher u_dispatcher (
-      .clk(),
-      .rst_n(),
-      .unrolling_factor(),
-      .input_register_bitmap(),
-      .active_mask(),
-      .cta_size(),
-      .fetch_done(),
-      .wb_valid(),
-      .wb_tid_bitmap(),
-      .ld_dest_reg(),
-      .dispatch_fifo_pop(),
-      .dispatch_tid_0(),
-      .dispatch_valid_0(),
+      .clk(clk),
+      .rst_n(~reset),
+      .unrolling_factor(fdr_out_if.data.metadata.unrolling_factor),
+      .input_register_bitmap(fdr_out_if.data.metadata.in_regs_bitmap),
+      .active_mask(fdr_out_if.data.real_active_mask),
+      .cta_size(fdr_out_if.data.schedule_cta_size),
+      .fetch_done(fdr_out_if.valid),
+      .wb_valid(\*comes from cgra*\),
+      .wb_tid_bitmap(\*comes from cgra*\),
+      .ld_dest_reg(\*comes from cgra*\),
+      .dispatch_fifo_pop(\*cgra ready*\),
+      .dispatch_tid_0(rd_tid),
+      .dispatch_valid_0(rd_tid_valid),
       .dispatch_tid_1(),
       .dispatch_valid_1(),
       .dispatch_tid_2(),
@@ -124,30 +125,52 @@ module dice_core
       .dispatch_tid_3(),
       .dispatch_valid_3(),
       .dispatch_fifo_empty(),
+      .gpr_bitmap_o(gpr_bitmap),
       .dispatcher_busy(),
       .dispatcher_done()
   );
 
+  logic [DICE_TID_WIDTH-1:0] rd_tid;
+  logic rd_tid_valid; 
+  logic [31:0] gpr_bitmap;
 
-dice_rf_ctrl u_dice_rf_ctrl (
-    .clk_i(),
-    .reset_i(),
+  logic rf_rd_valid_lo;
+
+  logic [DICE_NUM_BANKS*DICE_REG_DATA_WIDTH-1:0] rd_data_lo;
+dice_rf_ctrl #(
+    .NUM_PORTS(DICE_NUM_BANKS),
+    .DATA_WIDTH(DICE_REG_DATA_WIDTH),
+    .NUM_TID(512),
+    .TID_WIDTH($clog2(512)),
+    .DEPTH(512),
+    .ADDR_WIDTH($clog2(512)),
+    .NUM_SPECIAL_REG(16),
+    .MAX_CTA_ID(65535),
+    .CTA_ID_WIDTH($clog2(65535)),
+    .BUF_DEPTH(8)
+) u_dice_rf_ctrl (
+
+    
+    .clk_i(clk),
+    .reset_i(reset),
 
     // Read Input Ports
-    .rd_tid_valid_i(),
+    .rd_tid_valid_i(rd_tid_valid),
     .rd_tid_ready_o(),
-    .rd_unroll_factor_i(),
-    .rd_en_i(),
-    .rd_tid_i(),
-    .rd_bitmap_i(),
-    .rd_data_o(),
-    .rf_rd_valid_o(),
+    .rd_unroll_factor_i(fdr_out_if.data.metadata.unrolling_factor),
+    .rd_en_i(dispatch_valid_0),
+    .rd_tid_i(rd_tid),
+    .rd_bitmap_i(gpr_bitmap),
+    .rd_data_o(rd_data_lo),
+    .rf_rd_valid_o(rf_rd_valid_lo),
 
     // Write Input Ports
-    .cgra_tid_i(),
-    .cgra_data_i(),
-    .wr_bitmap_i(),
-    .cgra_valid_i(),
+    .cgra_tid_i(\*comes from cgra*\),
+    .cgra_data_i(\*comes from cgra*\),
+    .wr_bitmap_i(fdr_out_if.data.metadata.out_regs_bitmap), // TODO: add shift reg 
+    .cgra_valid_i(\*comes from cgra*\),
+
+    // init test no LDST and no special register for now
     .ldst_wr_i(),
     .ldst_valid_i(),
     .ldst_ready_o(),
@@ -171,5 +194,23 @@ dice_rf_ctrl u_dice_rf_ctrl (
     .spec_reg_out_o()
 );
 
+
+// add dummy cgra
+
+logic cgra_v_lo;
+logic [DICE_NUM_BANKS*DICE_REG_DATA_WIDTH-1:0] cgra_data_lo;
+logic [DICE_TID_WIDTH-1:0] cgra_tid_lo;
+
+dummy_cgra u_dummy_cgra (
+  .clk_i(clk),
+  .rst_i(reset),
+  .v_i(rf_rd_valid_lo),
+  .ready_o(cg),
+  .data_i(rd_data_lo),
+  .tid_i(rd_tid),
+  .v_o(cgra_v_lo),
+  .tid_o(cgra_tid_lo),
+  .data_o(cgra_data_lo)
+);
 
 endmodule
