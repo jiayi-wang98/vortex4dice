@@ -27,4 +27,11 @@
 `define DICE_L2_LINE_SIZE            128   // in Bytes
 `define DICE_L3_LINE_SIZE            128   // in Bytes
 
+// P-graph configuration
+`define DICE_MAX_PGRAPHS              256   // Maximum p-graphs per kernel
+`define DICE_METADATA_WIDTH          64    // Metadata width ---- DETERMINE WHAT THIS SHOULD BE
+
+// SIMT Stack configuration
+`define DICE_SIMT_STACK_DEPTH        32    // Maximum SIMT stack depth per CTA
+
 `endif // DICE_CONFIG_VH

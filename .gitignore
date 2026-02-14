@@ -3,3 +3,11 @@
 *.cache
 *.code-workspace
 miscs/apptainer/vortex.sif
+
+
+obj_dir/*
+*/obj_dir/*
+
+dice_new/tb/cgra_core/FDR_stage/branch_handler/obj_dir/
+dice_new/tb/cgra_core/FDR_stage/fdr_top/obj_dir/
+dice_new/tb/cgra_core/frontend_top/obj_dir/
