@@ -58,7 +58,7 @@ module dice_core
   // Note: cta_complete_ready_i is not used by cta_controller (ready is always implicit)
 
   cta_schedule_stage u_cta_schedule_stage (
-      .clk_i_i                   (clk_i),
+      .clk_i                   (clk_i),
       .rst_i                   (rst_i),
       .cta_dispatch_if         (cta_dispatch_if_inst),
       .cta_complete_if         (cta_complete_if_inst),
@@ -81,7 +81,7 @@ module dice_core
   );
 
   fdr_top u_fdr_top (
-      .clk_i_i(clk_i),
+      .clk_i(clk_i),
       .rst_i(rst_i),
       .metacache_mem_if(metacache_mem_if),
       .bitstream_cache_mem_if(bitstream_cache_mem_if),
@@ -104,7 +104,7 @@ module dice_core
 
 
   dispatcher u_dispatcher (
-      .clk_i(clk_i),
+      .clk(clk_i),
       .rst_n(~rst_i),
       .unrolling_factor(fdr_out_if.data.metadata.unrolling_factor),
       .input_register_bitmap(fdr_out_if.data.metadata.in_regs_bitmap),
@@ -150,8 +150,8 @@ dice_rf_ctrl #(
 ) u_dice_rf_ctrl (
 
 
-    .clk_i_i(clk_i),
-    .rst_i_i(rst_i),
+    .clk_i(clk_i),
+    .rst_i(rst_i),
 
     // Read Input Ports
     .rd_tid_valid_i(rd_tid_valid),
@@ -202,7 +202,7 @@ logic [DICE_NUM_BANKS*DICE_REG_DATA_WIDTH-1:0] cgra_data_lo;
 logic [DICE_TID_WIDTH-1:0] cgra_tid_lo;
 
 dummy_cgra u_dummy_cgra (
-  .clk_i_i(clk_i),
+  .clk_i(clk_i),
   .rst_i(rst_i),
   .v_i(rf_rd_valid_lo),
   .ready_o(),
@@ -217,7 +217,7 @@ dummy_cgra u_dummy_cgra (
 // TODO: Check if this is what should be in the core or if the
 // internal TMCU should be here
 VX_cache_with_temporal u_vx_cache_with_temporal (
-    .clk_i(clk_i),
+    .clk(clk_i),
     .rst(rst_i),
     .incmd_valid(),
     .incmd_block_id(),
@@ -251,8 +251,8 @@ VX_cache_with_temporal u_vx_cache_with_temporal (
 
 
 block_commit_table u_block_commit_table (
-    .clk_i(clk_i),
-    .rst_n(~rst_i),
+    .clk(clk_i),
+    .rst(~rst_i),
     .insert_valid(),
     .insert_hw_cta_id(),
     .insert_e_block_id(),
