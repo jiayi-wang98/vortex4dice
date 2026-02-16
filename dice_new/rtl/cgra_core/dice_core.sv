@@ -151,7 +151,7 @@ dice_rf_ctrl #(
 
 
     .clk_i(clk_i),
-    .rst_i(rst_i),
+    .reset_i(rst_i),
 
     // Read Input Ports
     .rd_tid_valid_i(rd_tid_valid),
@@ -216,56 +216,56 @@ dummy_cgra u_dummy_cgra (
 
 // TODO: Check if this is what should be in the core or if the
 // internal TMCU should be here
-VX_cache_with_temporal u_vx_cache_with_temporal (
-    .clk(clk_i),
-    .rst(rst_i),
-    .incmd_valid(),
-    .incmd_block_id(),
-    .incmd_tid(),
-    .incmd_write_enable(),
-    .incmd_write_data(),
-    .incmd_write_mask(),
-    .incmd_address(),
-    .incmd_size(),
-    .incmd_ld_dest_reg(),
-    .outcmd_ready(),
-    .core_rsp_data(),
-    .core_rsp_valid(),
-    .core_rsp_tag(),
-    .core_rsp_ready(),
-    .mem_req_valid(),
-    .mem_req_rw(),
-    .mem_req_byteen(),
-    .mem_req_addr(),
-    .mem_req_data(),
-    .mem_req_tag(),
-    .mem_req_ready(),
-    .mem_rsp_valid(),
-    .mem_rsp_data(),
-    .mem_rsp_tag(),
-    .mem_rsp_ready()
-);
+// VX_cache_with_temporal u_vx_cache_with_temporal (
+//     .clk(clk_i),
+//     .rst(rst_i),
+//     .incmd_valid(),
+//     .incmd_block_id(),
+//     .incmd_tid(),
+//     .incmd_write_enable(),
+//     .incmd_write_data(),
+//     .incmd_write_mask(),
+//     .incmd_address(),
+//     .incmd_size(),
+//     .incmd_ld_dest_reg(),
+//     .outcmd_ready(),
+//     .core_rsp_data(),
+//     .core_rsp_valid(),
+//     .core_rsp_tag(),
+//     .core_rsp_ready(),
+//     .mem_req_valid(),
+//     .mem_req_rw(),
+//     .mem_req_byteen(),
+//     .mem_req_addr(),
+//     .mem_req_data(),
+//     .mem_req_tag(),
+//     .mem_req_ready(),
+//     .mem_rsp_valid(),
+//     .mem_rsp_data(),
+//     .mem_rsp_tag(),
+//     .mem_rsp_ready()
+// );
 
 
 
 
 
-block_commit_table u_block_commit_table (
-    .clk(clk_i),
-    .rst(~rst_i),
-    .insert_valid(),
-    .insert_hw_cta_id(),
-    .insert_e_block_id(),
-    .insert_pending_reads(),
-    .insert_pending_writes(),
-    .update_valid(),
-    .update_e_block_id(),
-    .update_is_write(),
-    .update_reduce_count(),
-    .pop_valid(),
-    .pop_e_block_id(),
-    .pop_ready(),
-    .hw_cta_pending()
-);
+// block_commit_table u_block_commit_table (
+//     .clk(clk_i),
+//     .rst(~rst_i),
+//     .insert_valid(),
+//     .insert_hw_cta_id(),
+//     .insert_e_block_id(),
+//     .insert_pending_reads(),
+//     .insert_pending_writes(),
+//     .update_valid(),
+//     .update_e_block_id(),
+//     .update_is_write(),
+//     .update_reduce_count(),
+//     .pop_valid(),
+//     .pop_e_block_id(),
+//     .pop_ready(),
+//     .hw_cta_pending()
+// );
 
 endmodule

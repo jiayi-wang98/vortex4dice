@@ -1,4 +1,4 @@
-`timescale 1ns/1ps
+// `timescale 1ns/1ps
 `include "dice_define.vh"
 
 module tb_dice_core;

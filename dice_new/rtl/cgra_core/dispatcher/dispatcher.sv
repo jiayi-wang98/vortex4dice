@@ -28,6 +28,8 @@ module dispatcher(
     output logic dispatch_valid_3,             // Valid for lane 3
     output logic dispatch_fifo_empty,        // 1 if ALL FIFOs are empty
 
+    output logic [31:0] gpr_bitmap_o,
+
     // Status outputs
     output logic dispatcher_busy,              // Dispatcher is active
     output logic dispatcher_done               // Current CTA dispatch complete
@@ -404,4 +406,6 @@ module dispatcher(
 
     assign dispatch_fifo_empty = ready_fifo_empty[0] && ready_fifo_empty[1] &&
                                   ready_fifo_empty[2] && ready_fifo_empty[3];
+
+    assign gpr_bitmap_o = gpr_bitmap;
 endmodule
