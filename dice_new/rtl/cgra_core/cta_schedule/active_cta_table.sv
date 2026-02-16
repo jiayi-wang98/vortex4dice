@@ -61,37 +61,47 @@ module active_cta_table
   logic found_empty;
   logic [DICE_HW_CTA_ID_WIDTH:0] entries_needed;
   logic [DICE_HW_CTA_ID_WIDTH:0] entries_to_clear;
+  logic [DICE_NUM_MAX_CTA_PER_CORE-1:0] entries_valid;
 
   // Use entries_needed from cta_controller (1, 2, or 4 slots)
-  assign entries_needed   = (DICE_HW_CTA_ID_WIDTH + 1)'(add_hw_cta_size_i) + 1;
+  always_comb begin
+    unique case (add_hw_cta_size_i)
+      CTA_SIZE_1: entries_needed = 1;
+      CTA_SIZE_2: entries_needed = 2;
+      CTA_SIZE_4: entries_needed = 4;
+      default:    entries_needed = '0;
+    endcase
+  end
 
   assign entries_to_clear = cta_table_q[pop_hw_cta_id_i].entries_used;
 
   // Find next empty entry - Contiguous Block Search
   always_comb begin
+    // Create a bitmap of valid entries for easier checking
+    for (int i = 0; i < DICE_NUM_MAX_CTA_PER_CORE; i++) begin
+      entries_valid[i] = cta_table_q[i].entry_info.cta_valid;
+    end
+
     found_empty = 1'b0;
     empty_index = '0;
 
-    // Search for a contiguous block of 'entries_needed' slots
     for (int i = 0; i < DICE_NUM_MAX_CTA_PER_CORE; i++) begin
-      logic block_valid;
-      block_valid = 1'b1;
-
-      // Check if the block fits within the table bounds
-      if ((i + entries_needed) <= DICE_NUM_MAX_CTA_PER_CORE) begin
-        // Check if all slots in the block are empty
-        for (int k = 0; k < DICE_NUM_MAX_CTA_PER_CORE; k++) begin
-          if (k >= i && k < (i + entries_needed)) begin
-            if (cta_table_q[k].entry_info.cta_valid == 1'b1) begin
-              block_valid = 1'b0;
-            end
-          end
-        end
-
-        if ((block_valid == 1'b1) && (found_empty == 1'b0)) begin
-          empty_index = (DICE_HW_CTA_ID_WIDTH)'(i);
-          found_empty = 1'b1;
-        end
+      if (!found_empty) begin
+        unique case (entries_needed)
+          1: if (entries_valid[i] == 1'b0) begin
+               found_empty = 1'b1;
+               empty_index = DICE_HW_CTA_ID_WIDTH'(i);
+             end
+          2: if ((i + 2 <= DICE_NUM_MAX_CTA_PER_CORE) && (entries_valid[i +: 2] == '0)) begin
+               found_empty = 1'b1;
+               empty_index = DICE_HW_CTA_ID_WIDTH'(i);
+             end
+          4: if ((i + 4 <= DICE_NUM_MAX_CTA_PER_CORE) && (entries_valid[i +: 4] == '0)) begin
+               found_empty = 1'b1;
+               empty_index = DICE_HW_CTA_ID_WIDTH'(i);
+             end
+          default: ;
+        endcase
       end
     end
   end

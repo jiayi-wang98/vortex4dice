@@ -3,16 +3,16 @@
 package dice_frontend_pkg;
   import dice_pkg::*;
 
-  localparam int BITSTREAM_LENGTH_WIDTH  = 8;
-  localparam int MAX_EBLOCK              = `DICE_NUM_MAX_CTA_PER_CORE + `DICE_NUM_RETIRE_TABLE_ENTRIES;
-  localparam int EBLOCK_ID_WIDTH         = $clog2(MAX_EBLOCK);
-  localparam int SIMT_STACK_COUNT        = `DICE_NUM_MAX_CTA_PER_CORE;
-  localparam int SIMT_STACK_THREAD_WIDTH = `DICE_NUM_MAX_THREADS_PER_CORE;
-  localparam int SIMT_STACK_DEPTH        = `DICE_SIMT_STACK_DEPTH;
+  parameter int BITSTREAM_LENGTH_WIDTH  = 8;
+  parameter int MAX_EBLOCK              = `DICE_NUM_MAX_CTA_PER_CORE + `DICE_NUM_RETIRE_TABLE_ENTRIES;
+  parameter int EBLOCK_ID_WIDTH         = $clog2(MAX_EBLOCK);
+  parameter int SIMT_STACK_COUNT        = `DICE_NUM_MAX_CTA_PER_CORE;
+  parameter int SIMT_STACK_THREAD_WIDTH = `DICE_NUM_MAX_THREADS_PER_CORE;
+  parameter int SIMT_STACK_DEPTH        = `DICE_SIMT_STACK_DEPTH;
 
-  localparam int REG_NUM                 = `DICE_GPR_NUM + `DICE_PR_NUM + `DICE_CR_NUM;
-  localparam int REG_INDEX_WIDTH         = $clog2(REG_NUM);      // Width to index a register
-  localparam int PR_INDEX_WIDTH          = $clog2(`DICE_PR_NUM); // Width to index a predicate register
+  parameter int REG_NUM                 = `DICE_GPR_NUM + `DICE_PR_NUM + `DICE_CR_NUM;
+  parameter int REG_INDEX_WIDTH         = $clog2(REG_NUM);      // Width to index a register
+  parameter int PR_INDEX_WIDTH          = $clog2(`DICE_PR_NUM); // Width to index a predicate register
 
 
   // =========================================================
