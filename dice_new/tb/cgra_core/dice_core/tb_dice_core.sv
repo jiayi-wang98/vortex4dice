@@ -96,17 +96,39 @@ module tb_dice_core;
     @(posedge clk);
   endtask
 
+
+  task automatic dispatch_cta(input dice_cta_desc_t desc);
+    new_cta_desc_i = desc;
+    cta_add_valid_i = 1'b1;
+
+    do begin
+      @(posedge clk);
+    end while (cta_add_ready_o !== 1'b1);
+
+    cta_add_valid_i = 1'b0;
+  endtask
+
+
+
   // =========================================================================
   // Placeholder Stimulus (Skeleton Only)
   // =========================================================================
   initial begin
     $display("dice_core skeleton testbench");
+    dice_cta_desc_t test_desc;
     reset = 1'b1;
     init_inputs();
     reset_dut();
+    repeat (5) @(posedge clk);
+    test_desc = '0;
+    test_desc.kernel_desc.start_pc = 32'h1000;
+    test_desc.kernel_desc.cta_size.x = 100;
+    test_desc.kernel_desc.cta_size.y = 1;
+    test_desc.kernel_desc.cta_size.z = 3;
+    test_desc.cta_id.y = 13;
+    dispatch_cta(test_desc);
+    repeat (100) @(posedge clk);
 
-    // TODO: Add directed/random test scenarios in a follow-up change.
-    repeat (20) @(posedge clk);
 
     $display("dice_core skeleton testbench complete");
     $finish;
