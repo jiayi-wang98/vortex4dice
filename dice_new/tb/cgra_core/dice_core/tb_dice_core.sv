@@ -93,7 +93,7 @@ module tb_dice_core;
     reset = 1'b1;
     repeat (10) @(posedge clk);
     reset = 1'b0;
-    @(posedge clk);
+    // @(posedge clk);
   endtask
 
 
@@ -101,11 +101,11 @@ module tb_dice_core;
     new_cta_desc_i = desc;
     cta_add_valid_i = 1'b1;
 
-    do begin
-      @(posedge clk);
-    end while (cta_add_ready_o !== 1'b1);
+    // do begin
+    //   @(posedge clk);
+    // end while (cta_add_ready_o !== 1'b1);
 
-    cta_add_valid_i = 1'b0;
+    // cta_add_valid_i = 1'b0;
   endtask
 
 
@@ -114,12 +114,12 @@ module tb_dice_core;
   // Placeholder Stimulus (Skeleton Only)
   // =========================================================================
   initial begin
-    $display("dice_core skeleton testbench");
     dice_cta_desc_t test_desc;
+    $display("dice_core skeleton testbench");
     reset = 1'b1;
     init_inputs();
     reset_dut();
-    repeat (5) @(posedge clk);
+    // repeat (5) @(posedge clk);
     test_desc = '0;
     test_desc.kernel_desc.start_pc = 32'h1000;
     test_desc.kernel_desc.cta_size.x = 100;
@@ -138,7 +138,7 @@ module tb_dice_core;
   initial begin
     // Optional waveform dump hook for debug.
     $fsdbDumpfile("tb_dice_core.fsdb");
-    $fsdbDumpvars(0, tb_dice_core);
+    $fsdbDumpvars(0, "+struct");
   end
 `endif
 
