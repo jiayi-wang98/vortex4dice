@@ -15,7 +15,6 @@ module VX_cache_with_temporal #(
     parameter int NUM_BANKS = 1,
     parameter int MSHR_SIZE = 16,
     parameter MSHR_BITS = $clog2(MSHR_SIZE),
-    //parameter OUTCMD_TAG_WIDTH = 48,
     parameter int OUTCMD_TAG_WIDTH = NUMBER_OF_MAX_COALESCED_COMMANDS * BASE_ADDRESS_OFFSET + EBLOCK_ID_WIDTH +
         TID_WIDTH + TID_BITMAP_WIDTH + MAX_REG_WIDTH,
     parameter MEM_TAG_WIDTH = OUTCMD_TAG_WIDTH + MSHR_BITS,
@@ -100,8 +99,6 @@ assign core_req_tag = {
           [BASE_ADDRESS_OFFSET-1:0] incmd_address_map;
     } incmd_tag_t;
 
-
-    // Temporal instantiation 
     temporal_coalescing_unit # (
         .ADDR_WIDTH(ADDR_WIDTH)
     )temporal_inst (
@@ -165,7 +162,7 @@ assign core_req_tag = {
     ) cache_inst (
         .clk(clk),
         .reset(rst),
-        // Use '{}' to wrap scalar signals into the expected unpacked arrays 
+
         .core_req_valid('{outcmd_valid}),
         .core_req_rw('{outcmd_write_enable}),
         .core_req_byteen('{steered_write_mask}), 
@@ -180,7 +177,6 @@ assign core_req_tag = {
         .core_rsp_tag('{core_rsp_tag}),
         .core_rsp_ready('{incmd_ready}), 
 
-        // Fix PCTM errors by wrapping memory signals in array literals [cite: 373]
         .mem_req_valid('{mem_req_valid}),
         .mem_req_rw('{mem_req_rw}),
         .mem_req_byteen('{mem_req_byteen}),

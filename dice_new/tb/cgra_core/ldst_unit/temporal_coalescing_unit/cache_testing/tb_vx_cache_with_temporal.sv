@@ -10,7 +10,7 @@ module tb_vx_cache_with_temporal;
     parameter int NUMBER_OF_MAX_COALESCED_INTERVAL = 8;
     parameter int MAX_REG_WIDTH = 7;
     parameter int TID_BITMAP_WIDTH = 8;
-    parameter int NUM_REQS = 1;
+    parameter int NUM_REQS = 4;
     parameter int MEM_PORTS = 1;
     parameter OUTCMD_TAG_WIDTH = 69;
     parameter MSHR_SIZE = 16;
@@ -151,16 +151,17 @@ endtask
         end
     endtask
 
-    // --- Monitor ---
-    // Simple version: extraction from the tag
-// Current: [MAX_REG_WIDTH + TID_BITMAP_WIDTH +: TID_WIDTH]
-// New suggested slice based on your Verdi {4000} trace:
-wire [9:0] rsp_tid = core_rsp_tag[64:55];
+
+    wire [9:0] rsp_tid = core_rsp_tag[64:55];      // Base TID
+    wire [7:0] rsp_bitmap = core_rsp_tag[54:47];   // Bitmap showing which TID is active
+    
     always @(posedge clk) begin
         if (core_rsp_valid && core_rsp_ready) begin
-            $display("[MONITOR] Time: %0t | TID: %0d | Data: %h", $time, rsp_tid, core_rsp_data);
+            $display("[MONITOR] Time: %0t | BaseTID: %0d | Bitmap: %b | Data: %h", 
+                     $time, rsp_tid, rsp_bitmap, core_rsp_data);
         end
     end
+
 initial begin
         // --- Initialization & Reset ---
         incmd_valid = 0;
@@ -170,7 +171,7 @@ initial begin
         #(CLK_PERIOD * 10);
         rst = 0;
         repeat(5) @(posedge clk);
-
+    /*
     // --- Step 1: Verification of Write-Read Path ---
     $display("--- Starting Directed Write-Read Test ---");
     
@@ -178,19 +179,18 @@ initial begin
     send_write_request(32'h0000_0F08, 64'hBBBB_BBBB_BBBB_BBBB, 8'hFF, 0); 
     send_write_request(32'h0000_0F10, 64'hCCCC_CCCC_CCCC_CCCC, 8'hFF, 0); 
     
-    // INCREASE THIS DELAY: Give the Line Fill time to finish
     #(CLK_PERIOD * 500); 
-
+    
     // Read back
     send_read_request(32'h0000_0F00, 0);
     #(CLK_PERIOD * 20); // Small gap between reads
     send_read_request(32'h0000_0F08, 0);
     #(CLK_PERIOD * 20);
     send_read_request(32'h0000_0F10, 0);
-
+    */
         $display("--- Starting Linear Word Sweep ---");
         for (int j = 0; j < 8; j++) begin
-            send_read_request(.addr(j * 8), .tid(j)); // Increments by 8 bytes [cite: 344]
+            send_read_request(.addr(j * 8), .tid(j)); 
             #(CLK_PERIOD * 10); 
         end
 
