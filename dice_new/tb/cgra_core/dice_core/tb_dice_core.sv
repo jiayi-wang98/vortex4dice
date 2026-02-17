@@ -37,6 +37,34 @@ module tb_dice_core;
       .TAG_WIDTH(48)
   ) bitstream_cache_mem_if ();
 
+  // =========================================================================
+  // Dummy Memories
+  // =========================================================================
+  logic [VX_gpu_pkg::VX_MEM_DATA_WIDTH-1:0] meta_rsp_data;
+  logic [VX_gpu_pkg::VX_MEM_DATA_WIDTH-1:0] bitstream_rsp_data;
+
+  meta_memory #(
+      .DATA_SIZE(VX_gpu_pkg::VX_MEM_DATA_WIDTH / 8),
+      .TAG_WIDTH(48),
+      .LATENCY  (8)
+  ) u_meta_mem (
+      .clk           (clk),
+      .reset         (reset),
+      .response_data (meta_rsp_data),
+      .mem_bus_if    (metacache_mem_if)
+  );
+
+  bitstream_memory #(
+      .DATA_SIZE(VX_gpu_pkg::VX_MEM_DATA_WIDTH / 8),
+      .TAG_WIDTH(48),
+      .LATENCY  (5)
+  ) u_bitstream_mem (
+      .clk           (clk),
+      .reset         (reset),
+      .response_data (bitstream_rsp_data),
+      .mem_bus_if    (bitstream_cache_mem_if)
+  );
+
   int cycle_count;
 
   always_ff @(posedge clk or posedge reset) begin
@@ -80,13 +108,9 @@ module tb_dice_core;
     cta_complete_ready_i = 1'b1;
 
     // Memory responses default to ready/idle in this skeleton.
-    metacache_mem_if.req_ready = 1'b1;
-    metacache_mem_if.rsp_valid = 1'b0;
-    metacache_mem_if.rsp_data  = '0;
-
-    bitstream_cache_mem_if.req_ready = 1'b1;
-    bitstream_cache_mem_if.rsp_valid = 1'b0;
-    bitstream_cache_mem_if.rsp_data  = '0;
+    // Dummy memory configuration
+    meta_rsp_data      = '0;
+    bitstream_rsp_data = '0;
   endtask
 
   task automatic reset_dut();
@@ -126,6 +150,8 @@ module tb_dice_core;
     test_desc.kernel_desc.cta_size.y = 1;
     test_desc.kernel_desc.cta_size.z = 3;
     test_desc.cta_id.y = 13;
+    meta_rsp_data = '1;
+    bitstream_rsp_data = '1;
     dispatch_cta(test_desc);
     repeat (100) @(posedge clk);
 

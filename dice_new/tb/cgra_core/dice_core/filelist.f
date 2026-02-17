@@ -88,4 +88,6 @@ ${DICE_HOME}/rtl/cgra_core/dummy_cgra.sv
 ${DICE_HOME}/rtl/cgra_core/dice_core.sv
 
 // ==== Testbench ====
+${DICE_HOME}/tb/cgra_core/dice_core/meta_memory.sv
+${DICE_HOME}/tb/cgra_core/dice_core/bitstream_memory.sv
 ${DICE_HOME}/tb/cgra_core/dice_core/tb_dice_core.sv
