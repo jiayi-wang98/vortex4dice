@@ -1,23 +1,21 @@
-`include "dice_pkg.sv"
-`include "dice_frontend_pkg.sv"
 module dispatcher
-    import dice_pkg::*
-    import dice_frontend_pkg::*,
+    import dice_pkg::*, 
+           dice_frontend_pkg::*;
 (
     input logic clk,
     input logic rst_n,
 
     // metadata input package
-    input pgraph_meta_t pgraph_meta_i;
-    
+    input pgraph_meta_t pgraph_meta_i,
+
     // Runtime execution context inputs
     input logic [DICE_NUM_MAX_THREADS_PER_CORE-1:0] active_mask,           // 1024-bit active mask // DICE_NUM_MAX_THREADS_PER_CORE?
-    input cta_size_e cta_size,                 // 0=256, 1=512, 2=1024
+    input cta_size_e cta_size,                 // 0=256, 1=512, 3=1024
     input logic fetch_done,                     // Previous stage ready signal
     
     // Write-back interface for scoreboards
     input logic wb_valid,                       // Valid signal for write-back command
-    input logic [DICE_NUM_MAX_THREADS_PER_CORE-1:0] wb_tid_bitmap,         // 1024-bit bitmap of TIDs to release registers // DICE_NUM_MAX_THREADS_PER_CORE?
+    input logic [1023:0] wb_tid_bitmap,         // 1024-bit bitmap of TIDs to release registers // DICE_NUM_MAX_THREADS_PER_CORE?
     
     // Ready-to-dispatch FIFO pop interface
     input logic dispatch_fifo_pop,       // Pop signals for ready-to-dispatch FIFO
@@ -38,7 +36,7 @@ module dispatcher
     
     // Status outputs
     output logic dispatcher_busy,              // Dispatcher is active
-    output logic dispatcher_done               // Current CTA dispatch complete
+    output logic dispatcher_done               //  
 );
     // Local parameters derived from package parameters
     localparam int NUM_LANES = 4;  // 4-way SIMD dispatcher
@@ -66,12 +64,6 @@ module dispatcher
     logic [31:0] const_bitmap;                 // Constant portion of input registers
     logic [1:0] pred_bitmap;                   // Predicate portion of input registers
 
-    // Extract register bitmaps (adapt based on REG_NUM)
-    // Assuming REG_NUM = 66 (32 GPR + 32 Const + 2 Pred)
-    assign gpr_bitmap = pgraph_meta_i.in_regs_bitmap[31:0];
-    assign const_bitmap = pgraph_meta_i.in_regs_bitmap[63:32];
-    assign pred_bitmap = pgraph_meta_i.in_regs_bitmap[65:64];
-
     logic collision [NUM_SCOREBOARDS];                       // Collision results from regular scoreboards
     logic const_collision;                     // Collision result from constant scoreboard
     logic [SCOREBOARD_TID_WIDTH-1:0] check_tid [NUM_LANES];                 // TIDs to check for collision
@@ -96,19 +88,26 @@ module dispatcher
     logic [NUM_LANES-1:0] lane_collision;               // Per-lane collision results
     logic [NUM_LANES-1:0] sb_rd_valid_per_sb [NUM_SCOREBOARDS];       // [scoreboard][lane] - tracks which lanes check which SB
     logic [NUM_LANES-1:0] sb_rsv_valid_per_sb [NUM_SCOREBOARDS];      // [scoreboard][lane] - for reserve operationsNUM_LANES-1
-    
+
+    // Dispatch output signals (declared before use)
+    logic [DICE_TID_WIDTH-1:0] dispatch_tid_0, dispatch_tid_1, dispatch_tid_2, dispatch_tid_3;
+    logic dispatch_valid_0, dispatch_valid_1, dispatch_valid_2, dispatch_valid_3;
+
     // ============================================================
     // Component Instantiations
     // ============================================================
 
-    dispatcher_fsm dispatcher_fsm_inst (
+    dispatcher_fsm #(
+        .CHUNK_SIZE(CHUNK_SIZE),
+        .CHUNK_ADDR_WIDTH(CHUNK_ADDR_WIDTH)
+    ) dispatcher_fsm_inst (
         .current_chunk(current_chunk),
         .gpr_bitmap(gpr_bitmap),
         .const_bitmap(const_bitmap),
         .chunk_base_addr(chunk_base_addr),
         .latched_unrolling_factor(latched_unrolling_factor),
         .pred_bitmap(pred_bitmap),
-        .clear_scoreboard(clear_scoreboard),
+        // .clear_scoreboard(clear_scoreboard),
         .dispatcher_busy(dispatcher_busy),
         .dispatcher_done(dispatcher_done),
         .restart(restart),
@@ -224,7 +223,7 @@ module dispatcher
             // wb_tid_sb[2] = wb_tid_bitmap[767:512];  // TIDs 512-767 (upper 2 bits = 10)
             // wb_tid_sb[3] = wb_tid_bitmap[1023:768]; // TIDs 768-1023(upper 2 bits = 11)
             for (int sb = 0; sb < NUM_SCOREBOARDS; sb++) begin
-                wb_tid_sb[sb] = wb_tid_bitmap[(sb+1)*THREADS_PER_SCOREBOARD-1:sb*THREADS_PER_SCOREBOARD];
+                wb_tid_sb[sb] = wb_tid_bitmap[sb*THREADS_PER_SCOREBOARD +: THREADS_PER_SCOREBOARD];
             end 
         end else begin
             // No write-back when not valid
@@ -247,9 +246,9 @@ module dispatcher
                 .rsv_tid(reserve_tid[i]),
                 .rsv_valid(sb_rsv_valid[i]),            // Valid signal for reserve operation
                 .wb_tid_bitmap(wb_tid_sb[i]),           // Each scoreboard gets its 256-bit slice
-                .ld_dest_reg(pgraph_meta_i.ld_dest_reg),         // Convert to 7 bits for scoreboard (GPR+Pred only)
+                .ld_dest_reg(pgraph_meta_i.ld_dest_regs),         // Convert to 7 bits for scoreboard (GPR+Pred only)
                 // .clear_scoreboard(clear_scoreboard),
-                .wb_valid(wb_valid && ((pgraph_meta_i.ld_dest_reg[0] <= 7'd31) || (pgraph_meta_i.ld_dest_reg[0] >= 7'd64))), // Check first valid entry; Valid for GPR+Pred only
+                .wb_valid(wb_valid && ((pgraph_meta_i.ld_dest_regs[0] <= 7'd31) || (pgraph_meta_i.ld_dest_regs[0] >= 7'd64))), // Check first valid entry; Valid for GPR+Pred only
                 .collision(collision[i])
             );
         end
@@ -263,8 +262,8 @@ module dispatcher
         .rd_valid(const_rd_valid),              // Valid when any lane needs checking
         .rsv_const_map(const_bitmap),           // Reserve the same constants
         .rsv_valid(const_rsv_valid),            // Valid when any lane is reserving
-        .wb_const_bitmap(32'b1 << (pgraph_meta_i.ld_dest_reg - 8'd32)),  // Single constant register to release
-        .wb_valid(wb_valid && (pgraph_meta_i.ld_dest_reg >= 8'd32) && (pgraph_meta_i.ld_dest_reg <= 8'd63)),  // Valid only for constant regs
+        .wb_const_bitmap(32'b1 << (pgraph_meta_i.ld_dest_regs - 8'd32)),  // Single constant register to release
+        .wb_valid(wb_valid && (pgraph_meta_i.ld_dest_regs >= 8'd32) && (pgraph_meta_i.ld_dest_regs <= 8'd63)),  // Valid only for constant regs
         .collision(const_collision)
     );
     
@@ -352,9 +351,6 @@ module dispatcher
     endgenerate
     
     // Output assignments - using registered FIFO outputs
-    logic [DICE_TID_WIDTH-1:0] dispatch_tid_0, dispatch_tid_1, dispatch_tid_2, dispatch_tid_3; 
-    logic dispatch_valid_0, dispatch_valid_1, dispatch_valid_2, dispatch_valid_3;
-
     assign dispatch_tid_0 = ready_fifo_pop_data[0][DICE_TID_WIDTH-1:0];
     assign dispatch_valid_0 = ready_fifo_pop_data_valid[0] && ready_fifo_pop_data[0][DICE_TID_WIDTH];
     assign dispatch_tid_1 = ready_fifo_pop_data[1][DICE_TID_WIDTH-1:0];
