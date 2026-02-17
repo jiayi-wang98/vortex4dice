@@ -114,6 +114,7 @@ Branch = 1
 IfShowModule = {TRUE, FALSE}
 [DisabledMessages]
 version = Verdi_X-2025.06
+152174612 = disabled
 [Emacs]
 EmacsFont = "Clean 14"
 EmacsBG = white
@@ -223,20 +224,21 @@ Selection-LineWidth = 1
 Orientation = Landscape
 [FileBrowser]
 LoadSimulationResults = "\"/data/amanoj3/vortex4dice/dice_new/tb/cgra_core/dice_core/tb_dice_core.fsdb\""
+nWaveOpenFsdbDirHistory = "\"/data/amanoj3/vortex4dice/dice_new/tb/cgra_core/dice_core/tb_dice_core.fsdb\""
 [Form]
 version = Verdi_X-2025.06
 [General]
 autoSaveSession = FALSE
 TclAutoSource = 
 cmd_enter_form = FALSE
-ColorThemeModern = bright
 SyncBrowserDir = TRUE
+FindBarVisible = 
+ColorThemeModern = bright
 version = Verdi_X-2025.06
-recent_commands_Verdi = hbLoadFsdbFile
-recent_commands_nWave = reread,getSignal,traceDriver,scrollDown,zoomAll
+recent_commands_Verdi = raiseNextWinAct,hbLoadFsdbFile,srcShowFile,hbImpDsg
+recent_commands_nWave = saveSignal,reread,getSignal,raiseNextWinAct,leftFullPage,rightFullPage,toggleExpand,zoomAll,openFile,createWaveformWindow
 prevColorThemeModern = bright
 SignalCaseInSensitive = FALSE
-FindBarVisible = 
 [GlobalProp]
 ErrWindow_Font = Helvetica_M_R_12
 [Globals]
@@ -333,6 +335,16 @@ containerHeight = 800
 HB_designTreeFont = *-adobe-courier-medium-r-*-*-12-*-*-*-*-*-iso8859-*
 Text_font = COURIER12
 nMemory_font = Fixed 14
+Wave_legend_window_font = -f COURIER12 -c ID_CYAN5
+Wave_value_window_font = -f COURIER12 -c ID_CYAN5
+Wave_curve_window_font = -f COURIER12 -c ID_CYAN5
+Wave_group_name_font = -f COURIER12 -c ID_GREEN5
+Wave_ruler_value_font = -f COURIER12 -c ID_CYAN5
+Wave_analog_ruler_value_font = -f COURIER12 -c ID_CYAN5
+Wave_comment_string_font = -f COURIER12 -c ID_RED5
+Wave_getsignal_form_font = -f COURIER12
+Text_annotFont = FIXED12
+schematics_fixFontSize = False
 [OtherEditor]
 cmd1 = "xterm -font 9x15 -fg black -bg gray -e"
 name = "vi"
@@ -377,10 +389,15 @@ saveWaveformStat = TRUE
 savePropStat = FALSE
 savePropDtl = TRUE
 [QtDialog]
-loadFile = 593,298,614,432
-qWaveSignalDialog = 500,275,800,479
-QwWarnMsgDlg = 650,396,600,250
-QwUserAskDlg = 798,479,324,128
+importDesignForm = 602,182,715,574
+Verdi_OpenFile = 665,373,590,340
+loadFile = 653,290,614,432
+unknownSave = 729,383,461,245
+QwWarnMsgDlg = 650,433,600,250
+openFileDlg = 659,227,602,483
+qWaveSignalDialog = 560,229,800,479
+saveSigDlg = 684,276,551,386
+QwUserAskDlg = 798,482,324,122
 [Safety]
 RegisterObject = ID_RED4
 CoreObject = ID_ORANGE5
@@ -674,17 +691,17 @@ isOneSearchVisible = TRUE
 [VIA.oneSearch.preference.vgifColumnSettingRC.setting0]
 parRuleSets = ""
 [VIA.oneSearch.preference.vgifColumnSettingRC.setting0.column0]
-name = "Code"
-width = 60
-visualIndex = 3
+name = "Block's First Line"
+width = 120
+visualIndex = 1
 isHidden = TRUE
 isUserChangeColumnVisible = FALSE
 isColFilterColorCoding = FALSE
 [VIA.oneSearch.preference.vgifColumnSettingRC.setting0.column1]
-name = "Type"
+name = "Severity"
 width = 60
-visualIndex = 4
-isHidden = TRUE
+visualIndex = 2
+isHidden = FALSE
 isUserChangeColumnVisible = FALSE
 isColFilterColorCoding = FALSE
 [VIA.oneSearch.preference.vgifColumnSettingRC.setting0.column2]
@@ -702,16 +719,16 @@ isHidden = FALSE
 isUserChangeColumnVisible = FALSE
 isColFilterColorCoding = FALSE
 [VIA.oneSearch.preference.vgifColumnSettingRC.setting0.column4]
-name = "Severity"
+name = "Code"
 width = 60
-visualIndex = 2
-isHidden = FALSE
+visualIndex = 3
+isHidden = TRUE
 isUserChangeColumnVisible = FALSE
 isColFilterColorCoding = FALSE
 [VIA.oneSearch.preference.vgifColumnSettingRC.setting0.column5]
-name = "Block's First Line"
-width = 120
-visualIndex = 1
+name = "Type"
+width = 60
+visualIndex = 4
 isHidden = TRUE
 isUserChangeColumnVisible = FALSE
 isColFilterColorCoding = FALSE
@@ -788,7 +805,10 @@ ShowDeltaTime = TRUE
 WaveExtendLastTick = TRUE
 displayMessageLabelOnly = TRUE
 AutoApplySeverityColor = TRUE
-getSignalForm = 500 275 800 479 165 387 391 149
+scope_to_save_with_macro
+open_file_dir
+open_rc_file_dir
+getSignalForm = 560 229 800 479 165 387 391 1
 viewPort = 0 11 1920 731 832 65
 legendBackground = -c ID_BLACK
 valueBackground = -c ID_BLACK
@@ -929,7 +949,6 @@ displayDeltaY = FALSE
 signal_rc_abspath = TRUE
 signal_rc_no_natural_bus_range = FALSE
 save_scope_with_macro = FALSE
-scope_to_save_with_macro
 FitAnaByBusSize = FALSE
 DisplayVerticalZoomTools = FALSE
 DisplayIndicateBar = FALSE
@@ -958,8 +977,6 @@ printSignature = {%f %h %t} {}
 curveWindow_Drag&Drop_Mode = TRUE
 RecentFile1 = "\"/data/amanoj3/vortex4dice/dice_new/tb/cgra_core/dice_core/tb_dice_core.fsdb\""
 open_file_time_range = FALSE
-open_file_dir
-open_rc_file_dir
 legend_window_font = -f COURIER12 -c ID_CYAN5
 value_window_font = -f COURIER12 -c ID_CYAN5
 curve_window_font = -f COURIER12 -c ID_CYAN5
@@ -967,18 +984,18 @@ group_name_font = -f COURIER12 -c ID_GREEN5
 ruler_value_font = -f COURIER12 -c ID_CYAN5
 analog_ruler_value_font = -f COURIER12 -c ID_CYAN5
 comment_string_font = -f COURIER12 -c ID_RED5
-getsignal_form_font = -f COURIER12
+getsignal_form_font = -f COURIER12 
 SigsCheckNum = on 1000
 filter_synthesized_net = off n
 filterOutNet = on
 exclude_signal_with_prefix = off n
 synthesizeNetOnly = on
-filter_synthesized_instance = off
+filter_synthesized_instance = off 
 filterOutInstance = on
 showGroupTree = TRUE
 hierGroupDelim = /
 MsgSeverityColor = {y \"Severity\"==\"1\" ID_RED5} {y \"Severity\"==\"2\" ID_RED6} {y \"Severity\"==\"3\" ID_RED7} {y \"Severity\"==\"4\" ID_RED8} {y \"Severity\"==\"5\" ID_ORANGE5} {y \"Severity\"==\"6\" ID_ORANGE6} {y \"Severity\"==\"7\" ID_ORANGE7} {y \"Severity\"==\"8\" \
-ID_GREEN7} {y \"Severity\"==\"9\" ID_GREEN6} {y \"Severity\"==\"10\" ID_GREEN5}
+ID_GREEN7} {y \"Severity\"==\"9\" ID_GREEN6} {y \"Severity\"==\"10\" ID_GREEN5} 
 waveDblClkActiveTrace = on
 SEQShowComparisonIcon = TRUE
 SEQAddDriverLoadInSameGroup = TRUE
@@ -1058,6 +1075,7 @@ ShowMergeMenuItem = FALSE
 fsmScoreMode = Transition
 lazyLoadingPrompt = TRUE
 [eco]
+NameRule = 
 IsFreezeSilicon = FALSE
 cellQuantityManagement = FALSE
 ManageMode = INSTANCE_NAME
@@ -1065,11 +1083,10 @@ SpareCellsPinsManagement = TRUE
 LogCommitReport = FALSE
 InputPinStatus = 1
 OutputPinStatus = 2
-NameRule = 
 RevisedComponentColor = ID_BLUE5
 SpareCellColor = ID_RED5
 UserName = amanoj3
-CommentFormat = Novas ECO updated by ${UserName} ${Date} ${Time}
+CommentFormat = Novas ECO updated by ${UserName} ${Date} ${Time} 
 PrefixN = eco_n
 PrefixP = eco_p
 PrefixI = eco_i

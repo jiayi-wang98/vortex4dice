@@ -150,7 +150,7 @@ module tb_dice_core;
     test_desc.kernel_desc.cta_size.y = 1;
     test_desc.kernel_desc.cta_size.z = 3;
     test_desc.cta_id.y = 13;
-    meta_rsp_data = '1;
+    meta_rsp_data = '0;
     bitstream_rsp_data = '1;
     dispatch_cta(test_desc);
     repeat (100) @(posedge clk);
