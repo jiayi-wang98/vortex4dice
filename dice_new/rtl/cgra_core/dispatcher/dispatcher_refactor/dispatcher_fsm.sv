@@ -1,18 +1,24 @@
-module dispatcher_fsm (
-    output logic [255:0] current_chunk,
-    output logic [31:0] gpr_bitmap,
-    output logic [31:0] const_bitmap,
-    output logic [1:0] chunk_base_addr,
+module dispatcher_fsm
+    import dice_pkg::*,
+           dice_frontend_pkg::*;
+#(
+    parameter int CHUNK_SIZE = 256,
+    parameter int CHUNK_ADDR_WIDTH = 2
+)(
+    output logic [CHUNK_SIZE-1:0] current_chunk, // CHUNK_SIZE
+    output logic [31:0] gpr_bitmap, // Need metadata parameter for gpr_bitmap width
+    output logic [31:0] const_bitmap, // Need metadata parameter for const_bitmap width
+    output logic [1:0] pred_bitmap, // Need metadata parameter for pred_bitmap width
+    output logic [CHUNK_ADDR_WIDTH-1:0] chunk_base_addr, // CHUNK_ADDR_WIDTH
     output logic [1:0] latched_unrolling_factor,
-    output logic [1:0] pred_bitmap,
     output logic dispatcher_busy,
     output logic dispatcher_done,
     output logic restart,
 
-    input logic [1023:0] active_mask,
-    input logic [65:0] input_register_bitmap,
+    input logic [DICE_NUM_MAX_THREADS_PER_CORE-1:0] active_mask, // DICE_NUM_MAX_THREADS_PER_CORE
+    input logic [REG_NUM-1:0] input_register_bitmap, // pgraph_meta_i.in_regs_bitmap--unsure if importing a localparam works like this
     input logic [1:0] unrolling_factor,
-    input logic [1:0] cta_size,
+    input cta_size_e cta_size, // 0=256, 1=512, 3=1024
     input logic dispatch_valid_0,
     input logic dispatch_valid_1,
     input logic dispatch_valid_2,
@@ -21,13 +27,12 @@ module dispatcher_fsm (
     input logic thread_chunk_done,
     input logic dispatch_fifo_empty,
     input logic clk, rst_n
-); 
-    
+);
     // Intermediate logic
-    logic [1023:0] latched_active_mask;
-    logic [65:0] latched_input_regs;
-    logic [9:0] dispatched_count;
-    logic [9:0] cta_total_size;
+    logic [DICE_NUM_MAX_THREADS_PER_CORE-1:0] latched_active_mask;
+    logic [REG_NUM-1:0] latched_input_regs;
+    logic [$clog2(DICE_NUM_MAX_THREADS_PER_CORE+1)-1:0] dispatched_count;
+    logic [$clog2(DICE_NUM_MAX_THREADS_PER_CORE+1)-1:0] cta_total_size;
     logic [1:0] latched_cta_size;
     logic [1:0] chunk_counter;
     logic last_chunk_done;
@@ -45,7 +50,7 @@ module dispatcher_fsm (
         case (latched_cta_size)
             2'b00: cta_total_size = 10'd256;
             2'b01: cta_total_size = 10'd512;
-            2'b10: cta_total_size = 10'd1023;  // Fix: 1024 doesn't fit in 10 bits
+            2'b11: cta_total_size = 10'd1023;  // Fix: 1024 doesn't fit in 10 bits
             default: cta_total_size = 10'd256;
         endcase
     end
@@ -56,7 +61,7 @@ module dispatcher_fsm (
         case (latched_cta_size)
             2'b00: max_chunks = 2'b00;        // 1 chunk (0)
             2'b01: max_chunks = 2'b01;        // 2 chunks (0-1)
-            2'b10: max_chunks = 2'b11;        // 4 chunks (0-3)
+            2'b11: max_chunks = 2'b11;        // 4 chunks (0-3)
             default: max_chunks = 2'b00;
         endcase
     end

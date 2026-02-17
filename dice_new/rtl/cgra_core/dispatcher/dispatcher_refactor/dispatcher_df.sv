@@ -1,9 +1,11 @@
-module dispatcher_dataflow #(
-)(
+module dispatcher_dataflow
+    import dice_pkg::*, 
+           dice_frontend_pkg::*;
+(
     // Output Data
-    output logic [1023:0] latched_active_mask,
-    output logic [65:0] latched_input_regs,
-    output logic [9:0] dispatched_count,
+    output logic [DICE_NUM_MAX_THREADS_PER_CORE-1:0] latched_active_mask,
+    output logic [REG_NUM-1:0] latched_input_regs,
+    output logic [$clog2(DICE_NUM_MAX_THREADS_PER_CORE+1)-1:0] dispatched_count,
     output logic [1:0] latched_unrolling_factor,
     output logic [1:0] latched_cta_size,
     output logic [1:0] chunk_counter,
@@ -11,10 +13,10 @@ module dispatcher_dataflow #(
     output logic restart,
     
     // Input Data
-    input logic [1023:0] active_mask,
-    input logic [65:0] input_register_bitmap,
+    input logic [DICE_NUM_MAX_THREADS_PER_CORE-1:0] active_mask,
+    input logic [REG_NUM-1:0] input_register_bitmap,
     input logic [1:0] unrolling_factor,
-    input logic [1:0] cta_size,
+    input cta_size_e cta_size,                 // 0=256, 1=512, 3=1024
     input logic dispatch_valid_0, dispatch_valid_1,
                 dispatch_valid_2, dispatch_valid_3,
     input logic [1:0] max_chunks,
@@ -34,11 +36,11 @@ module dispatcher_dataflow #(
     always_ff @(posedge clk) begin
         if (!rst_n) begin
             latched_unrolling_factor <= 2'b0;
-            latched_input_regs <= 66'b0;
-            latched_active_mask <= 1024'b0;
+            latched_input_regs <= '0;
+            latched_active_mask <= '0;
             latched_cta_size <= 2'b0;
-            dispatched_count <= 10'b0;
-            chunk_counter <= 2'b0;
+            dispatched_count <= '0;
+            chunk_counter <= '0;
             last_chunk_done <= 1'b0;
             restart <= 1'b0;
         end
@@ -48,8 +50,8 @@ module dispatcher_dataflow #(
             latched_input_regs <= input_register_bitmap;
             latched_active_mask <= active_mask;
             latched_cta_size <= cta_size;
-            dispatched_count <= 10'b0;
-            chunk_counter <= 2'b0;
+            dispatched_count <= '0;
+            chunk_counter <= '0;
             restart <= 1'b1;
         end
 
@@ -83,8 +85,8 @@ module dispatcher_dataflow #(
             latched_input_regs <= input_register_bitmap;
             latched_active_mask <= active_mask;
             latched_cta_size <= cta_size;
-            dispatched_count <= 10'b0;
-            chunk_counter <= 2'b0;
+            dispatched_count <= '0;
+            chunk_counter <= '0;
             last_chunk_done <= 1'b0;
         end
     end
