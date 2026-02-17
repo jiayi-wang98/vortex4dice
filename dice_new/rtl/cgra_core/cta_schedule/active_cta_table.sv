@@ -73,6 +73,7 @@ module active_cta_table
     endcase
   end
 
+  logic found_empty_r;
   assign entries_to_clear = cta_table_q[pop_hw_cta_id_i].entries_used;
 
   // Find next empty entry - Contiguous Block Search
@@ -86,7 +87,7 @@ module active_cta_table
     empty_index = '0;
 
     for (int i = 0; i < DICE_NUM_MAX_CTA_PER_CORE; i++) begin
-      if (!found_empty) begin
+      if (!found_empty_r) begin
         unique case (entries_needed)
           1: if (entries_valid[i] == 1'b0) begin
                found_empty = 1'b1;
@@ -106,10 +107,18 @@ module active_cta_table
     end
   end
 
+  always_ff @(posedge clk_i) begin
+    if (rst_i == 1'b1) begin
+      found_empty_r <= 1'b0;
+    end else begin
+      found_empty_r <= found_empty;
+    end
+  end
+
   // Output assignments
-  assign full_o                 = (found_empty == 1'b0);
+  assign full_o                 = (found_empty_r == 1'b0);
   assign next_empty_cta_index_o = empty_index;
-  assign add_ready_o            = found_empty;
+  assign add_ready_o            = found_empty_r;
 
   // Output interface
   assign out_valid_o            = output_buffer_valid_q;
