@@ -43,6 +43,7 @@ module branch_handler_no_branches
 
   //--- Rising edge detection for branch_meta_valid_i ---
   logic branch_meta_valid_rise;
+  logic update_stack_fire;
 
   rising_edge_detector u_branch_meta_valid_rise (
       .clk_i  (clk_i),
@@ -110,7 +111,7 @@ assign branch_predict_info_o.hw_cta_id = hw_cta_id_i;
 
 
 assign update_valid_o = (update_state_q == UPDATE_STACK);
-logic update_stack_fire;
+
 assign update_stack_fire = update_valid_o && update_ready_i;
 
 

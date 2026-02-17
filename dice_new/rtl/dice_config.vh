@@ -5,10 +5,7 @@
 // Global architectural configuration constants
 // =========================================================
 
-`define DICE_ADDR_WIDTH              32
 `define DICE_MAX_KERNEL_SIZE         65536
-`define DICE_MAX_GRID_SIZE           65536
-`define DICE_NUM_CGRA_CLUSTERS        1
 // Available registers
 `define DICE_GPR_NUM                 16 // General Purpose Registers
 `define DICE_PR_NUM                  8  // Predicate Registers

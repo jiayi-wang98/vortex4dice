@@ -251,7 +251,7 @@ module VX_cache_bank import VX_gpu_pkg::*; #(
 
     wire [TAG_WIDTH-1:0] flush_tag;
     if (UUID_WIDTH != 0) begin : g_flush_tag_uuid
-        assign flush_tag = {flush_uuid, (TAG_WIDTH-UUID_WIDTH)'(1'b0)};
+        assign flush_tag = {flush_uuid};
     end else begin : g_flush_tag_0
         `UNUSED_VAR (flush_uuid)
         assign flush_tag = '0;
@@ -479,7 +479,8 @@ module VX_cache_bank import VX_gpu_pkg::*; #(
     wire mshr_release_fire = mshr_finalize_st1 && mshr_release_st1 && ~pipe_stall;
 
     wire [1:0] mshr_dequeue;
-    `POP_COUNT(mshr_dequeue, {replay_fire, mshr_release_fire});
+    
+     `POP_COUNT(mshr_dequeue, {replay_fire, mshr_release_fire});
 
     VX_pending_size #(
         .SIZE (MSHR_SIZE),

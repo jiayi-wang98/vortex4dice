@@ -1,0 +1,171 @@
+// `timescale 1ns/1ps
+`include "dice_define.vh"
+
+module tb_dice_core;
+  import dice_pkg::*;
+  import dice_frontend_pkg::*;
+
+  // =========================================================================
+  // Parameters
+  // =========================================================================
+  localparam int TimeoutCycles = 1000;
+  localparam int ClkPeriod     = 10;
+
+  // =========================================================================
+  // Signals
+  // =========================================================================
+  logic clk;
+  logic reset;
+
+  // Host/Dispatcher Interface - CTA Allocation
+  logic           cta_add_valid_i;
+  logic           cta_add_ready_o;
+  dice_cta_desc_t new_cta_desc_i;
+
+  logic         cta_complete_valid_o;
+  logic         cta_complete_ready_i;
+  dice_cta_id_t cta_done_id_o;
+
+  // Memory Bus Interfaces
+  VX_mem_bus_if #(
+      .DATA_SIZE(VX_gpu_pkg::VX_MEM_DATA_WIDTH / 8),
+      .TAG_WIDTH(48)
+  ) metacache_mem_if ();
+
+  VX_mem_bus_if #(
+      .DATA_SIZE(VX_gpu_pkg::VX_MEM_DATA_WIDTH / 8),
+      .TAG_WIDTH(48)
+  ) bitstream_cache_mem_if ();
+
+  // =========================================================================
+  // Dummy Memories
+  // =========================================================================
+  logic [VX_gpu_pkg::VX_MEM_DATA_WIDTH-1:0] meta_rsp_data;
+  logic [VX_gpu_pkg::VX_MEM_DATA_WIDTH-1:0] bitstream_rsp_data;
+
+  meta_memory #(
+      .DATA_SIZE(VX_gpu_pkg::VX_MEM_DATA_WIDTH / 8),
+      .TAG_WIDTH(48),
+      .LATENCY  (8)
+  ) u_meta_mem (
+      .clk           (clk),
+      .reset         (reset),
+      .response_data (meta_rsp_data),
+      .mem_bus_if    (metacache_mem_if)
+  );
+
+  bitstream_memory #(
+      .DATA_SIZE(VX_gpu_pkg::VX_MEM_DATA_WIDTH / 8),
+      .TAG_WIDTH(48),
+      .LATENCY  (5)
+  ) u_bitstream_mem (
+      .clk           (clk),
+      .reset         (reset),
+      .response_data (bitstream_rsp_data),
+      .mem_bus_if    (bitstream_cache_mem_if)
+  );
+
+  int cycle_count;
+
+  always_ff @(posedge clk or posedge reset) begin
+    if (reset) cycle_count <= 0;
+    else begin
+      cycle_count <= cycle_count + 1;
+      if (cycle_count >= TimeoutCycles) $fatal(1, "TIMEOUT");
+    end
+  end
+
+  // =========================================================================
+  // DUT Instantiation
+  // =========================================================================
+  dice_core u_dut (
+      .clk_i                   (clk),
+      .rst_i                   (reset),
+      .cta_add_valid_i         (cta_add_valid_i),
+      .cta_add_ready_o         (cta_add_ready_o),
+      .new_cta_desc_i          (new_cta_desc_i),
+      .cta_complete_valid_o    (cta_complete_valid_o),
+      .cta_complete_ready_i    (cta_complete_ready_i),
+      .cta_done_id_o           (cta_done_id_o),
+      .metacache_mem_if        (metacache_mem_if),
+      .bitstream_cache_mem_if  (bitstream_cache_mem_if)
+  );
+
+  // =========================================================================
+  // Clock Generation
+  // =========================================================================
+  initial begin
+    clk = 1'b0;
+    forever #(ClkPeriod / 2) clk = ~clk;
+  end
+
+  // =========================================================================
+  // Helper Tasks
+  // =========================================================================
+  task automatic init_inputs();
+    cta_add_valid_i      = 1'b0;
+    new_cta_desc_i       = '0;
+    cta_complete_ready_i = 1'b1;
+
+    // Memory responses default to ready/idle in this skeleton.
+    // Dummy memory configuration
+    meta_rsp_data      = '0;
+    bitstream_rsp_data = '0;
+  endtask
+
+  task automatic reset_dut();
+    reset = 1'b1;
+    repeat (10) @(posedge clk);
+    reset = 1'b0;
+    // @(posedge clk);
+  endtask
+
+
+  task automatic dispatch_cta(input dice_cta_desc_t desc);
+    new_cta_desc_i = desc;
+    cta_add_valid_i = 1'b1;
+
+    // do begin
+    //   @(posedge clk);
+    // end while (cta_add_ready_o !== 1'b1);
+
+    // cta_add_valid_i = 1'b0;
+  endtask
+
+
+
+  // =========================================================================
+  // Placeholder Stimulus (Skeleton Only)
+  // =========================================================================
+  initial begin
+    dice_cta_desc_t test_desc;
+    $display("dice_core skeleton testbench");
+    reset = 1'b1;
+    init_inputs();
+    reset_dut();
+    // repeat (5) @(posedge clk);
+    test_desc = '0;
+    test_desc.kernel_desc.start_pc = 32'h1000;
+    test_desc.kernel_desc.cta_size.x = 100;
+    test_desc.kernel_desc.cta_size.y = 1;
+    test_desc.kernel_desc.cta_size.z = 3;
+    test_desc.cta_id.y = 13;
+    meta_rsp_data = '1;
+    bitstream_rsp_data = '1;
+    dispatch_cta(test_desc);
+    repeat (100) @(posedge clk);
+
+
+    $display("dice_core skeleton testbench complete");
+    $finish;
+  end
+
+`ifdef FSDB
+  initial begin
+    // Optional waveform dump hook for debug.
+    $fsdbDumpfile("tb_dice_core.fsdb");
+    $fsdbDumpvars(0, "+struct");
+  end
+`endif
+
+endmodule

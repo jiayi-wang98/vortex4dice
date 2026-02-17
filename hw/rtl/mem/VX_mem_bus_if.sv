@@ -20,12 +20,15 @@ interface VX_mem_bus_if import VX_gpu_pkg::*; #(
     parameter MEM_ADDR_WIDTH = `MEM_ADDR_WIDTH,
     parameter ADDR_WIDTH = MEM_ADDR_WIDTH - `CLOG2(DATA_SIZE)
 ) ();
-
+    /*
     typedef struct packed {
         logic [`UP(UUID_WIDTH)-1:0]           uuid;
         logic [TAG_WIDTH-`UP(UUID_WIDTH)-1:0] value;
     } tag_t;
-
+    */
+    typedef struct packed {
+    logic [TAG_WIDTH-1:0] uuid; 
+    } tag_t;
     typedef struct packed {
         logic                   rw;
         logic [ADDR_WIDTH-1:0]  addr;
