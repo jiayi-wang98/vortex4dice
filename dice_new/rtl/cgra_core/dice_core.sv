@@ -6,14 +6,8 @@ module dice_core
     input logic clk_i,
     input logic rst_i,
 
-    // Host/Dispatcher Interface - CTA Allocation
-    input  logic           cta_add_valid_i,
-    output logic           cta_add_ready_o,
-    input  dice_cta_desc_t new_cta_desc_i,
-
-    output logic         cta_complete_valid_o,
-    input  logic         cta_complete_ready_i,
-    output dice_cta_id_t cta_done_id_o,
+    cta_dispatch_if.slave cta_dispatch_if_inst;
+    cta_complete_if.master cta_complete_if_inst;
 
     // Memory Bus Interfaces
     VX_mem_bus_if.master metacache_mem_if,
@@ -43,19 +37,6 @@ module dice_core
   // Eblock flush wires (FDR -> Scheduler)
   logic                       eblock_flush_valid;
   logic [EBLOCK_ID_WIDTH-1:0] eblock_flush_id;
-
-  // CTA Dispatcher interfaces (internal, wired to flat top-level ports)
-  cta_dispatch_if cta_dispatch_if_inst ();
-  cta_complete_if cta_complete_if_inst ();
-
-  // Wire flat top-level ports to internal interfaces
-  assign cta_dispatch_if_inst.valid = cta_add_valid_i;
-  assign cta_dispatch_if_inst.data  = new_cta_desc_i;
-  assign cta_add_ready_o            = cta_dispatch_if_inst.ready;
-
-  assign cta_complete_valid_o       = cta_complete_if_inst.valid;
-  assign cta_done_id_o              = cta_complete_if_inst.cta_id;
-  // Note: cta_complete_ready_i is not used by cta_controller (ready is always implicit)
 
   cta_schedule_stage u_cta_schedule_stage (
       .clk_i                   (clk_i),

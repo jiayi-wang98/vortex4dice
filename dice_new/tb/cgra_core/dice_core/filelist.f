@@ -1,4 +1,6 @@
 -sv
+-y ${DICE_HOME}/../hw/rtl/libs
++libext+.sv
 +define+NO_SRAM
 
 +incdir+${DICE_HOME}/rtl
@@ -12,6 +14,7 @@ ${DICE_HOME}/../hw/rtl/VX_config.vh
 ${DICE_HOME}/../hw/rtl/VX_define.vh
 ${DICE_HOME}/../hw/rtl/VX_gpu_pkg.sv
 ${DICE_HOME}/../hw/rtl/mem/VX_mem_bus_if.sv
+${DICE_HOME}/../hw/rtl/mem/VX_local_mem.sv
 
 // ==== DICE configs and packages ====
 ${DICE_HOME}/rtl/dice_config.vh
@@ -88,6 +91,5 @@ ${DICE_HOME}/rtl/cgra_core/dummy_cgra.sv
 ${DICE_HOME}/rtl/cgra_core/dice_core.sv
 
 // ==== Testbench ====
-${DICE_HOME}/tb/cgra_core/dice_core/meta_memory.sv
-${DICE_HOME}/tb/cgra_core/dice_core/bitstream_memory.sv
+
 ${DICE_HOME}/tb/cgra_core/dice_core/tb_dice_core.sv
