@@ -16,5 +16,12 @@ ${DICE_HOME}/dice_new/rtl/interfaces/cgra_cm_if.sv
 ${DICE_HOME}/dice_new/rtl/interfaces/fdr_if.sv
 ${DICE_HOME}/dice_new/rtl/dice_ram/dice_ram_1w1r.sv
 ${DICE_HOME}/dice_new/rtl/dice_ram/dice_ram_1rw.sv
-${DICE_HOME}/dice_new/rtl/cgra_core/cta_schedule/cta_scheduler.sv
-tb_cta_scheduler.sv
+${DICE_HOME}/dice_new/rtl/cgra_core/fetch_stage/bitstream_fetch_load.sv
+${DICE_HOME}/dice_new/rtl/cgra_core/fetch_stage/rising_edge_detector.sv
+${DICE_HOME}/dice_new/rtl/cgra_core/fetch_stage/branch_handler_no_branches.sv
+${DICE_HOME}/dice_new/rtl/cgra_core/fetch_stage/decode.sv
+${DICE_HOME}/dice_new/rtl/cgra_core/fetch_stage/meta_fetch.sv
+${DICE_HOME}/dice_new/rtl/cgra_core/fetch_stage/valid_check.sv
+${DICE_HOME}/dice_new/rtl/cgra_core/fetch_stage/fdr_top.sv
+
+tb_fdr_top.sv

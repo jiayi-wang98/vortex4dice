@@ -16,5 +16,11 @@ ${DICE_HOME}/dice_new/rtl/interfaces/cgra_cm_if.sv
 ${DICE_HOME}/dice_new/rtl/interfaces/fdr_if.sv
 ${DICE_HOME}/dice_new/rtl/dice_ram/dice_ram_1w1r.sv
 ${DICE_HOME}/dice_new/rtl/dice_ram/dice_ram_1rw.sv
+${DICE_HOME}/dice_new/rtl/cgra_core/cta_schedule/active_cta_table.sv
+${DICE_HOME}/dice_new/rtl/cgra_core/cta_schedule/cta_controller.sv
 ${DICE_HOME}/dice_new/rtl/cgra_core/cta_schedule/cta_scheduler.sv
-tb_cta_scheduler.sv
+${DICE_HOME}/dice_new/rtl/cgra_core/cta_schedule/cta_status_table.sv
+${DICE_HOME}/dice_new/rtl/cgra_core/cta_schedule/simt_stack.sv
+${DICE_HOME}/dice_new/rtl/cgra_core/cta_schedule/simt_stack_controller.sv
+${DICE_HOME}/dice_new/rtl/cgra_core/cta_schedule/cta_schedule_stage.sv
+tb_cta_schedule_stage.sv
