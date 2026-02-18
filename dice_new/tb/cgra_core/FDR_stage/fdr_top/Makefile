@@ -6,7 +6,7 @@ TB ?= tb_fdr_top
 
 sim:
 	@echo "Running VCS sim with TOP=$(TB)"
-	@./run_vcs.sh
+	@TB_TOP=$(TB) tclsh run_vcs.tcl
 
 clean:
 	@echo "Cleaning VCS + Verdi artifacts (but keeping novas.conf / novas.rc)..."
@@ -23,4 +23,3 @@ clean:
 	        *.log \
 	        *.key
 	@echo "Done."
-	
