@@ -40,33 +40,33 @@ module tb_dice_core;
   // =========================================================================
   // Memory Instantiation
   // =========================================================================
-   VX_local_mem #(
-    .SIZE      (1 << 26),
-    .NUM_REQS  (1),
-    .NUM_BANKS (1),
-    .ADDR_WIDTH(19), //gonna have to figure out how to make this work
-    .WORD_SIZE (256),
-    .TAG_WIDTH (DICE_ADDR_WIDTH),
-    .OUT_BUF   (0)
-   ) u_meta_mem (
-      .clk        (clk),
-      .reset      (reset),
-      .mem_bus_if (metacache_mem_if)
-   );
+  //  VX_local_mem #(
+  //   .SIZE      (1 << 26),
+  //   .NUM_REQS  (1),
+  //   .NUM_BANKS (1),
+  //   .ADDR_WIDTH(19), //gonna have to figure out how to make this work
+  //   .WORD_SIZE (256),
+  //   .TAG_WIDTH (DICE_ADDR_WIDTH),
+  //   .OUT_BUF   (0)
+  //  ) u_meta_mem (
+  //     .clk        (clk),
+  //     .reset      (reset),
+  //     .mem_bus_if (metacache_mem_if)
+  //  );
 
-   VX_local_mem #(
-    .SIZE      (1 << 26),
-    .NUM_REQS  (1),
-    .NUM_BANKS (1),
-    .ADDR_WIDTH(19),
-    .WORD_SIZE (512),
-    .TAG_WIDTH (DICE_ADDR_WIDTH),
-    .OUT_BUF   (0)
-   ) u_bitstream_mem (
-      .clk        (clk),
-      .reset      (reset),
-      .mem_bus_if (bitstream_cache_mem_if)
-   );
+  //  VX_local_mem #(
+  //   .SIZE      (1 << 26),
+  //   .NUM_REQS  (1),
+  //   .NUM_BANKS (1),
+  //   .ADDR_WIDTH(19),
+  //   .WORD_SIZE (512),
+  //   .TAG_WIDTH (DICE_ADDR_WIDTH),
+  //   .OUT_BUF   (0)
+  //  ) u_bitstream_mem (
+  //     .clk        (clk),
+  //     .reset      (reset),
+  //     .mem_bus_if (bitstream_cache_mem_if)
+  //  );
 
 
   // =========================================================================
@@ -134,32 +134,40 @@ module tb_dice_core;
     cta_dispatch_if_inst.valid = 1'b0;
   endtask
 
-  // Task to generate and dispatch random CTA
-  task automatic dispatch_random_cta();
-    CtaGenerator gen;
-    gen = new();
-
-    if(gen.randomize()) begin
-      $display("Dispatching CTA: KernelID=%0d, Grid=(%0d,%0d,%0d), CTA_ID=(%0d,%0d,%0d)",
-                gen.desc.kernel_desc.kernel_id,
-                gen.desc.kernel_desc.grid_size.x, gen.desc.kernel_desc.grid_size.y, gen.desc.kernel_desc.grid_size.z,
-                gen.desc.cta_id.x, gen.desc.cta_id.y, gen.desc.cta_id.z);
-      dispatch_cta(gen.desc);
-    end else begin
-      $error("Failed to randomize CTA descriptor");
-    end
+  // Fill a new CTA with this info - may want to upgrade this task
+  task automatic  populate_cta(ref dice_cta_desc_t desc);
+      desc.kernel_desc.grid_size.x = 2;
+      desc.kernel_desc.grid_size.y = 2;
+      desc.kernel_desc.grid_size.z = 2;
+      desc.kernel_desc.cta_size.x  = 5;
+      desc.kernel_desc.cta_size.y  = 5;
+      desc.kernel_desc.cta_size.z  = 5;
+      desc.cta_id.x = 10;
+      desc.cta_id.y = 10;
+      desc.cta_id.z = 10;
+      desc.kernel_desc.kernel_id = 12;
+      desc.kernel_desc.smem_per_cta = 0;
+      desc.kernel_desc.start_pc = 32'h1000;
+      desc.kernel_desc.arg_ptr = 32'h2000;
   endtask
+
+
 
   // CREATE TASK TO ADD METADATA/BITSTREAM TO MEMORIES
 
 
 // Stimulus
   initial begin
-    $display("dice_core random testbench");
+    dice_cta_desc_t new_cta;
+    $display("dice_core testbench");
+
+    populate_cta(new_cta);
     init_inputs();
     reset_dut();
 
-    dispatch_random_cta();
+
+    dispatch_cta(new_cta);
+
     repeat (100) @(posedge clk);
 
     $display("TB Done");

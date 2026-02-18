@@ -60,3 +60,20 @@ module tb_dice_core_pkg();
 
 
 endmodule
+
+
+  // Task to generate and dispatch random CTA
+  // task automatic dispatch_random_cta();
+  //   CtaGenerator gen;
+  //   gen = new();
+
+  //   if(gen.randomize()) begin
+  //     $display("Dispatching CTA: KernelID=%0d, Grid=(%0d,%0d,%0d), CTA_ID=(%0d,%0d,%0d)",
+  //               gen.desc.kernel_desc.kernel_id,
+  //               gen.desc.kernel_desc.grid_size.x, gen.desc.kernel_desc.grid_size.y, gen.desc.kernel_desc.grid_size.z,
+  //               gen.desc.cta_id.x, gen.desc.cta_id.y, gen.desc.cta_id.z);
+  //     dispatch_cta(gen.desc);
+  //   end else begin
+  //     $error("Failed to randomize CTA descriptor");
+  //   end
+  // endtask
