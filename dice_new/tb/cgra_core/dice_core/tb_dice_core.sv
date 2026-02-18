@@ -164,8 +164,9 @@ module tb_dice_core;
     populate_cta(new_cta);
     init_inputs();
     reset_dut();
-
-
+    
+    repeat(10) @(posedge clk); // if there isn't a space between reset and dispatch 
+    // active cta table isn't getting the cta
     dispatch_cta(new_cta);
 
     repeat (100) @(posedge clk);
@@ -177,7 +178,7 @@ module tb_dice_core;
 `ifdef FSDB
   initial begin
     $fsdbDumpfile("tb_dice_core.fsdb");
-    $fsdbDumpvars(0, "+struct");
+    $fsdbDumpvars(0, tb_dice_core, "+struct");
   end
 `endif
 
