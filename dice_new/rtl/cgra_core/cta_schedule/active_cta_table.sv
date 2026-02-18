@@ -87,7 +87,7 @@ module active_cta_table
     empty_index = '0;
 
     for (int i = 0; i < DICE_NUM_MAX_CTA_PER_CORE; i++) begin
-      if (!found_empty_r) begin
+      if (!found_empty) begin
         unique case (entries_needed)
           1: if (entries_valid[i] == 1'b0) begin
                found_empty = 1'b1;
