@@ -219,4 +219,11 @@ module cta_scheduler
     end
   end
 
+  `ifndef SYNTHESIS
+    ValidMask: assert property (@(posedge clk_i) disable iff (rst_i)
+      scheduled_eblock.valid |-> (!$isunknown(scheduled_eblock.data.schedule_active_mask))
+    ) else $fatal("ValidMask: Tried to schedule invalid active mask");
+
+`endif
+
 endmodule

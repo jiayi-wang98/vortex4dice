@@ -1,5 +1,6 @@
 `include "dice_define.vh"
 
+
 module cta_schedule_stage
   import dice_pkg::*;
   import dice_frontend_pkg::*;
@@ -235,6 +236,16 @@ module cta_schedule_stage
       .stack_empty_o                (stack_empty),
       .stack_full_o                 (stack_full)
   );
+
+
+
+`ifndef SYNTHESIS
+  invalid_active_mask: assert property (@(posedge clk_i) disable iff (rst_i)
+    (simt_init_valid && simt_init_ready) |-> ##2 (!$isunknown(stack_top_active_mask_i))
+  ) else $error("ASSERT FAILED");
+
+
+`endif
 
 
 endmodule

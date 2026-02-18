@@ -183,6 +183,13 @@ module simt_stack
             end
         end
     end
+    
+    invalid_mask: assert property (@(posedge clk_i) disable iff (rst_i)
+      (!$isuknown(top_active_mask_o))
+    ) else $error("Stack active mask unknown");
+
+
+
     `endif
 
 endmodule
