@@ -285,7 +285,7 @@ module VX_cache import VX_gpu_pkg::*; #(
     for (genvar i = 0; i < NUM_REQS; ++i) begin : g_core_req_wsel
         if (WORDS_PER_LINE > 1) begin : g_wsel
 
-           assign core_req_wsel[i] = core_req_addr[i][3 +: WORD_SEL_BITS]; 
+           assign core_req_wsel[i] = core_req_addr[i][`CLOG2(WORD_SIZE) +: WORD_SEL_BITS]; 
         end else begin : g_no_wsel
             assign core_req_wsel[i] = '0;
         end

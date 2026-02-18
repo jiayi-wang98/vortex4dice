@@ -10,9 +10,9 @@ module tb_vx_cache_with_temporal;
     parameter int NUMBER_OF_MAX_COALESCED_INTERVAL = 8;
     parameter int MAX_REG_WIDTH = 7;
     parameter int TID_BITMAP_WIDTH = 8;
-    parameter int NUM_REQS = 4;
+    parameter int NUM_REQS = 1; 
     parameter int MEM_PORTS = 1;
-    parameter OUTCMD_TAG_WIDTH = 69;
+    parameter OUTCMD_TAG_WIDTH = NUMBER_OF_MAX_COALESCED_COMMANDS * $clog2(CACHE_LINE_SIZE) + EBLOCK_ID_WIDTH + TID_WIDTH + TID_BITMAP_WIDTH + MAX_REG_WIDTH;
     parameter MSHR_SIZE = 16;
     parameter MSHR_BITS = $clog2(MSHR_SIZE);
     parameter MEM_TAG_WIDTH = OUTCMD_TAG_WIDTH + MSHR_BITS;
@@ -36,7 +36,7 @@ module tb_vx_cache_with_temporal;
     bit [255:0] mem_rsp_data;
     bit [MEM_TAG_WIDTH-1:0] mem_rsp_tag;
 
-    logic [DATA_WIDTH-1:0] core_rsp_data;
+    logic [CACHE_LINE_SIZE*8-1:0] core_rsp_data; 
     logic core_rsp_valid;
     logic [OUTCMD_TAG_WIDTH-1:0] core_rsp_tag;
 
@@ -80,7 +80,8 @@ module tb_vx_cache_with_temporal;
         .MAX_REG_WIDTH(MAX_REG_WIDTH),
         .TID_BITMAP_WIDTH(TID_BITMAP_WIDTH),
         .NUM_REQS(NUM_REQS),
-        .MEM_PORTS(MEM_PORTS)
+        .MEM_PORTS(MEM_PORTS),
+        .OUTCMD_TAG_WIDTH(OUTCMD_TAG_WIDTH)
     ) dut (
         .clk(clk), .rst(rst),
         .incmd_valid(incmd_valid), .incmd_block_id(incmd_block_id),
@@ -98,71 +99,73 @@ module tb_vx_cache_with_temporal;
         .mem_rsp_ready(mem_rsp_ready)
     );
 
+    // --- Read Task ---
     task send_read_request(input [31:0] addr, input [TID_WIDTH-1:0] tid);
     begin
         @(posedge clk);
         incmd_valid   = 1;
         incmd_address = addr;
         incmd_tid     = tid;
-        incmd_size    = 2'b11; // 8-byte read
+        incmd_write_enable = 0;
+        incmd_size    = 2'b11; 
         
-        // Wait for the Cache to accept the address
         wait(dut.incmd_ready == 1'b1); 
         @(posedge clk);
         incmd_valid   = 0;
 
-        // --- ADD THIS: Wait for the actual data to return ---
-        $display("[TB] Sent Read Req for Addr: %h, waiting for response...", addr);
         fork
             begin
                 wait(core_rsp_valid == 1'b1);
-                $display("[TB] Received response for Addr: %h", addr);
+                @(posedge clk); 
             end
             begin
-                #(CLK_PERIOD * 200); // Timeout safety
-                if (!core_rsp_valid) $display("[TB] TIMEOUT: No response for Addr: %h", addr);
+                #(CLK_PERIOD * 300);
+                $display("[TB] TIMEOUT waiting for read response addr=%h", addr);
             end
         join_any
-        disable fork; 
+        disable fork;
     end
-endtask
+    endtask
 
-    // --- Write Task ---
+    // --- TASK: WRITE REQUEST ---
     task send_write_request(
         input [31:0] addr, 
         input [DATA_WIDTH-1:0] data, 
         input [DATA_WIDTH/8-1:0] mask, 
         input [TID_WIDTH-1:0] tid
     );
-        begin
-            @(posedge clk);
-            incmd_valid        = 1;
-            incmd_address      = addr;
-            incmd_tid          = tid;
-            incmd_write_enable = 1;        // Enable Write
-            incmd_write_data   = data;     // Data to write
-            incmd_write_mask   = mask;     // Byte-enable mask (e.g., 8'hFF)
-            incmd_size         = 2'b00;    // 8-byte write
-            
-            wait(dut.incmd_ready == 1'b1); 
-            @(posedge clk);
-            incmd_valid        = 0;
-            incmd_write_enable = 0;
-        end
+    begin
+        @(posedge clk);
+        incmd_valid        = 1;
+        incmd_address      = addr;
+        incmd_tid          = tid;
+        incmd_write_enable = 1;
+        incmd_write_data   = data;
+        incmd_write_mask   = mask;
+        incmd_size         = 2'b11;
+        
+        wait(dut.incmd_ready == 1'b1);
+        @(posedge clk);
+        incmd_valid        = 0;
+        incmd_write_enable = 0;
+    end
     endtask
 
+    // --- Slicing the Tag to get TID info ---
+    // Tag Structure from LSB: 
+    // [39:0] AddressMap | [46:40] Reg | [54:47] Bitmap | [64:55] BaseTID | [68:65] BlockID
+    wire [9:0] rsp_base_tid = core_rsp_tag[64:55];
+    wire [7:0] rsp_bitmap   = core_rsp_tag[54:47];
 
-    wire [9:0] rsp_tid = core_rsp_tag[64:55];      // Base TID
-    wire [7:0] rsp_bitmap = core_rsp_tag[54:47];   // Bitmap showing which TID is active
-    
+    // Monitor
     always @(posedge clk) begin
         if (core_rsp_valid && core_rsp_ready) begin
-            $display("[MONITOR] Time: %0t | BaseTID: %0d | Bitmap: %b | Data: %h", 
-                     $time, rsp_tid, rsp_bitmap, core_rsp_data);
+            $display("[MONITOR] Time: %0t | BaseTID: %0d | Bitmap: %b | Full Line Data: %h", 
+                     $time, rsp_base_tid, rsp_bitmap, core_rsp_data);
         end
     end
 
-initial begin
+   initial begin
         // --- Initialization & Reset ---
         incmd_valid = 0;
         outcmd_ready = 1;
@@ -171,27 +174,47 @@ initial begin
         #(CLK_PERIOD * 10);
         rst = 0;
         repeat(5) @(posedge clk);
-    /*
-    // --- Step 1: Verification of Write-Read Path ---
-    $display("--- Starting Directed Write-Read Test ---");
-    
-    send_write_request(32'h0000_0F00, 64'hAAAA_AAAA_AAAA_AAAA, 8'hFF, 0); 
-    send_write_request(32'h0000_0F08, 64'hBBBB_BBBB_BBBB_BBBB, 8'hFF, 0); 
-    send_write_request(32'h0000_0F10, 64'hCCCC_CCCC_CCCC_CCCC, 8'hFF, 0); 
-    
-    #(CLK_PERIOD * 500); 
-    
-    // Read back
-    send_read_request(32'h0000_0F00, 0);
-    #(CLK_PERIOD * 20); // Small gap between reads
-    send_read_request(32'h0000_0F08, 0);
-    #(CLK_PERIOD * 20);
-    send_read_request(32'h0000_0F10, 0);
-    */
+
+        // --- Step 1: Write Coalescing Test ---
+        $display("--- Starting Write Coalescing Test (Addr 0x100) ---");
+        
+        // FIX 1: Change Mask from 8'hFF to 8'h00 (0 = Write Enable)
+        send_write_request(32'h0000_0100, 64'h1111_1111_1111_1111, 8'h00, 0); 
+        send_write_request(32'h0000_0108, 64'h2222_2222_2222_2222, 8'h00, 1); 
+        send_write_request(32'h0000_0110, 64'h3333_3333_3333_3333, 8'h00, 2); 
+        send_write_request(32'h0000_0118, 64'h4444_4444_4444_4444, 8'h00, 3); 
+
+        // Wait for coalescing interval to flush
+        #(CLK_PERIOD * 100);
+
+        // --- Step 2: Read-Back Verification ---
+        $display("--- Reading back Addr 0x100 ---");
+        
+        // FIX 2: Increased Timeout in logic below
+        // We use a fork-join to handle the timeout gracefully
+        fork
+            begin
+                send_read_request(32'h0000_0100, 0);
+                send_read_request(32'h0000_0108, 0);
+                send_read_request(32'h0000_0110, 0);
+            end
+            begin
+                // Wait longer for Cold Miss (e.g., 2000 cycles)
+                #(CLK_PERIOD * 2000); 
+                if (core_rsp_valid == 0) begin
+                    $display("[TB] CRITICAL TIMEOUT: Memory did not respond in time for Addr 0x100");
+                end
+            end
+        join_any
+        disable fork;
+
+        #(CLK_PERIOD * 100);
+        
+        // --- Step 3: Linear Sweep ---
         $display("--- Starting Linear Word Sweep ---");
         for (int j = 0; j < 8; j++) begin
             send_read_request(.addr(j * 8), .tid(j)); 
-            #(CLK_PERIOD * 10); 
+            #(CLK_PERIOD * 50); 
         end
 
         #(CLK_PERIOD * 100);
