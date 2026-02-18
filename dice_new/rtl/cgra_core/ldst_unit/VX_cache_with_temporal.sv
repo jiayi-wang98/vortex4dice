@@ -33,10 +33,8 @@ module VX_cache_with_temporal #(
     input logic [1:0] incmd_size,          
     input logic [MAX_REG_WIDTH-1:0] incmd_ld_dest_reg,    
     input logic outcmd_ready,
-    
-    //[cite_start]// CHANGE: Widen output to full cache line (256 bits) [cite: 155]
+
     output logic [CACHE_LINE_SIZE*8-1:0] core_rsp_data, 
-    
     output logic core_rsp_valid,
     output logic [OUTCMD_TAG_WIDTH-1:0] core_rsp_tag,
     input  logic core_rsp_ready,
@@ -123,7 +121,7 @@ module VX_cache_with_temporal #(
         .LINE_SIZE(CACHE_LINE_SIZE), 
         .NUM_BANKS(1),         
         .TAG_WIDTH(OUTCMD_TAG_WIDTH),
-        .WORD_SIZE(CACHE_LINE_SIZE), // 32 bytes (256 bits)
+        .WORD_SIZE(CACHE_LINE_SIZE), 
         .MEM_TAG_WIDTH(MEM_TAG_WIDTH)
     ) cache_inst (
         .clk(clk),
@@ -131,7 +129,7 @@ module VX_cache_with_temporal #(
 
         .core_req_valid('{outcmd_valid}),
         .core_req_rw('{outcmd_write_enable}),
-        .core_req_byteen('{~outcmd_write_mask}), // Inverted mask
+        .core_req_byteen('{~outcmd_write_mask}), 
         .core_req_addr('{outcmd_address[ADDR_WIDTH-1 : BASE_ADDRESS_OFFSET]}),     
         .core_req_data('{outcmd_write_data}),   
         .core_req_tag('{core_req_tag}),
@@ -140,7 +138,6 @@ module VX_cache_with_temporal #(
 
         .core_rsp_valid('{core_rsp_valid}),
         
-        //[cite_start]// CHANGE: Connect directly to the 256-bit output [cite: 176]
         .core_rsp_data('{core_rsp_data}), 
         
         .core_rsp_tag('{core_rsp_tag}),
