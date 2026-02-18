@@ -6,8 +6,8 @@ module dice_core
     input logic clk_i,
     input logic rst_i,
 
-    cta_dispatch_if.slave cta_dispatch_if_inst;
-    cta_complete_if.master cta_complete_if_inst;
+    cta_dispatch_if.slave cta_dispatch_if_inst,
+    cta_complete_if.master cta_complete_if_inst,
 
     // Memory Bus Interfaces
     VX_mem_bus_if.master metacache_mem_if,
