@@ -36,9 +36,10 @@ module smem #(
     // COMBINED MEMORY BLOCK: Using a single block for everything
     // ---------------------------------------------------------
     initial begin
-        // Load file
-        $readmemh("/data/thatton9/vortex4dice/dice_new/rtl/cgra_core/ldst_unit/test_cases.hex", mem);
-    end
+    // Path from: tb/cgra_core/ldst_unit/temporal_coalescing_unit/cache_testing/
+    // To: rtl/cgra_core/ldst_unit/test_cases.hex
+    $readmemh("../../../../../rtl/cgra_core/ldst_unit/test_cases.hex", mem);
+end
 
     // Use a standard 'always' instead of 'always_ff' for the memory array 
     // to satisfy strict tool check rules for memory modeling.
