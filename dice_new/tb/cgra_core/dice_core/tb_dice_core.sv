@@ -12,6 +12,11 @@ module tb_dice_core;
   localparam int TimeoutCycles = 1000;
   localparam int ClkPeriod     = 10;
 
+  // Test vector configuration
+  localparam string TEST_VECTORS_DIR = {`DICE_HOME_STR, "/tb/test_vectors"};
+  localparam string TEST_VECTOR_FILE = "kernel_simple";
+  localparam int    MEM_DATA_WIDTH   = 2048; // Must match metacache_mem_if DATA_SIZE * 8
+
   // =========================================================================
   // Signals
   // =========================================================================
@@ -40,19 +45,19 @@ module tb_dice_core;
   // =========================================================================
   // Memory Instantiation
   // =========================================================================
-  //  VX_local_mem #(
-  //   .SIZE      (1 << 26),
-  //   .NUM_REQS  (1),
-  //   .NUM_BANKS (1),
-  //   .ADDR_WIDTH(19), //gonna have to figure out how to make this work
-  //   .WORD_SIZE (256),
-  //   .TAG_WIDTH (DICE_ADDR_WIDTH),
-  //   .OUT_BUF   (0)
-  //  ) u_meta_mem (
-  //     .clk        (clk),
-  //     .reset      (reset),
-  //     .mem_bus_if (metacache_mem_if)
-  //  );
+  VX_local_mem #(
+    .SIZE      (1 << 26),
+    .NUM_REQS  (1),
+    .NUM_BANKS (1),
+    .ADDR_WIDTH(19),
+    .WORD_SIZE (256),
+    .TAG_WIDTH (DICE_ADDR_WIDTH),
+    .OUT_BUF   (0)
+  ) u_meta_mem (
+      .clk        (clk),
+      .reset      (reset),
+      .mem_bus_if (metacache_mem_if)
+  );
 
   //  VX_local_mem #(
   //   .SIZE      (1 << 26),
@@ -152,8 +157,40 @@ module tb_dice_core;
   endtask
 
 
+  // Load metadata .mem file into VX_local_mem via $readmemh backdoor
+  task automatic load_metadata(string mem_file);
+    $display("Loading metadata from %s", mem_file);
+    $readmemh(mem_file, u_meta_mem.g_data_store[0].lmem_store.ram);
+  endtask
 
-  // CREATE TASK TO ADD METADATA/BITSTREAM TO MEMORIES
+  // Generate .mem files from JSON test vector, load metadata, and dispatch CTA
+  task automatic dispatch_cta_with_metadata(
+    input string json_basename,  // e.g., "kernel_simple"
+    input dice_cta_desc_t desc
+  );
+    string gen_cmd;
+    string mem_file;
+    int ret;
+
+    // 1) Run Python converter to generate .mem files
+    gen_cmd = $sformatf(
+      "python3 %s/gen_memfile.py %s/%s.json --mem-data-width %0d --output-dir .",
+      TEST_VECTORS_DIR, TEST_VECTORS_DIR, json_basename, MEM_DATA_WIDTH
+    );
+    $display("[dispatch_cta_with_metadata] Running: %s", gen_cmd);
+    ret = $system(gen_cmd);
+    if (ret != 0) begin
+      $fatal(1, "gen_memfile.py failed with return code %0d", ret);
+    end
+
+    // 2) Load generated metadata into memory backdoor
+    mem_file = $sformatf("%s_meta.mem", json_basename);
+    load_metadata(mem_file);
+
+    // 3) Dispatch the CTA
+    $display("[dispatch_cta_with_metadata] Dispatching CTA for %s", json_basename);
+    dispatch_cta(desc);
+  endtask
 
 
 // Stimulus
@@ -164,10 +201,12 @@ module tb_dice_core;
     populate_cta(new_cta);
     init_inputs();
     reset_dut();
-    
-    repeat(10) @(posedge clk); // if there isn't a space between reset and dispatch 
+
+    repeat(10) @(posedge clk); // if there isn't a space between reset and dispatch
     // active cta table isn't getting the cta
-    dispatch_cta(new_cta);
+
+    // Dispatch CTA with auto-generated metadata from JSON
+    dispatch_cta_with_metadata(TEST_VECTOR_FILE, new_cta);
 
     repeat (100) @(posedge clk);
 
