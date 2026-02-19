@@ -178,7 +178,7 @@ module tb_dice_core;
 `ifdef FSDB
   initial begin
     $fsdbDumpfile("tb_dice_core.fsdb");
-    $fsdbDumpvars(0, tb_dice_core, "+struct");
+    $fsdbDumpvars(0, tb_dice_core, "+struct", "+mda");
   end
 `endif
 

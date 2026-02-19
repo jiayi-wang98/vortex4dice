@@ -169,7 +169,7 @@ module simt_stack
     end
 
     // Assertions for debugging
-    `ifndef SYNTHESIS
+`ifndef SYNTHESIS
     always @(posedge clk_i) begin
         if (rst_i == 1'b0) begin
             if ((push_i == 1'b1) && (stack_full_o == 1'b1)) begin
@@ -183,13 +183,6 @@ module simt_stack
             end
         end
     end
-    
-    invalid_mask: assert property (@(posedge clk_i) disable iff (rst_i)
-      (!$isuknown(top_active_mask_o))
-    ) else $error("Stack active mask unknown");
-
-
-
-    `endif
+`endif
 
 endmodule

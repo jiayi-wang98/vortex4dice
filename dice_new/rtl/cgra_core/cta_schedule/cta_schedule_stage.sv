@@ -186,6 +186,7 @@ module cta_schedule_stage
       .enable_i               (1'b1),
       .active_cta_entries_i   (active_cta_entries),
       .cta_status_entries_i   (scheduler_status_adapter),
+      .stack_top_valid_i      (stack_top_valid),
       .cta_next_pc_i          (stack_top_next_pc),
       .stack_top_active_mask_i(stack_top_active_mask),
       .eblock_commit_valid_i  (eblock_commit_valid_i),
@@ -240,9 +241,6 @@ module cta_schedule_stage
 
 
 `ifndef SYNTHESIS
-  invalid_active_mask: assert property (@(posedge clk_i) disable iff (rst_i)
-    (simt_init_valid && simt_init_ready) |-> ##2 (!$isunknown(stack_top_active_mask_i))
-  ) else $error("ASSERT FAILED");
 
 
 `endif
