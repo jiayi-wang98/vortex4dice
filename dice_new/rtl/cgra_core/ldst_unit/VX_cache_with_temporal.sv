@@ -137,9 +137,7 @@ module VX_cache_with_temporal #(
         .core_req_flags('{default: 0}),
 
         .core_rsp_valid('{core_rsp_valid}),
-        
         .core_rsp_data('{core_rsp_data}), 
-        
         .core_rsp_tag('{core_rsp_tag}),
         .core_rsp_ready('{core_rsp_ready}),
 

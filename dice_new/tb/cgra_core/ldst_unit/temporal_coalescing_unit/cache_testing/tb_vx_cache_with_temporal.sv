@@ -218,6 +218,16 @@ module tb_vx_cache_with_temporal;
         end
 
         #(CLK_PERIOD * 100);
+
+
+        // Test 4: Temporal timeout
+        $display("Temporal timeout");
+        send_write_request(32'h0000_0200, 64'hABCD_DCBA_A4BE_A4BE, 8'h00, 3);
+        #(CLK_PERIOD * 1000);
+
+        send_read_request(32'h0000_0200, 0);
+        #(CLK_PERIOD * 1000);
+
         $display("--- All Tests Complete ---");
         $finish;
     end

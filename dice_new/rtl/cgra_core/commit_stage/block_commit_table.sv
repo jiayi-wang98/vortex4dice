@@ -1,22 +1,23 @@
 module block_commit_table #(
     parameter MAX_NUM_CTA = 4,
-    parameter MAX_EBLOCK = MAX_NUM_CTA + 4
+    parameter MAX_EBLOCK = MAX_NUM_CTA + 4,
+    parameter R_W = 14
 ) (
     input  logic                                    clk,
-    input  logic                                    rst_n,
+    input  logic                                    rst,
     
     // Entry insert interface
     input  logic                                    insert_valid,
     input  logic [$clog2(MAX_NUM_CTA)-1:0]         insert_hw_cta_id,
     input  logic [$clog2(MAX_EBLOCK)-1:0]          insert_e_block_id,
-    input  logic [13:0]                            insert_pending_reads,
-    input  logic [13:0]                            insert_pending_writes,
+    input  logic [R_W-1:0]                            insert_pending_reads,
+    input  logic [R_W-1:0]                            insert_pending_writes,
     
     // Pending read/write update interface
     input  logic                                    update_valid,
     input  logic [$clog2(MAX_EBLOCK)-1:0]          update_e_block_id,
     input  logic                                    update_is_write,      // 0: read, 1: write
-    input  logic [3:0]                             update_reduce_count,  // max 8
+    input  logic [MAX_NUM_CTA-1:0]                             update_reduce_count,  // max 8
     
     // E-block commit interface
     output logic                                    pop_valid,
@@ -32,8 +33,8 @@ module block_commit_table #(
         logic                                       valid;
         logic [$clog2(MAX_NUM_CTA)-1:0]           hw_cta_id;
         logic [$clog2(MAX_EBLOCK)-1:0]            e_block_id;
-        logic [13:0]                               pending_reads;
-        logic [13:0]                               pending_writes;
+        logic [R_W-1:0]                               pending_reads;
+        logic [R_W-1:0]                               pending_writes;
     } table_entry_t;
     
     // Table storage
@@ -48,8 +49,8 @@ module block_commit_table #(
     logic commit_found;
     
     // Entry insert logic
-    always_ff @(posedge clk or negedge rst_n) begin
-        if (!rst_n) begin
+    always_ff @(posedge clk) begin
+        if (rst) begin
             // Initialize all entries as invalid
             for (int i = 0; i < MAX_EBLOCK; i++) begin
                 commit_table[i].valid <= 1'b0;
@@ -113,14 +114,14 @@ module block_commit_table #(
     always_comb begin
         for (int i = 0; i < MAX_EBLOCK; i++) begin
             ready_to_commit[i] = commit_table[i].valid && 
-                                (commit_table[i].pending_reads == 14'd0) && 
-                                (commit_table[i].pending_writes == 14'd0);
+                                (commit_table[i].pending_reads == {{R_W}{1'd0}}) && 
+                                (commit_table[i].pending_writes == {{R_W}{1'd0}});
         end
     end
     
     // Round-robin priority logic for commit selection
-    always_ff @(posedge clk or negedge rst_n) begin
-        if (!rst_n) begin
+    always_ff @(posedge clk) begin
+        if (rst) begin
             rr_ptr <= '0;
         end else if (pop_valid && pop_ready) begin
             // Update round-robin pointer after successful commit
@@ -165,13 +166,13 @@ module block_commit_table #(
     `ifndef SYNTHESIS
     // Check that e_block_id matches the table index
     always_ff @(posedge clk) begin
-        if (rst_n && insert_valid) begin
+        if (!rst && insert_valid) begin
             assert(insert_e_block_id < MAX_EBLOCK) 
                 else $error("Invalid e_block_id %0d exceeds MAX_EBLOCK %0d", 
                            insert_e_block_id, MAX_EBLOCK);
         end
         
-        if (rst_n && update_valid) begin
+        if (!rst && update_valid) begin
             assert(update_e_block_id < MAX_EBLOCK) 
                 else $error("Invalid update e_block_id %0d exceeds MAX_EBLOCK %0d", 
                            update_e_block_id, MAX_EBLOCK);
