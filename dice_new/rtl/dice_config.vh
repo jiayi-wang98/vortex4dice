@@ -30,7 +30,7 @@
 
 // P-graph configuration
 `define DICE_MAX_PGRAPHS              256   // Maximum p-graphs per kernel
-`define DICE_METADATA_WIDTH          64    // Metadata width ---- DETERMINE WHAT THIS SHOULD BE
+`define DICE_METADATA_WIDTH          256   // Must match line size — one metadata per cache line
 
 // SIMT Stack configuration
 `define DICE_SIMT_STACK_DEPTH        32    // Maximum SIMT stack depth per CTA

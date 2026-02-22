@@ -60,11 +60,9 @@ class BitPacker:
     def to_hex(self, pad_width=None):
         """Return hex string, zero-padded to pad_width bits."""
         width = pad_width or self.total_bits
-        # Shift left to pad to the full word width (MSB-aligned)
-        if width > self.total_bits:
-            padded = self.value << (width - self.total_bits)
-        else:
-            padded = self.value
+        # LSB-aligned: struct in lower bits, matching SV truncation cast
+        # pgraph_meta_t'(data) takes the lower bits of the memory word
+        padded = self.value
         hex_chars = (width + 3) // 4
         return format(padded, f'0{hex_chars}x')
 
@@ -228,11 +226,12 @@ def main():
     parser = argparse.ArgumentParser(
         description="Convert JSON test vectors to $readmemh .mem files")
     parser.add_argument("json_file", help="Input JSON test vector file")
-    parser.add_argument("--mem-data-width", type=int, default=2048,
-                        help="Memory data width in bits (default: 2048)")
     parser.add_argument("--output-dir", type=str, default=None,
                         help="Output directory (default: same as JSON file)")
     args = parser.parse_args()
+
+    # Memory data width is fixed at 2048 bits (256-byte words)
+    mem_data_width = 2048
 
     json_path = Path(args.json_file)
     if not json_path.exists():
@@ -246,12 +245,12 @@ def main():
         data = json.load(f)
 
     stem = json_path.stem  # e.g., "kernel_simple"
-    print(f"Processing {json_path.name} (mem_data_width={args.mem_data_width} bits)")
+    print(f"Processing {json_path.name} (mem_data_width={mem_data_width} bits)")
 
     # Generate metadata memory file
     if "pgraph_metadata" in data:
         meta_path = output_dir / f"{stem}_meta.mem"
-        generate_meta_mem(data["pgraph_metadata"], args.mem_data_width, meta_path)
+        generate_meta_mem(data["pgraph_metadata"], mem_data_width, meta_path)
 
     # Generate CTA descriptor reference file
     if "dice_cta_desc" in data:

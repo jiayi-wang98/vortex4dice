@@ -31,15 +31,15 @@ fdb_campaign =
 fdb_tool = All Tools
 [hb]
 postSimFile = /data2/enorman/vortex4dice/dice_new/tb/cgra_core/dice_core/build/tb_dice_core.fsdb
-syncTime = 5
-viewport = 0 27 1920 1136 0 0 653 1918
+syncTime = 265
+viewport = 0 27 2048 1088 0 0 653 1918
 activeNode = "tb_dice_core.u_dut.u_cta_schedule_stage.simt_stack_controller_inst.gen_stacks[1]"
 activeScope = "tb_dice_core.u_dut.u_cta_schedule_stage.simt_stack_controller_inst.gen_stacks[1]"
 activeFile = "/data2/enorman/vortex4dice/dice_new/rtl/cgra_core/cta_schedule/simt_stack_controller.sv"
 interactiveMode = False
 viewType = Source
 simulatorMode = False
-sourceBeginLine = 142
+sourceBeginLine = 167
 baMode = False
 srcLineNum = True
 AutoWrap = True
@@ -72,13 +72,13 @@ invokeDir = /data2/enorman/vortex4dice/dice_new/tb/cgra_core/dice_core
 [hb.sourceTab.1]
 scope = tb_dice_core.u_dut.u_cta_schedule_stage.simt_stack_controller_inst.gen_stacks[1]
 File = /data2/enorman/vortex4dice/dice_new/rtl/cgra_core/cta_schedule/simt_stack_controller.sv
-Line = 143
+Line = 168
 [nMemoryManager]
 WaveformFile = /data2/enorman/vortex4dice/dice_new/tb/cgra_core/dice_core/build/tb_dice_core.fsdb
 UserActionNum = 0
 nMemWindowNum = 0
 [wave.0]
-viewPort = 0 11 1920 909 485 92
+viewPort = 0 11 2048 861 353 129
 primaryWindow = TRUE
 SessionFile = /data2/enorman/vortex4dice/dice_new/tb/cgra_core/dice_core/verdi/elliot_verdi_session.ses.wave.0
 displayGrid = FALSE

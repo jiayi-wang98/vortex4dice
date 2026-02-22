@@ -2,7 +2,7 @@ Magic 271485
 Revision Verdi_X-2025.06
 
 ; Window Layout <x> <y> <width> <height> <signalwidth> <valuewidth>
-viewPort 0 11 1920 909 485 92
+viewPort 0 11 2048 861 353 129
 
 ; File list:
 ; openDirFile [-d delimiter] [-s time_offset] [-rf auto_bus_rule_file] path_name file_name
@@ -16,8 +16,8 @@ signalSpacing 5
 
 ; windowTimeUnit is used for zoom, cursor & marker
 ; waveform viewport range
-zoom 0.000000 1166.550000
-cursor 5.000000
+zoom 0.000000 1132.346725
+cursor 265.000000
 marker 0.000000
 
 ; user define markers
@@ -25,7 +25,7 @@ marker 0.000000
 ; visible top row signal index
 top 0
 ; marker line index
-markerPos 94
+markerPos 139
 
 ; rename signal list
 ; addRenameSig new_name org_name
@@ -143,26 +143,83 @@ addSignal -h 16 -UNSIGNED -HEX -PACKED -holdScope data.schedule_kernel_id[15:0]
 addSignal -h 16 -UNSIGNED -HEX -PACKED -holdScope data.schedule_smem_per_cta[13:0]
 addSignal -h 16 -UNSIGNED -PACKED -holdScope data.schedule_hw_cta_size[1:0]
 addSignal -h 16 -UNSIGNED -HEX -PACKED -holdScope data.schedule_cta_thread_count[9:0]
+addGroup "FDR Eblock Info" -e FALSE
+addSignal -h 16 -UNSIGNED -HEX -PACKED /tb_dice_core/u_dut/u_fdr_top/schedule_data_q
 addGroup "Meta Fetch New Eblock" -e FALSE
-addSignal -h 16 -UNSIGNED -HEX /tb_dice_core/u_dut/u_fdr_top/u_meta_fetch/fdr_next_pc_q[31:0]
-addSignal -h 16 -holdScope schedule_ready_o
+addSignal -h 16 /tb_dice_core/u_dut/u_fdr_top/u_meta_fetch/schedule_ready_o
 addSignal -h 16 -holdScope schedule_valid_i
 addGroup "Meta Cache OPs" -e FALSE
-addSignal -h 16 -UNSIGNED -HEX /tb_dice_core/u_dut/u_cta_schedule_stage/simt_stack_controller_inst/stack_modify_top[3:0]
 addSignal -h 16 /tb_dice_core/u_dut/u_fdr_top/u_meta_fetch/req_fire
 addSignal -h 16 -holdScope rsp_fire
 addSignal -h 16 -holdScope rsp_tag_match
-addGroup "G13"
-addSignal -h 16 /tb_dice_core/u_dut/u_fdr_top/u_meta_fetch/meta_fetch_bus_if/req_data
+addGroup "Meta Mem Interface" -e FALSE
+addSignal -expanded -h 16 /tb_dice_core/u_dut/u_fdr_top/u_meta_fetch/meta_fetch_bus_if/req_data
+addSignal -h 16 -holdScope req_data.rw
+addSignal -h 16 -UNSIGNED -HEX -holdScope req_data.addr[23:0]
+addSignal -h 16 -UNSIGNED -HEX -holdScope req_data.data[2047:0]
+addSignal -h 16 -UNSIGNED -HEX -holdScope req_data.byteen[255:0]
+addSignal -h 16 -UNSIGNED -HEX -holdScope req_data.flags[2:0]
+addSignal -h 16 -holdScope req_data.tag
 addSignal -h 16 -holdScope req_ready
 addSignal -h 16 -holdScope req_valid
 addSignal -h 16 -holdScope rsp_data
 addSignal -h 16 -holdScope rsp_ready
 addSignal -h 16 -holdScope rsp_valid
-addGroup "G14"
+addGroup "FDR Meta" -e FALSE
 addSignal -h 16 /tb_dice_core/u_dut/u_fdr_top/u_meta_fetch/meta_valid_o
-addSignal -h 16 -holdScope outgoing_meta_o
-addGroup "G15"
+addSignal -expanded -h 16 -holdScope outgoing_meta_o
+addSignal -h 16 -UNSIGNED -HEX -holdScope outgoing_meta_o.bitstream_addr[31:0]
+addSignal -h 16 -UNSIGNED -HEX -holdScope outgoing_meta_o.bitstream_length[7:0]
+addSignal -h 16 -UNSIGNED -HEX -holdScope outgoing_meta_o.unrolling_factor[1:0]
+addSignal -h 16 -UNSIGNED -HEX -holdScope outgoing_meta_o.lat[7:0]
+addSignal -h 16 -UNSIGNED -HEX -holdScope outgoing_meta_o.in_regs_bitmap[31:0]
+addSignal -h 16 -UNSIGNED -HEX -holdScope outgoing_meta_o.out_regs_bitmap[31:0]
+addSignal -h 16 -holdScope outgoing_meta_o.ld_dest_regs[2:0]
+addSignal -h 16 -UNSIGNED -HEX -holdScope outgoing_meta_o.num_stores[2:0]
+addSignal -h 16 -holdScope outgoing_meta_o.branch_meta
+addSignal -h 16 -holdScope outgoing_meta_o.barrier
+addSignal -h 16 -holdScope outgoing_meta_o.parameter_load
+addGroup "Branch Handler" -e FALSE
+addSignal -h 16 /tb_dice_core/u_dut/u_fdr_top/u_branch_handler/branch_meta_valid_i
+addSignal -h 16 -holdScope branch_meta_valid_rise
+addSignal -h 16 -UNSIGNED -HEX -holdScope pc_i[31:0]
+addSignal -h 16 /tb_dice_core/u_dut/u_fdr_top/u_bitstream_fetch_load/flush_i
+addSignal -h 16 /tb_dice_core/u_dut/u_fdr_top/u_branch_handler/branch_meta_i
+addSignal -h 16 -UNSIGNED -HEX -holdScope hw_cta_id_i[1:0]
+addSignal -h 16 -UNSIGNED -HEX -PACKED -holdScope simt_stack_update_o
+addGroup "Bitstream Fetch" -e FALSE
+addSignal -h 16 /tb_dice_core/u_dut/u_fdr_top/u_bitstream_fetch_load/meta_valid_i
+addSignal -h 16 -UNSIGNED -HEX -holdScope bitstream_addr_i[31:0]
+addSignal -h 16 -UNSIGNED -HEX -holdScope cm0_chunk_en_o[3:0]
+addSignal -h 16 -UNSIGNED -HEX -holdScope cm0_data_o[511:0]
+addSignal -h 16 -UNSIGNED -HEX -holdScope cm1_chunk_en_o[3:0]
+addSignal -h 16 -UNSIGNED -HEX -holdScope cm1_data_o[511:0]
+addSignal -h 16 -holdScope cm_num_o
+addSignal -h 16 -holdScope done_streaming_o
+addSignal -h 16 -holdScope flush_i
+addGroup "Bitstream Cache Interface" -e FALSE
+addSignal -h 16 /tb_dice_core/u_dut/u_fdr_top/u_bitstream_fetch_load/cache_bus_if/req_valid
+addSignal -h 16 -holdScope req_ready
+addSignal -h 16 -holdScope req_data
+addSignal -h 16 -holdScope rsp_data
+addSignal -h 16 -holdScope rsp_ready
+addSignal -h 16 -holdScope rsp_valid
+addGroup "FDR Valid Check"
+addSignal -h 16 /tb_dice_core/u_dut/u_fdr_top/u_valid_check/fdr_valid_o
+addSignal -h 16 -holdScope ex_ready_i
+addSignal -h 16 -holdScope barrier_complete_i
+addSignal -h 16 -holdScope barrier_indicator_i
+addSignal -h 16 -holdScope decode_done_i
+addSignal -h 16 -holdScope bitstream_loaded_i
+addSignal -h 16 -holdScope clear_prefetch_o
+addSignal -h 16 -UNSIGNED -HEX -holdScope eblock_pc_i[31:0]
+addSignal -h 16 -holdScope fire_eblock_o
+addSignal -h 16 -holdScope predict_miss_o
+addSignal -h 16 -holdScope prefetch_block_i
+addSignal -h 16 -holdScope prefetch_cleared_i
+addSignal -h 16 -UNSIGNED -HEX -holdScope simt_stack_pc_i[31:0]
+addSignal -h 16 -holdScope unresolved_div_i
+addGroup "G21"
 
 ; getSignalForm Scope Hierarchy Status
 ; active file of getSignalForm
@@ -175,8 +232,11 @@ getSignalForm close
 "/tb_dice_core/u_dut"
 "/tb_dice_core/u_dut/cta_dispatch_if_inst"
 "/tb_dice_core/u_dut/u_fdr_top"
-"/tb_dice_core/u_dut/u_fdr_top/u_meta_fetch"
-"/tb_dice_core/u_dut/u_fdr_top/u_meta_fetch/meta_fetch_bus_if"
+"/tb_dice_core/u_dut/u_fdr_top/bitstream_cache_mem_if"
+"/tb_dice_core/u_dut/u_fdr_top/u_bitstream_fetch_load"
+"/tb_dice_core/u_dut/u_fdr_top/u_bitstream_fetch_load/cache_bus_if"
+"/tb_dice_core/u_dut/u_fdr_top/u_decode"
+"/tb_dice_core/u_dut/u_fdr_top/u_valid_check"
 
 SCOPE_LIST_BEGIN
 "/tb_dice_core/u_dut/fronten"
@@ -209,6 +269,11 @@ SCOPE_LIST_BEGIN
 "/tb_dice_core/u_dut/u_cta_schedule_stage/simt_stack_controller_inst/unnamed$$_0"
 "/tb_dice_core/u_dut/fdr_out_if"
 "/tb_dice_core/u_dut/u_fdr_top/u_meta_fetch/meta_fetch_bus_if"
+"/tb_dice_core/u_dut/u_fdr_top/u_decode"
+"/tb_dice_core/u_dut/u_fdr_top/u_branch_handler"
+"/tb_dice_core/u_dut/u_fdr_top/u_bitstream_fetch_load"
+"/tb_dice_core/u_dut/u_fdr_top/bitstream_cache_mem_if"
+"/tb_dice_core/u_dut/u_fdr_top/u_bitstream_fetch_load/cache_bus_if"
 SCOPE_LIST_END
 
 GETSIGNALFORM_SCOPE_HIERARCHY_END
