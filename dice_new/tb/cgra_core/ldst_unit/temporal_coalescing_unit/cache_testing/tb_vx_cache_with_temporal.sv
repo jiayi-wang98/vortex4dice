@@ -3,7 +3,7 @@ module tb_vx_cache_with_temporal;
     parameter CLK_PERIOD = 2.5;
     parameter int CACHE_LINE_SIZE = 32;
     parameter int TID_WIDTH = 10;
-    parameter int DATA_WIDTH = 64;
+    parameter int DATA_WIDTH = 32; // Set to 32 bits
     parameter int ADDR_WIDTH = 32;
     parameter int EBLOCK_ID_WIDTH = 4;
     parameter int NUMBER_OF_MAX_COALESCED_COMMANDS = 8;
@@ -25,7 +25,7 @@ module tb_vx_cache_with_temporal;
     bit [TID_WIDTH-1:0] incmd_tid;
     bit incmd_write_enable;
     bit [DATA_WIDTH-1:0] incmd_write_data;
-    bit [DATA_WIDTH/8-1:0] incmd_write_mask;
+    bit [DATA_WIDTH/8-1:0] incmd_write_mask; // Now 4 bits
     bit [ADDR_WIDTH-1:0] incmd_address;
     bit [1:0] incmd_size;
     bit [MAX_REG_WIDTH-1:0] incmd_ld_dest_reg;
@@ -107,7 +107,7 @@ module tb_vx_cache_with_temporal;
         incmd_address = addr;
         incmd_tid     = tid;
         incmd_write_enable = 0;
-        incmd_size    = 2'b11; 
+        incmd_size    = 2'b10; // Changed to 2'b10 for 4-byte (32-bit) read
         
         wait(dut.incmd_ready == 1'b1); 
         @(posedge clk);
@@ -142,7 +142,7 @@ module tb_vx_cache_with_temporal;
         incmd_write_enable = 1;
         incmd_write_data   = data;
         incmd_write_mask   = mask;
-        incmd_size         = 2'b11;
+        incmd_size         = 2'b10; // 2'b10 = 4 Bytes (32-bit)
         
         wait(dut.incmd_ready == 1'b1);
         @(posedge clk);
@@ -151,13 +151,9 @@ module tb_vx_cache_with_temporal;
     end
     endtask
 
-    // --- Slicing the Tag to get TID info ---
-    // Tag Structure from LSB: 
-    // [39:0] AddressMap | [46:40] Reg | [54:47] Bitmap | [64:55] BaseTID | [68:65] BlockID
     wire [9:0] rsp_base_tid = core_rsp_tag[64:55];
     wire [7:0] rsp_bitmap   = core_rsp_tag[54:47];
 
-    // Monitor
     always @(posedge clk) begin
         if (core_rsp_valid && core_rsp_ready) begin
             $display("[MONITOR] Time: %0t | BaseTID: %0d | Bitmap: %b | Full Line Data: %h", 
@@ -165,8 +161,7 @@ module tb_vx_cache_with_temporal;
         end
     end
 
-   initial begin
-        // --- Initialization & Reset ---
+    initial begin
         incmd_valid = 0;
         outcmd_ready = 1;
         core_rsp_ready = 1; 
@@ -175,31 +170,27 @@ module tb_vx_cache_with_temporal;
         rst = 0;
         repeat(5) @(posedge clk);
 
-        // --- Step 1: Write Coalescing Test ---
         $display("--- Starting Write Coalescing Test (Addr 0x100) ---");
-        
-        // FIX 1: Change Mask from 8'hFF to 8'h00 (0 = Write Enable)
-        send_write_request(32'h0000_0100, 64'h1111_1111_1111_1111, 8'h00, 0); 
-        send_write_request(32'h0000_0108, 64'h2222_2222_2222_2222, 8'h00, 1); 
-        send_write_request(32'h0000_0110, 64'h3333_3333_3333_3333, 8'h00, 2); 
-        send_write_request(32'h0000_0118, 64'h4444_4444_4444_4444, 8'h00, 3); 
+        // Address offsets increment by 4 for 32-bit words
+        send_write_request(32'h0000_0100, 32'h1111_1111, 4'h0, 0); 
+        send_write_request(32'h0000_0104, 32'h2222_2222, 4'h0, 1); 
+        send_write_request(32'h0000_0108, 32'h3333_3333, 4'h0, 2); 
+        send_write_request(32'h0000_010C, 32'h4444_4444, 4'h0, 3); 
+        send_write_request(32'h0000_0110, 32'h5555_5555, 4'h0, 4); 
+        send_write_request(32'h0000_0114, 32'h6666_6666, 4'h0, 5); 
+        send_write_request(32'h0000_0118, 32'h7777_7777, 4'h0, 6); 
+        send_write_request(32'h0000_011C, 32'h8888_8888, 4'h0, 7); 
 
-        // Wait for coalescing interval to flush
         #(CLK_PERIOD * 100);
 
-        // --- Step 2: Read-Back Verification ---
         $display("--- Reading back Addr 0x100 ---");
-        
-        // FIX 2: Increased Timeout in logic below
-        // We use a fork-join to handle the timeout gracefully
         fork
             begin
                 send_read_request(32'h0000_0100, 0);
+                send_read_request(32'h0000_0104, 0);
                 send_read_request(32'h0000_0108, 0);
-                send_read_request(32'h0000_0110, 0);
             end
             begin
-                // Wait longer for Cold Miss (e.g., 2000 cycles)
                 #(CLK_PERIOD * 2000); 
                 if (core_rsp_valid == 0) begin
                     $display("[TB] CRITICAL TIMEOUT: Memory did not respond in time for Addr 0x100");
@@ -210,19 +201,17 @@ module tb_vx_cache_with_temporal;
 
         #(CLK_PERIOD * 100);
         
-        // --- Step 3: Linear Sweep ---
         $display("--- Starting Linear Word Sweep ---");
         for (int j = 0; j < 8; j++) begin
-            send_read_request(.addr(j * 8), .tid(j)); 
+            send_read_request(.addr(j * 4), .tid(j)); // Increments by 4
             #(CLK_PERIOD * 50); 
         end
 
         #(CLK_PERIOD * 100);
 
-
-        // Test 4: Temporal timeout
         $display("Temporal timeout");
-        send_write_request(32'h0000_0200, 64'hABCD_DCBA_A4BE_A4BE, 8'h00, 3);
+        // Adjusted literal and mask for 32-bit
+        send_write_request(32'h0000_0200, 32'hABCD_DCBA, 4'h0, 3);
         #(CLK_PERIOD * 1000);
 
         send_read_request(32'h0000_0200, 0);

@@ -6,7 +6,7 @@ module VX_cache_with_temporal #(
     parameter int BASE_TID_ADDRESS_OFFSET = $clog2(NUMBER_OF_MAX_COALESCED_COMMANDS),
     parameter int EBLOCK_ID_WIDTH = 4,
     parameter int TID_WIDTH = 10,
-    parameter int DATA_WIDTH = 64,
+    parameter int DATA_WIDTH = 32,
     parameter int ADDR_WIDTH = 32,
     parameter int MAX_REG_WIDTH = 7,
     parameter int TID_BITMAP_WIDTH = NUMBER_OF_MAX_COALESCED_COMMANDS,
