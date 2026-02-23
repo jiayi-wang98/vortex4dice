@@ -31,6 +31,15 @@ REG_INDEX_WIDTH      = 5    # clog2(32)
 LD_DEST_COUNT        = 3    # clog2(CGRA_MEM_PORTS-1)+1 = clog2(3)+1 = 3
 NUM_STORES_WIDTH     = 3    # clog2(CGRA_MEM_PORTS-1)+1
 
+# Bitstream memory configuration
+# WORD_SIZE in TB's VX_local_mem for bitstream = 64 bytes → 512 bits
+# VX_MEM_DATA_WIDTH = L3_LINE_SIZE * 8 = 64 * 8 = 512 bits (chunk size)
+VX_MEM_DATA_WIDTH    = 512
+BITSTREAM_MEM_DATA_WIDTH = VX_MEM_DATA_WIDTH  # 512 bits = 64 bytes
+# DICE_BITSTREAM_SIZE = 2048 bits (from dice_pkg.sv)
+DICE_BITSTREAM_SIZE  = 2048
+NUM_CHUNKS           = (DICE_BITSTREAM_SIZE + VX_MEM_DATA_WIDTH - 1) // VX_MEM_DATA_WIDTH  # = 4
+
 
 def parse_int(val):
     """Parse a value that may be int, bool, or hex string."""
@@ -202,24 +211,90 @@ def generate_meta_mem(pgraph_list, mem_data_width, output_path):
 
 
 def generate_cta_desc_mem(cta_desc, output_path):
-    """Generate cta_desc.mem file (single entry at address 0)."""
+    """Generate cta_desc.mem file — $readmemh-compatible, single entry at address 0.
+
+    The testbench loads this into a 1-deep array of packed bits via $readmemh,
+    then casts the bit-vector to dice_cta_desc_t.
+    """
     packed = pack_cta_desc(cta_desc)
+    # Pad to a nice nibble-aligned width for $readmemh
+    pad_width = ((packed.total_bits + 3) // 4) * 4  # round up to multiple of 4
+    hex_data = packed.to_hex(pad_width=pad_width)
+
+    kd = cta_desc["kernel_desc"]
+    cid = cta_desc["cta_id"]
+
     with open(output_path, 'w') as f:
-        f.write(f"// Auto-generated CTA descriptor\n")
-        f.write(f"// dice_cta_desc_t packed width: {packed.total_bits} bits\n\n")
-        hex_data = packed.to_hex()
-        f.write(f"// Packed hex ({packed.total_bits} bits): {hex_data}\n")
-        # Also write individual field values for easy SV copy-paste
-        kd = cta_desc["kernel_desc"]
-        cid = cta_desc["cta_id"]
+        f.write(f"// Auto-generated CTA descriptor ($readmemh format)\n")
+        f.write(f"// dice_cta_desc_t packed width: {packed.total_bits} bits "
+                f"(padded to {pad_width} bits)\n")
         f.write(f"// kernel_id={kd['kernel_id']}, "
                 f"grid_size=({kd['grid_size']['x']},{kd['grid_size']['y']},{kd['grid_size']['z']}), "
                 f"cta_size=({kd['cta_size']['x']},{kd['cta_size']['y']},{kd['cta_size']['z']})\n")
         f.write(f"// smem_per_cta={kd['smem_per_cta']}, "
                 f"start_pc={kd['start_pc']}, arg_ptr={kd['arg_ptr']}\n")
-        f.write(f"// cta_id=({cid['x']},{cid['y']},{cid['z']})\n")
+        f.write(f"// cta_id=({cid['x']},{cid['y']},{cid['z']})\n\n")
+        f.write(f"@00000000 {hex_data}\n")
 
-    print(f"  Wrote {output_path}")
+    print(f"  Wrote {output_path} ({packed.total_bits} bits, padded to {pad_width})")
+
+
+def generate_bitstream_mem(pgraph_list, output_path):
+    """Generate bitstream.mem file with test-pattern data.
+
+    For each pgraph entry, writes NUM_CHUNKS memory words at consecutive
+    addresses starting from bitstream_addr.  The memory word width matches
+    BITSTREAM_MEM_DATA_WIDTH (4096 bits = 512 bytes), mirroring the
+    VX_local_mem WORD_SIZE=512 in the testbench.
+
+    If a pgraph entry has a "bitstream_data" list (hex strings), those are
+    used verbatim.  Otherwise an incremental counting pattern is generated.
+    """
+    word_bytes = BITSTREAM_MEM_DATA_WIDTH // 8  # 512
+
+    with open(output_path, 'w') as f:
+        f.write(f"// Auto-generated bitstream memory file\n")
+        f.write(f"// Memory word width: {BITSTREAM_MEM_DATA_WIDTH} bits "
+                f"({word_bytes} bytes)\n")
+        f.write(f"// Chunks per bitstream: {NUM_CHUNKS}\n\n")
+
+        for entry_idx, entry in enumerate(pgraph_list):
+            bs_addr = parse_int(entry["meta"]["bitstream_addr"])
+            bs_len = parse_int(entry["meta"]["bitstream_length"])
+            explicit_data = entry["meta"].get("bitstream_data", None)
+
+            # Word address = byte address / word_bytes
+            base_word_addr = bs_addr // word_bytes
+
+            f.write(f"// pgraph[{entry_idx}]: bitstream_addr=0x{bs_addr:08x}, "
+                    f"length={bs_len}, base_word_addr=0x{base_word_addr:08x}\n")
+
+            for chunk_idx in range(NUM_CHUNKS):
+                word_addr = base_word_addr + chunk_idx
+
+                if explicit_data and chunk_idx < len(explicit_data):
+                    # Use explicit hex data from JSON
+                    raw = explicit_data[chunk_idx].replace("0x", "").replace("0X", "")
+                    hex_chars = BITSTREAM_MEM_DATA_WIDTH // 4
+                    hex_data = raw.zfill(hex_chars)[-hex_chars:]
+                else:
+                    # Generate counting pattern:
+                    # Each 32-bit word = (entry_idx << 24) | (chunk_idx << 16) | byte_offset
+                    pattern = 0
+                    for b in range(word_bytes // 4):
+                        word32 = ((entry_idx & 0xFF) << 24) | \
+                                 ((chunk_idx & 0xFF) << 16) | \
+                                 (b & 0xFFFF)
+                        pattern = (pattern << 32) | word32
+                    hex_chars = BITSTREAM_MEM_DATA_WIDTH // 4
+                    hex_data = format(pattern, f'0{hex_chars}x')
+
+                f.write(f"@{word_addr:08x} {hex_data}\n")
+
+            f.write(f"\n")
+
+    print(f"  Wrote {output_path} ({len(pgraph_list)} entries, "
+          f"{NUM_CHUNKS} chunks each)")
 
 
 def main():
@@ -256,6 +331,11 @@ def main():
     if "dice_cta_desc" in data:
         cta_path = output_dir / f"{stem}_cta_desc.mem"
         generate_cta_desc_mem(data["dice_cta_desc"], cta_path)
+
+    # Generate bitstream memory file
+    if "pgraph_metadata" in data:
+        bs_path = output_dir / f"{stem}_bitstream.mem"
+        generate_bitstream_mem(data["pgraph_metadata"], bs_path)
 
     print("Done.")
 

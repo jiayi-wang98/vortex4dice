@@ -3,7 +3,7 @@
         "kernel_desc": {
             "kernel_id": 12,
             "grid_size": {
-                "x": 2,
+                "x": 9,
                 "y": 2,
                 "z": 2
             },
@@ -127,7 +127,7 @@
                     "branch_uni": false,
                     "branch_pred_reg": 0,
                     "branch_neg_pred": false,
-                    "is_return": false,
+                    "is_return": true,
                     "branch_jump_target_offset": 0,
                     "branch_reconv_offset": 0
                 },

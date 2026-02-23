@@ -36,7 +36,8 @@ module bitstream_fetch_load
 );
 
   localparam int CounterBits = $clog2(NUM_CHUNKS + 1);
-  localparam int Offset = CHUNK_SIZE / 8;
+  localparam int AddrShift = $clog2(CHUNK_SIZE / 8); // byte-to-word address shift
+  localparam int Offset = 1; // consecutive word addresses
 
   typedef enum logic [1:0] {
     StateIdle,
@@ -64,9 +65,13 @@ module bitstream_fetch_load
   logic [NUM_CHUNKS-1:0] load_chunk_en_d;
   logic [NUM_CHUNKS-1:0] load_chunk_en_q;
 
-  // Address alias
+  // Address alias (raw byte address, used for done_streaming_o comparison)
   logic [DICE_ADDR_WIDTH-1:0] bitstream_addr_dec;
   assign bitstream_addr_dec = bitstream_addr_i;
+
+  // Word-aligned address for cache requests
+  logic [DICE_ADDR_WIDTH-1:0] bitstream_word_addr;
+  assign bitstream_word_addr = bitstream_addr_i >> AddrShift;
 
   // Bus Handshake Signals
   logic req_fire;
@@ -143,7 +148,7 @@ module bitstream_fetch_load
               if (cm0_valid_q || cm1_valid_q) cm_select_d = ~cm_select_q;
               else cm_select_d = 1'b0;
 
-              addr_d = bitstream_addr_dec;
+              addr_d = bitstream_word_addr;
               state_d = StateStreaming;
               chunk_count_d = '0;
 
