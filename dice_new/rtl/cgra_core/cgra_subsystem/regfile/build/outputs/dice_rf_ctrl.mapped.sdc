@@ -1,6 +1,6 @@
 # ####################################################################
 
-#  Created by Genus(TM) Synthesis Solution 25.10-p002_1 on Sun Feb 22 12:04:00 PST 2026
+#  Created by Genus(TM) Synthesis Solution 25.10-p002_1 on Sun Feb 22 13:11:39 PST 2026
 
 # ####################################################################
 
@@ -12,8 +12,8 @@ set_units -time 1000ps
 # Set the current design
 current_design dice_rf_ctrl
 
-create_clock -name "clk" -period 2500.0 -waveform {0.0 500.0} [get_ports clk_i]
-set_clock_transition 50.0 [get_clocks clk]
+create_clock -name "clk" -period 2.5 -waveform {0.0 1.25} [get_ports clk_i]
+set_clock_transition 0.05 [get_clocks clk]
 set_clock_gating_check -setup 0.0 
 set_input_delay -clock [get_clocks clk] -add_delay 0.0 [get_ports reset_i]
 set_input_delay -clock [get_clocks clk] -add_delay 0.0 [get_ports rd_tid_valid_i]
@@ -4823,5 +4823,5 @@ set_output_delay -clock [get_clocks clk] -add_delay 0.0 [get_ports {spec_reg_out
 set_output_delay -clock [get_clocks clk] -add_delay 0.0 [get_ports {spec_reg_out_o[2]}]
 set_output_delay -clock [get_clocks clk] -add_delay 0.0 [get_ports {spec_reg_out_o[1]}]
 set_output_delay -clock [get_clocks clk] -add_delay 0.0 [get_ports {spec_reg_out_o[0]}]
-set_clock_uncertainty -setup 50.0 [get_clocks clk]
-set_clock_uncertainty -hold 50.0 [get_clocks clk]
+set_clock_uncertainty -setup 0.05 [get_clocks clk]
+set_clock_uncertainty -hold 0.05 [get_clocks clk]
