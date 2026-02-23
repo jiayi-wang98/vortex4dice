@@ -225,7 +225,7 @@ Orientation = Landscape
 [FileBrowser]
 nWaveOpenFsdbDirHistory = "\"/data/amanoj3/vortex4dice/dice_new/tb/cgra_core/dice_core/tb_dice_core.fsdb\"" "\"/data/amanoj3/vortex4dice/dice_new/tb/cgra_core/dice_core/elliot_verdi_session.ses.wave.0\"" "\"/data/amanoj3/vortex4dice/dice_new/tb/cgra_core/dice_core/elliot_verdi_sess\
 ion.ses\""
-LoadSimulationResults = "\"/data/amanoj3/vortex4dice/dice_new/tb/cgra_core/dice_core/tb_dice_core.fsdb\""
+LoadSimulationResults = "\"/data/amanoj3/vortex4dice/dice_new/tb/cgra_core/dice_core/tb_dice_core.fsdb\"" "\"/data/amanoj3/vortex4dice/dice_new/tb/cgra_core/dice_core/build/tb_dice_core.fsdb\""
 [Form]
 version = Verdi_X-2025.06
 [General]
@@ -233,11 +233,11 @@ autoSaveSession = FALSE
 TclAutoSource = 
 SyncBrowserDir = TRUE
 cmd_enter_form = FALSE
-recent_commands_nWave = raiseNextWinAct,getSignal,zoomAll,snap,selectStuckSignals,GroupPopUp_SHOW_UNIFIED_FIND_CMD,reread,openFile,createWaveformWindow,saveSignal
 recent_commands_tFlowView = tsViewVHZoomOut,tsNodeJumpToDriver,tsViewPanOff,tsViewPanOn,tsViewVHZoomIn,tsViewFit,tsNodeJumpToDriver,tsViewPanOff,tsViewPanOn,tsViewVHZoomIn
 ColorThemeModern = bright
 version = Verdi_X-2025.06
 recent_commands_Verdi = hbLoadFsdbFile,hbRestoreSession,raiseNextWinAct,hbImpDsg,hbInvokeWave,srcShowFile
+recent_commands_nWave = reread,zoomAll,getSignal,previousEvent,nextEvent,digitalFBin,toggleExpand,raiseNextWinAct,snap,selectStuckSignals
 prevColorThemeModern = bright
 SignalCaseInSensitive = FALSE
 FindBarVisible = nWave
@@ -401,7 +401,6 @@ unknownSave = 729,383,461,245
 saveSigDlg = 684,276,551,386
 openFileDlg = 599,236,602,483
 importDesignForm = 542,228,715,574
-qWaveSignalDialog = 133,170,1654,776
 QwWarnMsgDlg = 650,544,600,250
 tipViewerDlg = 547,379,398,259
 GoToLineForm_base = 637,401,238,103
@@ -410,7 +409,8 @@ AMS_MAIN = 634,250,652,690
 restoreSigDlg = 684,376,551,438
 fileWithNote = 632,360,655,543
 FileWithNoteForm_base = 572,243,655,543
-loadFile = 593,261,614,432
+loadFile = 593,298,614,432
+qWaveSignalDialog = 73,89,1654,776
 QwUserAskDlg = 738,488,324,128
 [Safety]
 RegisterObject = ID_RED4
@@ -498,7 +498,7 @@ bSVTBMode = TRUE
 SimMode = TRUE
 interactiveDebugging = TRUE
 KeepBreakPoints = FALSE
-vcs_svPath = /data/amanoj3/vortex4dice/dice_new/tb/cgra_core/dice_core/simv
+vcs_svPath = /data/amanoj3/vortex4dice/dice_new/tb/cgra_core/dice_core/build/simv
 [SimulationPlus2]
 eventDumpUnfinish = FALSE
 [Source]
@@ -707,10 +707,10 @@ isOneSearchVisible = TRUE
 [VIA.oneSearch.preference.vgifColumnSettingRC.setting0]
 parRuleSets = ""
 [VIA.oneSearch.preference.vgifColumnSettingRC.setting0.column0]
-name = "Severity"
+name = "Code"
 width = 60
-visualIndex = 2
-isHidden = FALSE
+visualIndex = 3
+isHidden = TRUE
 isUserChangeColumnVisible = FALSE
 isColFilterColorCoding = FALSE
 [VIA.oneSearch.preference.vgifColumnSettingRC.setting0.column1]
@@ -721,30 +721,30 @@ isHidden = TRUE
 isUserChangeColumnVisible = FALSE
 isColFilterColorCoding = FALSE
 [VIA.oneSearch.preference.vgifColumnSettingRC.setting0.column2]
-name = "Time"
-width = 60
-visualIndex = 0
-isHidden = FALSE
-isUserChangeColumnVisible = FALSE
-isColFilterColorCoding = FALSE
-[VIA.oneSearch.preference.vgifColumnSettingRC.setting0.column3]
-name = "Code"
-width = 60
-visualIndex = 3
-isHidden = TRUE
-isUserChangeColumnVisible = FALSE
-isColFilterColorCoding = FALSE
-[VIA.oneSearch.preference.vgifColumnSettingRC.setting0.column4]
 name = "Type"
 width = 60
 visualIndex = 4
 isHidden = TRUE
 isUserChangeColumnVisible = FALSE
 isColFilterColorCoding = FALSE
-[VIA.oneSearch.preference.vgifColumnSettingRC.setting0.column5]
+[VIA.oneSearch.preference.vgifColumnSettingRC.setting0.column3]
 name = "Message"
 width = 2000
 visualIndex = 5
+isHidden = FALSE
+isUserChangeColumnVisible = FALSE
+isColFilterColorCoding = FALSE
+[VIA.oneSearch.preference.vgifColumnSettingRC.setting0.column4]
+name = "Severity"
+width = 60
+visualIndex = 2
+isHidden = FALSE
+isUserChangeColumnVisible = FALSE
+isColFilterColorCoding = FALSE
+[VIA.oneSearch.preference.vgifColumnSettingRC.setting0.column5]
+name = "Time"
+width = 60
+visualIndex = 0
 isHidden = FALSE
 isUserChangeColumnVisible = FALSE
 isColFilterColorCoding = FALSE
@@ -824,8 +824,8 @@ AutoApplySeverityColor = TRUE
 scope_to_save_with_macro
 open_file_dir
 open_rc_file_dir
-getSignalForm = 386 284 800 479 117 387 439 149
-viewPort = 0 11 1800 726 630 65
+getSignalForm = 73 89 1654 776 363 684 604 335
+viewPort = 0 11 1800 748 630 65
 legendBackground = -c ID_BLACK
 valueBackground = -c ID_BLACK
 curveBackground = -c ID_BLACK
@@ -991,9 +991,10 @@ printBasic = 1 0 0 TRUE FALSE
 printDest = -printer {}
 printSignature = {%f %h %t} {}
 curveWindow_Drag&Drop_Mode = TRUE
-RecentFile1 = "\"/data/amanoj3/vortex4dice/dice_new/tb/cgra_core/dice_core/tb_dice_core.fsdb\""
-RecentFile2 = "\"/data2/enorman/vortex4dice/dice_new/tb/cgra_core/dice_core/tb_dice_core.fsdb\""
-RecentFile3 = "\"/data/amanoj3/vortex4dice/dice_new/tb/cgra_core/dice_core/tb_dice_core.fsdb\""
+RecentFile1 = "\"/data/amanoj3/vortex4dice/dice_new/tb/cgra_core/dice_core/build/tb_dice_core.fsdb\""
+RecentFile2 = "\"/data/amanoj3/vortex4dice/dice_new/tb/cgra_core/dice_core/tb_dice_core.fsdb\""
+RecentFile3 = "\"/data2/enorman/vortex4dice/dice_new/tb/cgra_core/dice_core/tb_dice_core.fsdb\""
+RecentFile4 = "\"/data/amanoj3/vortex4dice/dice_new/tb/cgra_core/dice_core/tb_dice_core.fsdb\""
 open_file_time_range = FALSE
 legend_window_font = -f COURIER12 -c ID_CYAN5
 value_window_font = -f COURIER12 -c ID_CYAN5
@@ -1630,7 +1631,7 @@ AddImportArgument = FALSE
 LineBreakWithScope = TRUE
 StopAfterCompileOption = -s
 [wave.0]
-viewPort = 0 11 1800 726 630 65
+viewPort = 0 11 1800 748 630 65
 [wave.1]
 viewPort = 127 219 960 332 100 65
 [wave.2]
