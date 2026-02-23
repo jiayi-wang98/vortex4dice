@@ -215,7 +215,7 @@ module tb_dice_core;
 `ifdef FSDB
   initial begin
     $fsdbDumpfile("tb_dice_core.fsdb");
-    $fsdbDumpvars(0, tb_dice_core, "+struct", "+mda");
+    $fsdbDumpvars(0, tb_dice_core, "+struct", "+mda"); //include structs and multi-dimensional arrays
   end
 `endif
 

@@ -125,8 +125,10 @@ assign update_stack_fire = update_valid_o && update_ready_i;
 
 
  // Ensures that we never have branches
- assert property (@(posedge clk_i)
-  branch_meta_valid_rise |-> (branch_meta_i.branch_ena == 1'b0)
-  );
+ `ifndef SYNTHESIS
+    assert property (@(posedge clk_i)
+      branch_meta_valid_rise |-> (branch_meta_i.branch_ena == 1'b0)
+      );
+ `endif
 
 endmodule
