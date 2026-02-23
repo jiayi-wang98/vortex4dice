@@ -232,15 +232,15 @@ version = Verdi_X-2025.06
 autoSaveSession = FALSE
 TclAutoSource = 
 SyncBrowserDir = TRUE
-FindBarVisible = nWave
-recent_commands_tFlowView = tsViewVHZoomOut,tsNodeJumpToDriver,tsViewPanOff,tsViewPanOn,tsViewVHZoomIn,tsViewFit,tsNodeJumpToDriver,tsViewPanOff,tsViewPanOn,tsViewVHZoomIn
-SignalCaseInSensitive = FALSE
-ColorThemeModern = bright
-prevColorThemeModern = bright
-version = Verdi_X-2025.06
 cmd_enter_form = FALSE
-recent_commands_Verdi = hbSaveSession,hbRestoreSession,hbLoadFsdbFile,hbTextCopy,hbAMSConfiguration,TextGotoGroup,raiseNextWinAct,srcShowFile,hbImpDsg
-recent_commands_nWave = reread,getSignal,editCut,restoreSignal,renameSignal,zoomOut,zoomAll,tsNWNodeShowTraceActiveStmt,zoomIn,tsNWCreateSchema
+recent_commands_nWave = raiseNextWinAct,getSignal,zoomAll,snap,selectStuckSignals,GroupPopUp_SHOW_UNIFIED_FIND_CMD,reread,openFile,createWaveformWindow,saveSignal
+recent_commands_tFlowView = tsViewVHZoomOut,tsNodeJumpToDriver,tsViewPanOff,tsViewPanOn,tsViewVHZoomIn,tsViewFit,tsNodeJumpToDriver,tsViewPanOff,tsViewPanOn,tsViewVHZoomIn
+ColorThemeModern = bright
+version = Verdi_X-2025.06
+recent_commands_Verdi = hbLoadFsdbFile,hbRestoreSession,raiseNextWinAct,hbImpDsg,hbInvokeWave,srcShowFile
+prevColorThemeModern = bright
+SignalCaseInSensitive = FALSE
+FindBarVisible = nWave
 [GlobalProp]
 ErrWindow_Font = Helvetica_M_R_12
 [Globals]
@@ -396,22 +396,22 @@ saveWaveformStat = TRUE
 savePropStat = FALSE
 savePropDtl = TRUE
 [QtDialog]
-importDesignForm = 542,228,715,574
 Verdi_OpenFile = 665,373,590,340
-openFileDlg = 599,236,602,483
+unknownSave = 729,383,461,245
 saveSigDlg = 684,276,551,386
+openFileDlg = 599,236,602,483
+importDesignForm = 542,228,715,574
+qWaveSignalDialog = 133,170,1654,776
+QwWarnMsgDlg = 650,544,600,250
 tipViewerDlg = 547,379,398,259
 GoToLineForm_base = 637,401,238,103
 QwInfoMsgDlg = 371,346,750,250
 AMS_MAIN = 634,250,652,690
-unknownSave = 729,383,461,245
-QwUserAskDlg = 760,511,400,122
 restoreSigDlg = 684,376,551,438
-QwWarnMsgDlg = 650,507,600,250
-loadFile = 653,379,614,432
-FileWithNoteForm_base = 632,360,655,543
 fileWithNote = 632,360,655,543
-qWaveSignalDialog = 133,170,1654,776
+FileWithNoteForm_base = 572,243,655,543
+loadFile = 593,261,614,432
+QwUserAskDlg = 738,488,324,128
 [Safety]
 RegisterObject = ID_RED4
 CoreObject = ID_ORANGE5
@@ -421,11 +421,11 @@ ErrorObject = ID_GRAY5
 AnnotateSignal = TRUE
 HighlightSafetyObject = TRUE
 [Session Cache]
+2 = string (session file name)
 3 = string (session file name)
 4 = string (session file name)
 5 = string (session file name)
 1 = /data/amanoj3/vortex4dice/dice_new/tb/cgra_core/dice_core/verdiLog/novas_autosave.ses
-2 = string (session file name)
 [Signal List]
 sigListBackgroundColor = ID_WHITE
 [Simulation]
@@ -491,14 +491,14 @@ iscCmdSep = FALSE
 ScsDebugAll = FALSE
 NoAppendOption = FALSE
 invokeSimPath = work
+restoreSimState = FALSE
+enableReverseDebug = FALSE
 simType = vcssv
 bSVTBMode = TRUE
 SimMode = TRUE
 interactiveDebugging = TRUE
 KeepBreakPoints = FALSE
-vcs_svPath = /data2/enorman/vortex4dice/dice_new/tb/cgra_core/dice_core/build/simv
-restoreSimState = FALSE
-enableReverseDebug = FALSE
+vcs_svPath = /data/amanoj3/vortex4dice/dice_new/tb/cgra_core/dice_core/simv
 [SimulationPlus2]
 eventDumpUnfinish = FALSE
 [Source]
@@ -526,7 +526,7 @@ annotateFSMLimitNum = -1
 restoredItemsLimitNum = 100000
 [SourceVHDL]
 vhSimType = ModelSim
-ohSimType = VCS
+ohSimType = VerilogXL
 [TclShell]
 nLineSize = 1024
 [Test]
@@ -616,7 +616,7 @@ pdmlMacro = ID_BLACK
 font = COURIER12
 annotFont = FIXED12
 [Text.1]
-viewport = 0 27 1920 1016 45
+viewport = 0 27 1800 975 45
 [TextPrinter]
 Orientation = Landscape
 Indicator = FALSE
@@ -700,51 +700,51 @@ Button1 = "Dump All Signals" "$fsdbDumpvars;\n"
 [VIA]
 viaLogViewerDefaultRuleOneSearchForm = "share/VIA/Apps/PredefinedRules/Misc/Onesearch_rule.rc"
 [VIA.oneSearch.preference]
-isOneSearchVisible = TRUE
 DefaultDisplayTimeUnit = "1.000000ns"
 DefaultLogTimeUnit = "1.000000ns"
+isOneSearchVisible = TRUE
 [VIA.oneSearch.preference.vgifColumnSettingRC]
 [VIA.oneSearch.preference.vgifColumnSettingRC.setting0]
 parRuleSets = ""
 [VIA.oneSearch.preference.vgifColumnSettingRC.setting0.column0]
+name = "Severity"
+width = 60
+visualIndex = 2
+isHidden = FALSE
+isUserChangeColumnVisible = FALSE
+isColFilterColorCoding = FALSE
+[VIA.oneSearch.preference.vgifColumnSettingRC.setting0.column1]
 name = "Block's First Line"
 width = 120
 visualIndex = 1
 isHidden = TRUE
 isUserChangeColumnVisible = FALSE
 isColFilterColorCoding = FALSE
-[VIA.oneSearch.preference.vgifColumnSettingRC.setting0.column1]
-name = "Code"
-width = 60
-visualIndex = 3
-isHidden = TRUE
-isUserChangeColumnVisible = FALSE
-isColFilterColorCoding = FALSE
 [VIA.oneSearch.preference.vgifColumnSettingRC.setting0.column2]
-name = "Type"
-width = 60
-visualIndex = 4
-isHidden = TRUE
-isUserChangeColumnVisible = FALSE
-isColFilterColorCoding = FALSE
-[VIA.oneSearch.preference.vgifColumnSettingRC.setting0.column3]
-name = "Message"
-width = 2000
-visualIndex = 5
-isHidden = FALSE
-isUserChangeColumnVisible = FALSE
-isColFilterColorCoding = FALSE
-[VIA.oneSearch.preference.vgifColumnSettingRC.setting0.column4]
 name = "Time"
 width = 60
 visualIndex = 0
 isHidden = FALSE
 isUserChangeColumnVisible = FALSE
 isColFilterColorCoding = FALSE
-[VIA.oneSearch.preference.vgifColumnSettingRC.setting0.column5]
-name = "Severity"
+[VIA.oneSearch.preference.vgifColumnSettingRC.setting0.column3]
+name = "Code"
 width = 60
-visualIndex = 2
+visualIndex = 3
+isHidden = TRUE
+isUserChangeColumnVisible = FALSE
+isColFilterColorCoding = FALSE
+[VIA.oneSearch.preference.vgifColumnSettingRC.setting0.column4]
+name = "Type"
+width = 60
+visualIndex = 4
+isHidden = TRUE
+isUserChangeColumnVisible = FALSE
+isColFilterColorCoding = FALSE
+[VIA.oneSearch.preference.vgifColumnSettingRC.setting0.column5]
+name = "Message"
+width = 2000
+visualIndex = 5
 isHidden = FALSE
 isUserChangeColumnVisible = FALSE
 isColFilterColorCoding = FALSE
@@ -789,6 +789,7 @@ DisplayLSBsFirst = FALSE
 ModuleName = TRUE
 TransitionMode = TRUE
 SchemaX = FALSE
+Hilight = TRUE
 UseBeforeValue = FALSE
 DisplayFileName = FALSE
 DisplayValueSpace = TRUE
@@ -823,8 +824,8 @@ AutoApplySeverityColor = TRUE
 scope_to_save_with_macro
 open_file_dir
 open_rc_file_dir
-Hilight = TRUE
-viewPort = 0 11 1800 280 630 65
+getSignalForm = 386 284 800 479 117 387 439 149
+viewPort = 0 11 1800 726 630 65
 legendBackground = -c ID_BLACK
 valueBackground = -c ID_BLACK
 curveBackground = -c ID_BLACK
@@ -1001,18 +1002,18 @@ group_name_font = -f COURIER12 -c ID_GREEN5
 ruler_value_font = -f COURIER12 -c ID_CYAN5
 analog_ruler_value_font = -f COURIER12 -c ID_CYAN5
 comment_string_font = -f COURIER12 -c ID_RED5
-getsignal_form_font = -f COURIER12
+getsignal_form_font = -f COURIER12 
 SigsCheckNum = on 1000
 filter_synthesized_net = off n
 filterOutNet = on
 exclude_signal_with_prefix = off n
 synthesizeNetOnly = on
-filter_synthesized_instance = off
+filter_synthesized_instance = off 
 filterOutInstance = on
 showGroupTree = TRUE
 hierGroupDelim = /
 MsgSeverityColor = {y \"Severity\"==\"1\" ID_RED5} {y \"Severity\"==\"2\" ID_RED6} {y \"Severity\"==\"3\" ID_RED7} {y \"Severity\"==\"4\" ID_RED8} {y \"Severity\"==\"5\" ID_ORANGE5} {y \"Severity\"==\"6\" ID_ORANGE6} {y \"Severity\"==\"7\" ID_ORANGE7} {y \"Severity\"==\"8\" \
-ID_GREEN7} {y \"Severity\"==\"9\" ID_GREEN6} {y \"Severity\"==\"10\" ID_GREEN5}
+ID_GREEN7} {y \"Severity\"==\"9\" ID_GREEN6} {y \"Severity\"==\"10\" ID_GREEN5} 
 waveDblClkActiveTrace = on
 SEQShowComparisonIcon = TRUE
 SEQAddDriverLoadInSameGroup = TRUE
@@ -1025,7 +1026,6 @@ maskFsaCoreRule = TRUE
 maskFsaSfsmRule = TRUE
 maskFsaEcrRule = TRUE
 maskTPropagation = TRUE
-getSignalForm = 133 207 1654 776 420 684 774 221
 [cov_hier_name_column]
 justify = TRUE
 [coverageColors]
@@ -1104,7 +1104,7 @@ OutputPinStatus = 2
 RevisedComponentColor = ID_BLUE5
 SpareCellColor = ID_RED5
 UserName = amanoj3
-CommentFormat = Novas ECO updated by ${UserName} ${Date} ${Time}
+CommentFormat = Novas ECO updated by ${UserName} ${Date} ${Time} 
 PrefixN = eco_n
 PrefixP = eco_p
 PrefixI = eco_i
@@ -1630,7 +1630,7 @@ AddImportArgument = FALSE
 LineBreakWithScope = TRUE
 StopAfterCompileOption = -s
 [wave.0]
-viewPort = 0 11 1920 655 485 92
+viewPort = 0 11 1800 726 630 65
 [wave.1]
 viewPort = 127 219 960 332 100 65
 [wave.2]

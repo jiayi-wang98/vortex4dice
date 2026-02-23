@@ -83,6 +83,7 @@ module dice_core
       .eblock_flush_id_o   (eblock_flush_id)
   );
 
+  logic dispatch_busy;
 
   dispatcher u_dispatcher (
       .clk(clk_i),
@@ -95,7 +96,7 @@ module dice_core
       .wb_valid(),          // comes from cgra
       .wb_tid_bitmap(),     // comes from cgra
       .ld_dest_reg(),       // comes from cgra
-      .dispatch_fifo_pop(), // cgra ready
+      .dispatch_fifo_pop('1), // cgra ready
       .dispatch_tid_0(rd_tid),
       .dispatch_valid_0(rd_tid_valid),
       .dispatch_tid_1(),
@@ -106,9 +107,11 @@ module dice_core
       .dispatch_valid_3(),
       .dispatch_fifo_empty(),
       .gpr_bitmap_o(gpr_bitmap),
-      .dispatcher_busy(),
+      .dispatcher_busy(dispatch_busy),
       .dispatcher_done()
   );
+
+  assign fdr_out_if.ready = ~dispatch_busy;
 
   logic [DICE_TID_WIDTH-1:0] rd_tid;
   logic rd_tid_valid;
@@ -145,10 +148,10 @@ dice_rf_ctrl #(
     .rf_rd_valid_o(rf_rd_valid_lo),
 
     // Write Input Ports
-    .cgra_tid_i(),         // comes from cgra
-    .cgra_data_i(),        // comes from cgra
+    .cgra_tid_i(cgra_tid_lo),         // comes from cgra
+    .cgra_data_i(cgra_data_lo),        // comes from cgra
     .wr_bitmap_i(fdr_out_if.data.metadata.out_regs_bitmap), // TODO: add shift reg
-    .cgra_valid_i(),       // comes from cgra
+    .cgra_valid_i(cgra_v_lo),       // comes from cgra
 
     // init test no LDST and no special register for now
     .ldst_wr_i(),
