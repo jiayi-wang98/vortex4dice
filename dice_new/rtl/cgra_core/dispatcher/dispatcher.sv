@@ -28,6 +28,8 @@ module dispatcher(
     output logic dispatch_valid_3,             // Valid for lane 3
     output logic dispatch_fifo_empty,        // 1 if ALL FIFOs are empty
 
+    output logic [31:0] gpr_bitmap_o,
+
     // Status outputs
     output logic dispatcher_busy,              // Dispatcher is active
     output logic dispatcher_done               // Current CTA dispatch complete
@@ -119,6 +121,7 @@ module dispatcher(
     logic [3:0] sb_rsv_valid;                  // Reserve valid signals for scoreboards
     logic const_rd_valid;                      // Read valid for constant scoreboard
     logic const_rsv_valid;                     // Reserve valid for constant scoreboard
+    // syn_keep
     logic [255:0] wb_tid_sb [4];               // Write-back bitmaps for each scoreboard
 
     // Ready-to-dispatch FIFO signals
@@ -199,6 +202,7 @@ module dispatcher(
                         latched_cta_size <= cta_size;
                         dispatched_count <= 10'b0;
                         chunk_counter <= 2'b0;
+                        restart <= 1'b1;
                     end
                 end
 
@@ -208,7 +212,7 @@ module dispatcher(
                     dispatched_this_cycle = dispatch_valid_0 + dispatch_valid_1 +
                                           dispatch_valid_2 + dispatch_valid_3;
                     dispatched_count <= dispatched_count + dispatched_this_cycle;
-
+                    restart <= 1'b0;
                     // Advance chunk counter when current chunk is done
                     if (thread_chunk_done) begin
                         if(chunk_counter < max_chunks) begin
@@ -231,6 +235,8 @@ module dispatcher(
                         latched_cta_size <= cta_size;
                         dispatched_count <= 10'b0;
                         chunk_counter <= 2'b0;
+                        last_chunk_done <= 1'b0;
+                        restart <= 1'b0;
                     end
                 end
             endcase
@@ -404,4 +410,6 @@ module dispatcher(
 
     assign dispatch_fifo_empty = ready_fifo_empty[0] && ready_fifo_empty[1] &&
                                   ready_fifo_empty[2] && ready_fifo_empty[3];
+
+    assign gpr_bitmap_o = gpr_bitmap;
 endmodule

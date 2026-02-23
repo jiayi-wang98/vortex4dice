@@ -1,6 +1,7 @@
-module dispatcher_control #(
-
-)(
+module dispatcher_control
+    import dice_pkg::*, 
+           dice_frontend_pkg::*;
+(
     output logic latch_inputs,
     output logic update_count,
     output logic deassert_restart,

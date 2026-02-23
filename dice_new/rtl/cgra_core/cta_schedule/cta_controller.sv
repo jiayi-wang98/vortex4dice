@@ -142,21 +142,26 @@ module cta_controller
 
 
 `ifndef SYNTHESIS
-  always_ff @(posedge clk_i) begin
-    if (rst_i == 1'b0) begin
-      if (pop_valid_o == 1'b1) begin
-        assert (cta_status_table_i[pop_hw_cta_id_o].has_pending_eblock == 1'b0)
-        else $error("PopOnlyCompleted: Popping CTA with pending eblocks");
-      end
+  pop_only_completed_p: assert property (@(posedge clk_i) disable iff (rst_i)
+    pop_valid_o |-> (cta_status_table_i[pop_hw_cta_id_o].has_pending_eblock == 1'b0)
+  ) else $error("PopOnlyCompleted: Popping CTA with pending eblocks");
 
-      assert (!$isunknown(pop_valid_o))
-      else $error("ControlOutputs: pop_valid_o is X");
-      assert (!$isunknown(clear_entry_valid_o))
-      else $error("ControlOutputs: clear_entry_valid_o is X");
-      assert (!$isunknown(init_valid_o))
-      else $error("ControlOutputs: init_valid_o is X");
-    end
-  end
+  // Control outputs must never be X (when not in reset)
+  pop_valid_known_p: assert property (@(posedge clk_i) disable iff (rst_i)
+    !$isunknown(pop_valid_o)
+  ) else $error("ControlOutputs: pop_valid_o is X");
+
+  clear_entry_valid_known_p: assert property (@(posedge clk_i) disable iff (rst_i)
+    !$isunknown(clear_entry_valid_o)
+  ) else $error("ControlOutputs: clear_entry_valid_o is X");
+
+  init_valid_known_p: assert property (@(posedge clk_i) disable iff (rst_i)
+    !$isunknown(init_valid_o)
+  ) else $error("ControlOutputs: init_valid_o is X");
+
+  dispatch_sync: assert property (@(posedge clk_i) disable iff (rst_i)
+    add_valid_o == init_valid_o
+  ) else $error("DispatchSync: active cta table and simt_stack add/init signal mismatch");
 `endif
 
 endmodule

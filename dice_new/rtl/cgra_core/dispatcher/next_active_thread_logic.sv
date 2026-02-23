@@ -133,7 +133,7 @@ module next_active_thread_logic #(
         .DEPTH(2)
     ) next_tid_fifo (
         .clk(clk),
-        .rst_n(rst_n),
+        .rst(rst_n),
         .push(fifo_push),
         .push_data(active_mask_index),
         .pop(update), // Always pop the data

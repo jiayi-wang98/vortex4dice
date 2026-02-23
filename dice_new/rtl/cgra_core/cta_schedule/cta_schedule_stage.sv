@@ -1,5 +1,6 @@
 `include "dice_define.vh"
 
+
 module cta_schedule_stage
   import dice_pkg::*;
   import dice_frontend_pkg::*;
@@ -185,6 +186,7 @@ module cta_schedule_stage
       .enable_i               (1'b1),
       .active_cta_entries_i   (active_cta_entries),
       .cta_status_entries_i   (scheduler_status_adapter),
+      .stack_top_valid_i      (stack_top_valid),
       .cta_next_pc_i          (stack_top_next_pc),
       .stack_top_active_mask_i(stack_top_active_mask),
       .eblock_commit_valid_i  (eblock_commit_valid_i),
@@ -235,6 +237,13 @@ module cta_schedule_stage
       .stack_empty_o                (stack_empty),
       .stack_full_o                 (stack_full)
   );
+
+
+
+`ifndef SYNTHESIS
+
+
+`endif
 
 
 endmodule

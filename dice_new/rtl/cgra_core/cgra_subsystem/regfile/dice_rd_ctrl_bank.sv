@@ -1,16 +1,19 @@
 `include "DE_pkg.sv"
 `include "dice_pkg.sv"
 
+
+
+
+module dice_rd_ctrl_bank
 import DE_pkg::*;
 import dice_pkg::*;
-
-
-module dice_rd_ctrl_bank #
+#
 (
       parameter WIDTH =  32
     , parameter DEPTH = 512
     , parameter ADDR_WIDTH = $clog2(DEPTH)
 )
+
 (
       input logic clk_i
     , input logic reset_i

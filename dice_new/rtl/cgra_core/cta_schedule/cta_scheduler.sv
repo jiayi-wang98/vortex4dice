@@ -20,7 +20,7 @@ module cta_scheduler
     input cta_status_t [DICE_NUM_MAX_CTA_PER_CORE-1:0] cta_status_entries_i,
 
     //SIMT STACK
-    // input logic [DICE_NUM_MAX_CTA_PER_CORE-1:0] stack_top_valid_i,
+    input logic [DICE_NUM_MAX_CTA_PER_CORE-1:0] stack_top_valid_i,
     input logic [DICE_NUM_MAX_CTA_PER_CORE-1:0][DICE_ADDR_WIDTH-1:0] cta_next_pc_i,
     input logic [DICE_NUM_MAX_CTA_PER_CORE-1:0][DICE_NUM_MAX_THREADS_PER_CORE/DICE_NUM_MAX_CTA_PER_CORE-1:0] stack_top_active_mask_i,
 
@@ -64,7 +64,7 @@ module cta_scheduler
   logic [DICE_NUM_MAX_CTA_PER_CORE-1:0] cta_valid, cta_branch_resolving;
   always_comb begin
     for (int i = 0; i < DICE_NUM_MAX_CTA_PER_CORE; i++) begin
-      cta_valid[i] = active_cta_entries_i[i].cta_valid;
+      cta_valid[i] = active_cta_entries_i[i].cta_valid && stack_top_valid_i[i];
       cta_branch_resolving[i] = cta_status_entries_i[i].is_prefetch;
     end
   end
@@ -218,5 +218,12 @@ module cta_scheduler
       end
     end
   end
+
+  `ifndef SYNTHESIS
+    ValidMask: assert property (@(posedge clk_i) disable iff (rst_i)
+      scheduled_eblock.valid |-> (!$isunknown(scheduled_eblock.data.schedule_active_mask))
+    ) else $display("ValidMask: Tried to schedule with invalid active mask");
+
+`endif
 
 endmodule

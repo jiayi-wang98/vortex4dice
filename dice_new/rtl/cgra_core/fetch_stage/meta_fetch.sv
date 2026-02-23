@@ -1,10 +1,10 @@
-// MAY NEED TO STALL THE READY SIGNAL FOR ~3 CYCLES TO PREVENT 
+// MAY NEED TO STALL THE READY SIGNAL FOR ~3 CYCLES TO PREVENT
 // RACE CONDITION IN THE CTA STATUS TABLE UNRESOLVED CONTROL DIVERGENCE
 // BIT WHICH DETERMINES IF THE NEXT EBLOCK IS A PREFETCHED ONE
 
 
 
-// NEED TO CHANGE IT SO THAT THE FDR STAGE IS READY ONCE THE BRANCH HANDLER IS DONE TOO (MEANS THAT THE FIRE SIGNAL 
+// NEED TO CHANGE IT SO THAT THE FDR STAGE IS READY ONCE THE BRANCH HANDLER IS DONE TOO (MEANS THAT THE FIRE SIGNAL
 // ISN'T WHAT CONTROLS THE READY SIGNAL)
 
 
@@ -49,21 +49,19 @@ module meta_fetch
   meta_fetch_state_e state_q, state_d;
   logic meta_valid_q;
   logic flushed_q;  // Track if flushed, cleared on new schedule
-  logic [DICE_ADDR_WIDTH-1:0] fdr_next_pc_q;
   pgraph_meta_t outgoing_meta_q;
 
-  //DIRECTLY FROM VORTEX======================================================
-  logic [ICACHE_ADDR_WIDTH-1:0] meta_cache_req_addr_q, meta_cache_req_addr_d;
-  localparam int AddrShift = $clog2(VX_MEM_DATA_WIDTH / 8);
-  assign meta_cache_req_addr_d = (fdr_next_pc_i >> AddrShift);
+  // fdr_next_pc_i is already registered in fdr_top (schedule_data_q), so use directly
+  localparam int AddrShift = $clog2($bits(meta_fetch_bus_if.rsp_data.data) / 8);
+  logic [ICACHE_ADDR_WIDTH-1:0] meta_cache_req_addr;
+  assign meta_cache_req_addr = (fdr_next_pc_i >> AddrShift);
   // 4-byte aligned addresses
-  //DIRECTLY FROM VORTEX======================================================
 
   logic rsp_fire, req_fire;
   logic rsp_tag_match;
 
   // Check if response tag matches expected PC (lower bits of tag contain PC)
-  assign rsp_tag_match = (meta_fetch_bus_if.rsp_data.tag[DICE_ADDR_WIDTH-1:0] == fdr_next_pc_q);
+  assign rsp_tag_match = (meta_fetch_bus_if.rsp_data.tag[DICE_ADDR_WIDTH-1:0] == fdr_next_pc_i);
   assign rsp_fire = meta_fetch_bus_if.rsp_valid && meta_fetch_bus_if.rsp_ready && rsp_tag_match;
   assign req_fire = meta_fetch_bus_if.req_valid && meta_fetch_bus_if.req_ready;
 
@@ -101,9 +99,7 @@ module meta_fetch
       state_q               <= StateReady;
       meta_valid_q          <= 1'b0;
       flushed_q             <= 1'b0;
-      meta_cache_req_addr_q <= '0;
       outgoing_meta_q       <= '0;
-      fdr_next_pc_q         <= '0;
     end else begin
       state_q <= state_d;
 
@@ -115,8 +111,6 @@ module meta_fetch
 
       if (state_q == StateReady && schedule_valid_i && schedule_ready_o) begin
         flushed_q             <= 1'b0;  // Clear flush flag on new schedule
-        meta_cache_req_addr_q <= meta_cache_req_addr_d;
-        fdr_next_pc_q         <= fdr_next_pc_i;
       end
       if (rsp_fire) begin
         outgoing_meta_q <= pgraph_meta_t'(meta_fetch_bus_if.rsp_data.data);
@@ -135,11 +129,11 @@ module meta_fetch
   assign meta_fetch_bus_if.req_data.byteen = '1;  //byte mask (for stores)
   assign meta_fetch_bus_if.req_data.data   = '0;  //write payload
 
-  // Use captured PC as tag for request/response matching (preliminary testing)
-  // Zero-extend to match interface tag width
-  assign meta_fetch_bus_if.req_data.tag    = $bits(meta_fetch_bus_if.req_data.tag)'(fdr_next_pc_q);
+  // Use pre-registered PC as tag for request/response matching
+  // (fdr_next_pc_i is already registered in fdr_top via schedule_data_q)
+  assign meta_fetch_bus_if.req_data.tag    = $bits(meta_fetch_bus_if.req_data.tag)'(fdr_next_pc_i);
 
-  assign meta_fetch_bus_if.req_data.addr   = meta_cache_req_addr_q;
+  assign meta_fetch_bus_if.req_data.addr   = meta_cache_req_addr;
   assign meta_fetch_bus_if.req_valid       = (state_q == StateReqVal);
   // Accept any response while waiting, but only rsp_fire (with tag match) triggers state transition
   assign meta_fetch_bus_if.rsp_ready       = (state_q == StateWaitResp);

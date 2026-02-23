@@ -69,9 +69,22 @@ module fdr_top
   logic clear_prefetch_internal;
   logic predict_miss_internal;
 
+  // =========================================================================
+  // Registered copy of schedule_if.data (captured on handshake fire)
+  // =========================================================================
+  schedule_eblock_t schedule_data_q;
+
+  always_ff @(posedge clk_i) begin
+    if (rst_i) begin
+      schedule_data_q <= '0;
+    end else if (schedule_if.valid && schedule_ready_internal) begin
+      schedule_data_q <= schedule_if.data;
+    end
+  end
+
   // CTA status lookup for current CTA
   logic [DICE_HW_CTA_ID_WIDTH-1:0] current_hw_cta_id;
-  assign current_hw_cta_id = schedule_if.data.schedule_hw_cta_id;
+  assign current_hw_cta_id = schedule_data_q.schedule_hw_cta_id;
 
   // SIMT Stack PC for current CTA (from simt_status_if)
   logic [DICE_ADDR_WIDTH-1:0] simt_stack_pc;
@@ -80,16 +93,16 @@ module fdr_top
   // Scheduler Ready Handshake
   assign schedule_if.ready = schedule_ready_internal;
 
-  // Pass-through Assignments (schedule_if → fdr_if)
-  assign fdr_if.data.schedule_hw_cta_id    = schedule_if.data.schedule_hw_cta_id;
-  assign fdr_if.data.schedule_eblock_id    = schedule_if.data.schedule_eblock_id;
-  assign fdr_if.data.schedule_cta_id       = schedule_if.data.schedule_cta_id;
-  assign fdr_if.data.schedule_kernel_id    = schedule_if.data.schedule_kernel_id;
-  assign fdr_if.data.schedule_grid_size    = schedule_if.data.schedule_grid_size;
-  assign fdr_if.data.schedule_cta_size     = schedule_if.data.schedule_cta_size;
-  assign fdr_if.data.schedule_hw_cta_size  = schedule_if.data.schedule_hw_cta_size;
-  assign fdr_if.data.schedule_smem_per_cta = schedule_if.data.schedule_smem_per_cta;
-  assign fdr_if.data.schedule_cta_thread_count = schedule_if.data.schedule_cta_thread_count;
+  // Pass-through Assignments (registered schedule_data_q → fdr_if)
+  assign fdr_if.data.schedule_hw_cta_id    = schedule_data_q.schedule_hw_cta_id;
+  assign fdr_if.data.schedule_eblock_id    = schedule_data_q.schedule_eblock_id;
+  assign fdr_if.data.schedule_cta_id       = schedule_data_q.schedule_cta_id;
+  assign fdr_if.data.schedule_kernel_id    = schedule_data_q.schedule_kernel_id;
+  assign fdr_if.data.schedule_grid_size    = schedule_data_q.schedule_grid_size;
+  assign fdr_if.data.schedule_cta_size     = schedule_data_q.schedule_cta_size;
+  assign fdr_if.data.schedule_hw_cta_size  = schedule_data_q.schedule_hw_cta_size;
+  assign fdr_if.data.schedule_smem_per_cta = schedule_data_q.schedule_smem_per_cta;
+  assign fdr_if.data.schedule_cta_thread_count = schedule_data_q.schedule_cta_thread_count;
   assign fdr_if.data.real_active_mask      = branch_mask_internal;
 
   // =========================================================================
@@ -120,9 +133,9 @@ module fdr_top
       .real_active_thread_mask_o    (branch_mask_internal),
 
       // CS - FDR Stage buffer
-      .cs_active_mask_i             (schedule_if.data.schedule_active_mask),
-      .pc_i                         (schedule_if.data.schedule_next_pc),
-      .cta_size_i                   (schedule_if.data.schedule_hw_cta_size),
+      .cs_active_mask_i             (schedule_data_q.schedule_active_mask),
+      .pc_i                         (schedule_data_q.schedule_next_pc),
+      .cta_size_i                   (schedule_data_q.schedule_hw_cta_size),
       .hw_cta_id_i                  (current_hw_cta_id),
 
       // SIMT Stacks
@@ -145,7 +158,7 @@ module fdr_top
       .clk_i               (clk_i),
       .rst_i               (rst_i),
       .schedule_valid_i    (schedule_if.valid),
-      .fdr_next_pc_i       (schedule_if.data.schedule_next_pc),
+      .fdr_next_pc_i       (schedule_data_q.schedule_next_pc),
       .schedule_ready_o    (schedule_ready_internal),
       .meta_fetch_bus_if   (metacache_mem_if),
       .outgoing_meta_o     (meta_internal),
@@ -190,8 +203,8 @@ module fdr_top
   valid_check u_valid_check (
       .barrier_indicator_i(is_barrier_internal),
       .decode_done_i      (branch_mask_valid),
-      .eblock_pc_i        (schedule_if.data.schedule_next_pc),
-      .prefetch_block_i   (schedule_if.data.schedule_prefetch_block),
+      .eblock_pc_i        (schedule_data_q.schedule_next_pc),
+      .prefetch_block_i   (schedule_data_q.schedule_prefetch_block),
       .simt_stack_pc_i    (simt_stack_pc),
       .bitstream_loaded_i (done_streaming_internal),
       .unresolved_div_i   (cta_status_data_i[current_hw_cta_id].unresolved_control_divergence),
@@ -206,6 +219,6 @@ module fdr_top
 
   // Eblock flush: release the current eblock in the scheduler on predict-miss
   assign eblock_flush_valid_o = predict_miss_internal;
-  assign eblock_flush_id_o    = schedule_if.data.schedule_eblock_id;
+  assign eblock_flush_id_o    = schedule_data_q.schedule_eblock_id;
 
 endmodule

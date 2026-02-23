@@ -94,7 +94,7 @@ module simt_stack
         .wr_en(ram_wr_en),
         .wr_addr(ram_wr_addr),
         .wr_data(ram_wr_data),
-        .rd_en(ram_rd_en),
+        // .rd_en(ram_rd_en),
         .rd_addr(ram_rd_addr),
         .rd_data(ram_rd_data)
     );
@@ -169,7 +169,7 @@ module simt_stack
     end
 
     // Assertions for debugging
-    `ifndef SYNTHESIS
+`ifndef SYNTHESIS
     always @(posedge clk_i) begin
         if (rst_i == 1'b0) begin
             if ((push_i == 1'b1) && (stack_full_o == 1'b1)) begin
@@ -183,6 +183,6 @@ module simt_stack
             end
         end
     end
-    `endif
+`endif
 
 endmodule
