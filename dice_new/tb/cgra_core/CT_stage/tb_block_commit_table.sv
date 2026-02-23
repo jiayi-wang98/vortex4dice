@@ -5,24 +5,25 @@ module tb_block_commit_table;
     // Parameters
     parameter MAX_NUM_CTA = 4;
     parameter MAX_EBLOCK = 8;
+    parameter R_W = 14;
     parameter CLK_PERIOD = 2.5; // 400MHz clock (2.5ns period)
     
     // DUT signals
     logic                                    clk;
-    logic                                    rst_n;
+    logic                                    rst;
     
     // Entry insert interface
     logic                                    insert_valid;
     logic [$clog2(MAX_NUM_CTA)-1:0]        insert_hw_cta_id;
     logic [$clog2(MAX_EBLOCK)-1:0]          insert_e_block_id;
-    logic [13:0]                            insert_pending_reads;
-    logic [13:0]                            insert_pending_writes;
+    logic [R_W-1:0]                            insert_pending_reads;
+    logic [R_W-1:0]                            insert_pending_writes;
     
     // Pending read/write update interface
     logic                                    update_valid;
     logic [$clog2(MAX_EBLOCK)-1:0]          update_e_block_id;
     logic                                    update_is_write;
-    logic [3:0]                             update_reduce_count;
+    logic [MAX_NUM_CTA-1:0]                             update_reduce_count;
     
     // E-block commit interface
     logic                                    pop_valid;
@@ -40,7 +41,7 @@ module tb_block_commit_table;
         .MAX_NUM_CTA(MAX_NUM_CTA)
     ) dut (
         .clk(clk),
-        .rst_n(rst_n),
+        .rst(rst),
         .insert_valid(insert_valid),
         .insert_hw_cta_id(insert_hw_cta_id),
         .insert_e_block_id(insert_e_block_id),
@@ -65,7 +66,7 @@ module tb_block_commit_table;
     // Test stimulus
     initial begin
         // Initialize signals
-        rst_n = 0;
+        rst = 1;
         insert_valid = 0;
         insert_hw_cta_id = 0;
         insert_e_block_id = 0;
@@ -81,7 +82,7 @@ module tb_block_commit_table;
         
         // Reset
         repeat(5) @(posedge clk);
-        rst_n = 1;
+        rst = 0;
         repeat(2) @(posedge clk);
         
         $display("\n========================================");
@@ -121,14 +122,14 @@ module tb_block_commit_table;
         $display("\n[Test 1] Basic insert and commit");
         
         // Insert entry with zero pending counts (should commit immediately)
-        @(negedge clk);
+        @(posedge clk);
         insert_valid = 1;
         insert_e_block_id = 3;
         insert_hw_cta_id = 2;
         insert_pending_reads = 0;
         insert_pending_writes = 0;
         // Check for immediate commit
-        @(negedge clk);
+        @(posedge clk);
         if (pop_valid && pop_e_block_id == 3) begin
             $display("  PASS: Entry committed immediately with zero pending counts");
             test_passed++;
@@ -137,21 +138,21 @@ module tb_block_commit_table;
             test_failed++;
         end
         insert_valid = 0;
-        @(negedge clk);
+        @(posedge clk);
     endtask
     
     task test_multiple_inserts();
         $display("\n[Test 2] Multiple inserts with different e_block_ids");
         
         // Insert multiple entries
-        for (int i = 0; i < 4; i++) begin
-            @(negedge clk);
+        for (int i = 0; i < MAX_NUM_CTA; i++) begin
+            @(posedge clk);
             insert_valid = 1;
             insert_e_block_id = i;
             insert_hw_cta_id = i[1:0];
             insert_pending_reads = 10 + i;
             insert_pending_writes = 5 + i;
-            @(negedge clk);
+            @(posedge clk);
             insert_valid = 0;
             if (hw_cta_pending[i]) begin
                 $display("  PASS: Entry successfully inserted with pending counts");
@@ -163,27 +164,27 @@ module tb_block_commit_table;
         end
 
         // Clear entries for next test - reduce by max of 8 at a time
-        for (int i = 0; i < 4; i++) begin
+        for (int i = 0; i < MAX_NUM_CTA; i++) begin
             // Reduce reads
-            @(negedge clk);
+            @(posedge clk);
             update_valid = 1;
             update_e_block_id = i;
             update_is_write = 0;
             update_reduce_count = 8;  // First reduction of 8
-            @(negedge clk);
+            @(posedge clk);
             update_reduce_count = (10 + i) - 8;  // Remaining amount (2, 3, 4, 5)
-            @(negedge clk);
+            @(posedge clk);
             update_valid = 0;
             
             // Reduce writes
-            @(negedge clk);
+            @(posedge clk);
             update_valid = 1;
             update_e_block_id = i;
             update_is_write = 1;
             update_reduce_count = 5 + i;  // All writes are <= 8
-            @(negedge clk);
+            @(posedge clk);
             update_valid = 0;
-            @(negedge clk);
+            @(posedge clk);
             if (!hw_cta_pending[i]) begin
                 $display("  PASS: Entry successfully popped after pending counts reached zero");
                 test_passed++;
@@ -193,7 +194,7 @@ module tb_block_commit_table;
             end
         end
         
-        repeat(5) @(negedge clk);
+        repeat(5) @(posedge clk);
     endtask
     
     task test_round_robin_priority();
@@ -204,18 +205,18 @@ module tb_block_commit_table;
         commit_order = 0;
         
         // Insert multiple entries that will be ready simultaneously
-        for (int i = 0; i < 4; i++) begin
-            @(negedge clk);
+        for (int i = 0; i < MAX_NUM_CTA; i++) begin
+            @(posedge clk);
             insert_valid = 1;
             insert_e_block_id = i;
             insert_hw_cta_id = i[1:0];
             insert_pending_reads = 8;
             insert_pending_writes = 8;
-            @(negedge clk);
+            @(posedge clk);
             insert_valid = 0;
         end
         
-        for (int i = 0; i < 4; i++) begin
+        for (int i = 0; i < MAX_NUM_CTA; i++) begin
             if (hw_cta_pending[i]) begin
                 $display("  PASS: Entry successfully inserted with pending counts");
                 test_passed++;
@@ -225,34 +226,34 @@ module tb_block_commit_table;
             end
         end
 
-        @(negedge clk);
+        @(posedge clk);
         pop_ready = 0;
         // Clear entries for next test - reduce by max of 8 at a time
-        for (int i = 0; i < 4; i++) begin
+        for (int i = 0; i < MAX_NUM_CTA; i++) begin
             // Reduce reads
-            @(negedge clk);
+            @(posedge clk);
             update_valid = 1;
             update_e_block_id = i;
             update_is_write = 0;
             update_reduce_count = 8;  // First reduction of 8
-            @(negedge clk);
+            @(posedge clk);
             update_valid = 0;
             
             // Reduce writes
-            @(negedge clk);
+            @(posedge clk);
             update_valid = 1;
             update_e_block_id = i;
             update_is_write = 1;
             update_reduce_count = 8;  // All writes are <= 8
-            @(negedge clk);
+            @(posedge clk);
             update_valid = 0;
         end
 
-        @(negedge clk);
+        @(posedge clk);
         pop_ready = 1;
         // Check commit order
-        for (int i = 0; i < 4; i++) begin
-            @(negedge clk)
+        for (int i = 0; i < MAX_NUM_CTA; i++) begin
+            @(posedge clk)
             if (!hw_cta_pending[i]) begin
                 $display("  PASS: Entry successfully popped in round-robin order");
                 test_passed++;
@@ -262,29 +263,29 @@ module tb_block_commit_table;
             end
         end
         
-        repeat(2) @(negedge clk);
+        repeat(2) @(posedge clk);
     endtask
     
     task test_pop_ready_flow_control();
         $display("\n[Test 5] Pop ready flow control");
         // Set pop_ready to 0
-        @(negedge clk);
+        @(posedge clk);
         pop_ready = 0;
 
         // Insert entry ready to commit
-        @(negedge clk);
+        @(posedge clk);
         insert_valid = 1;
         insert_e_block_id = 7;
         insert_hw_cta_id = 3;
         insert_pending_reads = 0;
         insert_pending_writes = 0;
-        @(negedge clk);
+        @(posedge clk);
         insert_valid = 0;
         
 
         
         // Check that entry is not cleared
-        repeat(5) @(negedge clk);
+        repeat(5) @(posedge clk);
         if (pop_valid && hw_cta_pending[3]) begin
             $display("  PASS: Entry held when pop_ready is low");
             test_passed++;
@@ -294,12 +295,12 @@ module tb_block_commit_table;
         end
         
 
-        @(negedge clk);
+        @(posedge clk);
         // Set pop_ready to 1
         pop_ready = 1;
         
         // Verify entry is cleared
-        @(negedge clk);
+        @(posedge clk);
         if (!pop_valid && !hw_cta_pending[3]) begin
             $display("  PASS: Entry cleared when pop_ready went high");
             test_passed++;
