@@ -61,7 +61,7 @@ module meta_fetch
   logic rsp_tag_match;
 
   // Check if response tag matches expected PC (lower bits of tag contain PC)
-  assign rsp_tag_match = (meta_fetch_bus_if.rsp_data.tag[DICE_ADDR_WIDTH-1:0] == fdr_next_pc_i);
+  assign rsp_tag_match = (meta_fetch_bus_if.rsp_data.tag.uuid[DICE_ADDR_WIDTH-1:0] == fdr_next_pc_i);
   assign rsp_fire = meta_fetch_bus_if.rsp_valid && meta_fetch_bus_if.rsp_ready && rsp_tag_match;
   assign req_fire = meta_fetch_bus_if.req_valid && meta_fetch_bus_if.req_ready;
 
