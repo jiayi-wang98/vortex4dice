@@ -36,7 +36,7 @@
     `define RAM_RESET_BLOCK
 `endif
 
-`define RAM_WRITE_ALL   `RAM_RESET_BLOCK \
+`define RAM_WRITE_ALL   ```RAM_RESET_BLOCK \
                         if (write) begin \
                             ram[addr] <= wdata; \
                         end
@@ -53,7 +53,7 @@
                             end
 `else
     `define RAM_ARRAY_WREN  reg [DATAW-1:0] ram [0:SIZE-1];
-    `define RAM_WRITE_WREN  `RAM_RESET_BLOCK \
+    `define RAM_WRITE_WREN  ```RAM_RESET_BLOCK \
                             if (write) begin \
                                 for (integer i = 0; i < WRENW; ++i) begin \
                                     if (wren[i]) begin \

@@ -4,3 +4,5 @@
 *.code-workspace
 */csrc/
 miscs/apptainer/vortex.sif
+
+*obj*

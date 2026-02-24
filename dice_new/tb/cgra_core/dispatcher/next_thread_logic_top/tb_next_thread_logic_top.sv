@@ -209,13 +209,13 @@ module next_thread_logic_top_testbench;
     // Task to reset system
     task reset_system();
         $display("=== Resetting System ===");
-        rst_n = 0;
+        //rst_n = 0;
         unrolling_factor = 2'b00;    // 1-way unrolling
         active_mask_chunk = 256'b0;
         chunk_base_addr = 2'b00;     // Chunk 0 (TIDs 0-255)
         threads_popped = 0;
         expected_threads_count = 0;
-        restart = 0;
+        restart = 1;
         expected_tids_0.delete();
         expected_tids_1.delete();
         expected_tids_2.delete();
@@ -362,8 +362,10 @@ module next_thread_logic_top_testbench;
         $display("==========================================");
         
         // Initialize
+        rst_n=1;
         reset_system();
         rst_n = 0;
+        restart = 0;
         // Set up test: all threads active, 1-way unrolling, chunk 0
         @(negedge clk);
         for(int i=0;i<256;i++) begin
@@ -407,6 +409,7 @@ module next_thread_logic_top_testbench;
         $display("\n Starting ...");
         @(negedge clk);
         rst_n = 1;  // Release reset
+        restart = 0;
         $display("\n Released reset ...");
 
         wait(chunk_done);
@@ -425,17 +428,18 @@ module next_thread_logic_top_testbench;
         
         // Initialize
         reset_system();
-        rst_n = 0;
+        //rst_n = 0;
         // Set up test: all threads active, 1-way unrolling, chunk 0
         @(negedge clk);
         set_parameters_and_push_expected_tids({256{1'b1}}, 2'b01, 2'b00);// All threads active, 1-way unrolling, chunk 0
-        
+        restart = 0;
         // Wait for thread generation to start
-        repeat(10) @(negedge clk);
+        //repeat(10) @(negedge clk);
         
         $display("\n Starting ...");
         @(negedge clk);
-        rst_n = 1;  // Release reset
+        //rst_n = 1;  // Release reset
+
         $display("\n Released reset ...");
         
         wait(chunk_done);
@@ -451,17 +455,18 @@ module next_thread_logic_top_testbench;
         
         // Initialize
         reset_system();
-        rst_n = 0;
+        //rst_n = 0;
         // Set up test: all threads active, 1-way unrolling, chunk 0
         @(negedge clk);
         set_parameters_and_push_expected_tids({256{1'b1}}, 2'b10, 2'b00);// All threads active, 1-way unrolling, chunk 0
-        
+        restart = 0;
         // Wait for thread generation to start
-        repeat(10) @(negedge clk);
+        //repeat(10) @(negedge clk);
         
         $display("\n Starting ...");
         @(negedge clk);
-        rst_n = 1;  // Release reset
+        //rst_n = 1;  // Release reset
+        
         $display("\n Released reset ...");
         
         wait(chunk_done);
@@ -477,7 +482,7 @@ module next_thread_logic_top_testbench;
         
         // Initialize
         reset_system();
-        rst_n = 0;
+        //rst_n = 0;
         // Set up test: all threads active, 1-way unrolling, chunk 0
         @(negedge clk);
         for(int i=0;i<256;i++) begin
@@ -485,13 +490,14 @@ module next_thread_logic_top_testbench;
         end
         //set_parameters_and_push_expected_tids(random_active_mask, 2'b00, 2'b00);// All threads active, 1-way unrolling, chunk 0
         set_parameters_and_push_expected_tids({8{32'h1}}, 2'b00, 2'b00);// All threads active, 1-way unrolling, chunk 0
-        
+        restart = 0;
         // Wait for thread generation to start
-        repeat(10) @(negedge clk);
+        //repeat(10) @(negedge clk);
         
         $display("\n Starting ...");
         @(negedge clk);
-        rst_n = 1;  // Release reset
+        //rst_n = 1;  // Release reset
+        
         $display("\n Released reset ...");
         
         wait(chunk_done);
@@ -507,7 +513,7 @@ module next_thread_logic_top_testbench;
         
         // Initialize
         reset_system();
-        rst_n = 0;
+        //rst_n = 0;
         // Set up test: all threads active, 1-way unrolling, chunk 0
         @(negedge clk);
         for(int i=0;i<256;i++) begin
@@ -515,13 +521,14 @@ module next_thread_logic_top_testbench;
         end
         //set_parameters_and_push_expected_tids(random_active_mask, 2'b00, 2'b00);// All threads active, 1-way unrolling, chunk 0
         set_parameters_and_push_expected_tids({8{32'h1}}, 2'b01, 2'b00);// All threads active, 1-way unrolling, chunk 0
-        
+        restart = 0;
         // Wait for thread generation to start
-        repeat(10) @(negedge clk);
+        //repeat(10) @(negedge clk);
         
         $display("\n Starting ...");
         @(negedge clk);
-        rst_n = 1;  // Release reset
+        //rst_n = 1;  // Release reset
+        
         $display("\n Released reset ...");
 
         wait(chunk_done);
@@ -539,7 +546,7 @@ module next_thread_logic_top_testbench;
         
         // Initialize
         reset_system();
-        rst_n = 0;
+        //rst_n = 0;
         // Set up test: all threads active, 1-way unrolling, chunk 0
         @(negedge clk);
         for(int i=0;i<256;i++) begin
@@ -547,13 +554,14 @@ module next_thread_logic_top_testbench;
         end
         //set_parameters_and_push_expected_tids(random_active_mask, 2'b00, 2'b00);// All threads active, 1-way unrolling, chunk 0
         set_parameters_and_push_expected_tids({8{32'h1}}, 2'b10, 2'b00);// All threads active, 1-way unrolling, chunk 0
-        
+        restart = 0;
         // Wait for thread generation to start
-        repeat(10) @(negedge clk);
+        //repeat(10) @(negedge clk);
         
         $display("\n Starting ...");
         @(negedge clk);
-        rst_n = 1;  // Release reset
+        //rst_n = 1;  // Release reset
+        
         $display("\n Released reset ...");
         
         wait(chunk_done);
@@ -608,9 +616,15 @@ module next_thread_logic_top_testbench;
     end
     
     // Generate waveform dump
+    //initial begin
+    //    $dumpfile("next_thread_logic_top.vcd");
+    //    $dumpvars(0, next_thread_logic_top_testbench);
+    //end
+
     initial begin
-        $dumpfile("next_thread_logic_top.vcd");
-        $dumpvars(0, next_thread_logic_top_testbench);
+        // dump fsdb
+        $fsdbDumpfile("next_thread_logic_top.fsdb");
+        $fsdbDumpvars("+all");
     end
 
 endmodule

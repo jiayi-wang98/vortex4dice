@@ -100,12 +100,24 @@ import dice_pkg::*;
 
     // assign fw_req_i = rf_rd_addr;
 
-    reg_wr_cmd [NUM_PORTS-1:0]cgra_wr_li ;
+    reg_wr_cmd cgra_wr_li [NUM_PORTS-1:0];
+
+    logic [NUM_PORTS-1:0] wr_bitmap_r;
+
+    always_ff @(posedge clk_i) begin
+        if (reset_i) begin
+            wr_bitmap_r <= '0;
+        end else begin
+            wr_bitmap_r <= wr_bitmap_i;
+        end
+    end
+
+
     genvar i;
     generate 
         for (i = 0; i < NUM_PORTS; i++) begin
             assign cgra_wr_li[i].data = cgra_data_i[i*DATA_WIDTH +: DATA_WIDTH];
-            assign cgra_wr_li[i].wr_bitmap = wr_bitmap_i[i];
+            assign cgra_wr_li[i].wr_bitmap = wr_bitmap_r[i];
             // Only assign the lowest TID from the cgra_tid_i bus (corresponds to the lowest bits)
             // no unrolling factor for now
             assign cgra_wr_li[i].tid = cgra_tid_i[0 +: TID_WIDTH];

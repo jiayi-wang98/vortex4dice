@@ -81,9 +81,10 @@ module VX_cache_tags import VX_gpu_pkg::*; #(
         // Fill requests are always followed by MSHR replays that hit the cache.
         // In Writeback mode, writes requests can be followed by Fill/flush requests reading the dirty bit.
         wire rdw_fill, rdw_write;
+
         `BUFFER(rdw_fill, do_fill);
         `BUFFER(rdw_write, do_write && (line_idx == line_idx_n));
-
+        
         if (WRITEBACK) begin : g_wdata
             assign line_wdata = {line_valid, write, line_tag};
             assign read_tag[i] = line_rdata[0 +: `CS_TAG_SEL_BITS];
