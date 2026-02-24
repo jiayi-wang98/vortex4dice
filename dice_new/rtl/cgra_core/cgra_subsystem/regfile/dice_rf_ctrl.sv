@@ -50,7 +50,7 @@ import dice_pkg::*;
     , input logic [NUM_PORTS-1:0]               wr_bitmap_i
     , input logic                               cgra_valid_i
 
-    , input reg_wr_cmd [NUM_PORTS-1:0]      ldst_wr_i
+    , input cache_wr_cmd                    ldst_wr_i
     , input logic                           ldst_valid_i
     , output logic                          ldst_ready_o
 
@@ -100,11 +100,8 @@ import dice_pkg::*;
 
     // assign fw_req_i = rf_rd_addr;
 
-    reg_wr_cmd cgra_wr_li [NUM_PORTS-1:0];
-
-
+    reg_wr_cmd [NUM_PORTS-1:0]cgra_wr_li ;
     genvar i;
-
     generate 
         for (i = 0; i < NUM_PORTS; i++) begin
             assign cgra_wr_li[i].data = cgra_data_i[i*DATA_WIDTH +: DATA_WIDTH];
@@ -114,6 +111,10 @@ import dice_pkg::*;
             assign cgra_wr_li[i].tid = cgra_tid_i[0 +: TID_WIDTH];
         end
     endgenerate
+
+    ldst_wr_cmd [NUM_PORTS-1:0] ldst_wr_li;
+
+    assign ldst_wr_li = unpack_ldsr_wr(assemble_ldst_wr(ldst_wr_i));
     
     generate
         for (i = 0;  i < NUM_PORTS; i++) begin
@@ -131,7 +132,7 @@ import dice_pkg::*;
                 , .cgra_valid_i (cgra_valid_i)
                 ,.cgra_ready_o ()
 
-                , .wr_ldst_i (ldst_wr_i[i])
+                , .wr_ldst_i (ldst_wr_li[i])
                 , .ldst_valid_i (ldst_valid_i)
 
                 // , .fw_req_i (fw_req_i[i*DICE_TID_WIDTH +: DICE_TID_WIDTH])
