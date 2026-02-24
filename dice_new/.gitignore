@@ -15,6 +15,11 @@ pwr/*
 *.fsdb
 openRAM/__pycache__/
 openRAM/*
+tb/cgra_core/cgra_subsys/csrc/*
+tb/cgra_core/cgra_subsys/simv*
+tb/cgra_core/cgra_subsys/ucli.key
+tb/cgra_core/cgra_subsys/*.log
+rtl/cgra_core/cgra_subsystem/regfile/temp/*
 **/csrc/
 **/simv*
 **/ucli.key

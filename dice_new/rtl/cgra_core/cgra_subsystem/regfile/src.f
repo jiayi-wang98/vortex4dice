@@ -16,3 +16,4 @@ $DICE_HOME/rtl/cgra_core/cgra_subsystem/regfile/fifo_ctrl_credit.sv
 $DICE_HOME/rtl/cgra_core/cgra_subsystem/regfile/reg_wr_buffer.sv
 $DICE_HOME/rtl/cgra_core/cgra_subsystem/regfile/reg_wr_single_entry.sv
 $DICE_HOME/rtl/dice_ram/dice_ram_1w1r.sv
+$DICE_HOME/rtl/cgra_core/cgra_subsystem/regfile/sram_stub.v

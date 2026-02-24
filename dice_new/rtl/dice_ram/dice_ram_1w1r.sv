@@ -1,6 +1,6 @@
 `include "dice_pkg.sv"
-
-
+`include "dice_define.vh"
+`define ASIC_FP45
 module dice_ram_1w1r
 import dice_pkg::*;
 
@@ -100,12 +100,30 @@ xpm_memory_sdpram_inst (
 // End of xpm_memory_sdpram_inst instantiation
 
 
-`elsif ASIC
-// TODO: add macro from GF12 sram compiler
+// `elsif ASIC_FP45
+// TODO: add macro from sram compiler for FP45
+
+    // $display("INSTANTIATING SRAM MACRO");
+
+logic [ADDR_WIDTH-1:0] addr_macro;
+
+assign addr_macro = wr_en ? wr_addr : rd_addr;
+
+sram_512x32 
+sram_512x32_inst 
+    (
+        .clk0(clk)
+        ,.csb0(1'b0)
+        ,.web0(~wr_en)
+        ,.addr0(addr_macro)
+        ,.din0(wr_data)
+        ,.dout0(rd_data)
+    );
 
 `else
 // simulation
     // RAM storage array
+
     logic [DATA_WIDTH-1:0] ram_array [DEPTH-1:0];
     logic [DATA_WIDTH-1:0] rd_data_reg;
 

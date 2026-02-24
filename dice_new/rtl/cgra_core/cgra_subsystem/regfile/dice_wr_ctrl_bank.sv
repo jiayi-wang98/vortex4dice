@@ -130,7 +130,7 @@ import dice_pkg::*;
     pop_ldst = !cgra_wb_valid;
 
     data_o = cmd_lo.data;
-    we_o = cmd_lo.wr_bitmap;
+    we_o = cmd_lo.mask;
     ws_o = cmd_lo.tid;
   end
 
