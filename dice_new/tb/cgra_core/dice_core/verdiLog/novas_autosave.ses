@@ -1,0 +1,60 @@
+@verdi rc file Version 1.0
+[General]
+saveDB = TRUE
+relativePath = FALSE
+saveSingleView = FALSE
+saveNWaveWinId = 
+VerdiVersion = Verdi_X-2025.06
+[KeyNote]
+Line1 = Automatic Backup 0
+Line2 = Save Open Database Information: Yes
+Line3 = Path Option: Absolute Paths
+Line4 = Windows Option: All Windows
+[OneSearch]
+isExisted = TRUE
+[TestBench]
+ConstrViewShow = 0
+InherViewShow = 0
+FSDBMsgShow = 0
+AnnotationShow = 0
+Console = FALSE
+powerDumped = 0
+[fusa]
+fdb_server = 
+fdb_proj = 
+fdb_campaign = 
+fdb_tool = All Tools
+[hb]
+postSimFile = /data/amanoj3/vortex4dice/dice_new/tb/cgra_core/dice_core/tb_dice_core.fsdb
+syncTime = 330.018
+viewport = 0 27 1920 1016 0 0 195 1510
+interactiveMode = False
+viewType = Source
+simulatorMode = False
+sourceBeginLine = 0
+baMode = False
+srcLineNum = True
+AutoWrap = True
+IdentifyFalseLogic = False
+syncSignal = False
+traceMode = Hierarchical
+showTraceInSchema = True
+paMode = False
+funcMode = False
+powerAwareAnnot = True
+safetyAwareAnnot = True
+amsAnnot = True
+DnDtraceCrossHierOnly = True
+leadingZero = False
+signalPane = False
+SourceVerticalScrollLines = 5
+Scope1 = "tb_dice_core.u_dut.u_cta_schedule_stage.active_cta_table_inst"
+Scope2 = "tb_dice_core.u_dut.u_cta_schedule_stage.cta_scheduler_inst"
+Scope3 = "tb_dice_core.u_dut.u_cta_schedule_stage.cta_controller_inst"
+Scope4 = "tb_dice_core"
+sdfCheckUndef = FALSE
+simFlow = FALSE
+[nMemoryManager]
+WaveformFile = /data/amanoj3/vortex4dice/dice_new/tb/cgra_core/dice_core/tb_dice_core.fsdb
+UserActionNum = 0
+nMemWindowNum = 0
