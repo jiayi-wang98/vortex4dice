@@ -166,7 +166,7 @@ module thread_lane_reroute(
                 .DEPTH(2)           // 4 entries deep
             ) fifo_inst (
                 .clk(clk),
-                .rst_n(rst_n),
+                .rst(rst_n),
                 
                 // Write interface
                 .push(fifo_push[i]),

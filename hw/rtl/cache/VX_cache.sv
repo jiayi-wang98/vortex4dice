@@ -11,13 +11,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-`include "VX_cache_define.vh"
+//`include "VX_cache_define.vh"
 
 module VX_cache import VX_gpu_pkg::*; #(
     parameter `STRING INSTANCE_ID   = "",
 
     // Number of Word requests per cycle
-    parameter NUM_REQS              = 4,
+    parameter NUM_REQS              = 4, 
 
     // Number of memory ports
     parameter MEM_PORTS             = 1,
@@ -27,7 +27,7 @@ module VX_cache import VX_gpu_pkg::*; #(
     // Size of line inside a bank in bytes
     parameter LINE_SIZE             = 64,
     // Number of banks
-    parameter NUM_BANKS             = 4,
+    parameter NUM_BANKS             = 4, 
     // Number of associative ways
     parameter NUM_WAYS              = 4,
     // Size of a word in bytes
@@ -284,7 +284,8 @@ module VX_cache import VX_gpu_pkg::*; #(
 
     for (genvar i = 0; i < NUM_REQS; ++i) begin : g_core_req_wsel
         if (WORDS_PER_LINE > 1) begin : g_wsel
-            assign core_req_wsel[i] = core_req_addr[i][0 +: WORD_SEL_BITS];
+
+           assign core_req_wsel[i] = core_req_addr[i][`CLOG2(WORD_SIZE) +: WORD_SEL_BITS]; 
         end else begin : g_no_wsel
             assign core_req_wsel[i] = '0;
         end

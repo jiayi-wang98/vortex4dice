@@ -85,7 +85,7 @@ module VX_cache_top import VX_gpu_pkg::*; #(
     output wire[`CS_WORD_WIDTH-1:0] core_rsp_data [NUM_REQS],
     output wire[TAG_WIDTH-1:0]      core_rsp_tag [NUM_REQS],
     input  wire                     core_rsp_ready [NUM_REQS],
-
+    
     // Memory request
     output wire                     mem_req_valid [MEM_PORTS],
     output wire                     mem_req_rw [MEM_PORTS],

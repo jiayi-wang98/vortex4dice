@@ -1,68 +1,75 @@
 module memory_cmd_coalesce_buffer#(
-    parameter int cache_line_size = 32, // Size of a cache line in bytes
-    parameter int number_of_max_coalesced_commands = 8,      // Base TID address width in bits
-    parameter int base_address_offset = $clog2(cache_line_size), // Width of base address in bits
-    parameter int base_tid_address_offset = $clog2(number_of_max_coalesced_commands) // Width of base TID address in bits
+    parameter int CACHE_LINE_SIZE = 32, // Size of a cache line in bytes
+    parameter int NUMBER_OF_MAX_COALESCED_COMMANDS = 8,      // Base TID address width in bits
+    parameter int BASE_ADDRESS_OFFSET = $clog2(CACHE_LINE_SIZE), // Width of base address in bits
+    parameter int BASE_TID_ADDRESS_OFFSET = $clog2(NUMBER_OF_MAX_COALESCED_COMMANDS), // Width of base TID address in bits
+    parameter int EBLOCK_ID_WIDTH = 4,
+    parameter int TID_WIDTH = 10,
+    parameter int DATA_WIDTH = 32,
+    parameter int ADDR_WIDTH = 32,
+    parameter int MAX_REG_WIDTH = 7,
+    parameter int TID_BITMAP_WIDTH = NUMBER_OF_MAX_COALESCED_COMMANDS
 )
 (
     input logic clk,                        // Clock signal
-    input logic rst_n,                      // Active low reset signal
+    input logic rst,                      // Active low reset signal
     input logic clear,
     
     input logic update_new,                  //update existing cmd to new commnd
     // Input command interface
     input logic incmd_valid,                // Input command valid signal
-    input logic [3:0] incmd_block_id,       // Input command block ID
-    input logic [9:0] incmd_tid,            // Input command thread ID
+    input logic [EBLOCK_ID_WIDTH-1:0] incmd_block_id,       // Input command block ID
+    input logic [TID_WIDTH-1:0] incmd_tid,            // Input command thread ID
     input logic incmd_write_enable,         // Write enable signal
-    input logic [63:0] incmd_write_data,    // Data to write
-    input logic [7:0] incmd_write_mask,     // 1 means no write, 0 means write
-    input logic [63:0] incmd_address,       // Address for the command
+    input logic [DATA_WIDTH-1:0] incmd_write_data,    // Data to write
+    input logic [DATA_WIDTH/8-1:0] incmd_write_mask,     // 1 means no write, 0 means write
+    input logic [ADDR_WIDTH-1:0] incmd_address,       // Address for the command
     input logic [1:0] incmd_size,          // Size of the command (e.g., 00=1B, 01=2B, 10=4B, 11=8B)
-    input logic [6:0] incmd_ld_dest_reg,    // Load destination register
+    input logic [MAX_REG_WIDTH-1:0] incmd_ld_dest_reg,    // Load destination register
     
     // Ready signal for input command
     output logic can_coalesce,                // Ready signal for input command
     
     // Output command interface
     output logic outcmd_valid,              // Output command valid signal
-    output logic [3:0] outcmd_block_id,     // Output command block ID
-    output logic [9:0] outcmd_base_tid,     // Output command thread ID
-    output logic [7:0] outcmd_tid_bitmap,  // Bitmap of TIDs for the command
+    output logic [EBLOCK_ID_WIDTH-1:0] outcmd_block_id,     // Output command block ID
+    output logic [TID_WIDTH-1:0] outcmd_base_tid,     // Output command thread ID
+    output logic [TID_BITMAP_WIDTH-1:0] outcmd_tid_bitmap,  // Bitmap of TIDs for the command
     output logic outcmd_write_enable,       // Write enable signal
-    output logic [cache_line_size*8-1:0] outcmd_write_data,  // Data to write
-    output logic [cache_line_size-1:0] outcmd_write_mask, // 1 means no write, 0 means write
-    output logic [63:0] outcmd_address,     // Address for the command
+    output logic [CACHE_LINE_SIZE*8-1:0] outcmd_write_data,  // Data to write
+    output logic [CACHE_LINE_SIZE-1:0] outcmd_write_mask, // 1 means no write, 0 means write
+    output logic [ADDR_WIDTH-1:0] outcmd_address,     // Address for the command
     output logic [1:0] outcmd_size,        // Size of the command (e.g., 00=1B, 01=2B, 10=4B, 11=8B)
-    output logic [6:0] outcmd_ld_dest_reg,  // Load destination register
+    output logic [MAX_REG_WIDTH-1:0] outcmd_ld_dest_reg,  // Load destination register
 
-    output logic [number_of_max_coalesced_commands-1:0][base_address_offset-1:0] outcmd_address_map
+    output logic [NUMBER_OF_MAX_COALESCED_COMMANDS-1:0][BASE_ADDRESS_OFFSET-1:0] outcmd_address_map
 );
-    logic outcmd_valid_next; 
-    logic [3:0] outcmd_block_id_next;
-    logic [9:0] outcmd_base_tid_next;
-    logic [31:0] outcmd_tid_bitmap_next;
-    logic outcmd_write_enable_next;
-    logic [cache_line_size*8-1:0] outcmd_write_data_next;
-    logic [cache_line_size-1:0] outcmd_write_mask_next;
-    logic [63:0] outcmd_address_next;
-    logic [1:0] outcmd_size_next; // Size of the command (e.g., 00=1B, 01=2B, 10=4B, 11=8B)
-    logic [6:0] outcmd_ld_dest_reg_next; 
-    logic [number_of_max_coalesced_commands-1:0][base_address_offset-1:0] outcmd_address_map_next; //map from tid bitmap to address_offset
 
-    always_ff@(posedge clk or negedge rst_n) begin
-        if (!rst_n) begin
+    logic outcmd_valid_next; 
+    logic [EBLOCK_ID_WIDTH-1:0] outcmd_block_id_next;
+    logic [TID_WIDTH-1:0] outcmd_base_tid_next;
+    logic [TID_BITMAP_WIDTH-1:0] outcmd_tid_bitmap_next;
+    logic outcmd_write_enable_next;
+    logic [CACHE_LINE_SIZE*8-1:0] outcmd_write_data_next;
+    logic [CACHE_LINE_SIZE-1:0] outcmd_write_mask_next;
+    logic [ADDR_WIDTH-1:0] outcmd_address_next;
+    logic [1:0] outcmd_size_next; // Size of the command (e.g., 00=1B, 01=2B, 10=4B, 11=8B)
+    logic [MAX_REG_WIDTH-1:0] outcmd_ld_dest_reg_next; 
+    logic [NUMBER_OF_MAX_COALESCED_COMMANDS-1:0][BASE_ADDRESS_OFFSET-1:0] outcmd_address_map_next; //map from tid bitmap to address_offset
+
+    always_ff@(posedge clk) begin
+        if (rst) begin
             // Reset logic
             outcmd_valid <= 1'b0;
-            outcmd_block_id <= 4'b0;
-            outcmd_base_tid <= 10'b0;
-            outcmd_tid_bitmap <= 32'b0;
+            outcmd_block_id <= {EBLOCK_ID_WIDTH{1'b0}};
+            outcmd_base_tid <= {TID_WIDTH{1'b0}};
+            outcmd_tid_bitmap <= {TID_BITMAP_WIDTH{1'b0}};
             outcmd_write_enable <= 1'b0;
-            outcmd_write_data <= {(cache_line_size*8){1'b0}};
-            outcmd_write_mask <= {(cache_line_size){1'b1}}; // Initialize write mask to all masked
-            outcmd_address <= 64'b0;
+            outcmd_write_data <= {(CACHE_LINE_SIZE*8){1'b0}};
+            outcmd_write_mask <= {(CACHE_LINE_SIZE){1'b1}}; // Initialize write mask to all masked
+            outcmd_address <= {ADDR_WIDTH{1'b0}};
             outcmd_size <= 2'b10; // Reset size to 4B
-            outcmd_ld_dest_reg <= 7'b0;
+            outcmd_ld_dest_reg <= {MAX_REG_WIDTH{1'b0}};
             outcmd_address_map <= '0; // Reset address map to zero
         end else if (clear) begin
             // Clear logic
@@ -104,19 +111,19 @@ module memory_cmd_coalesce_buffer#(
     logic same_base_address;
     logic same_write_enable;
 
-    logic [9:0] incmd_base_tid;
-    assign incmd_base_tid = {incmd_tid[9:base_tid_address_offset], {(base_tid_address_offset){1'b0}}};
+    logic [TID_WIDTH-1:0] incmd_base_tid;
+    assign incmd_base_tid = {incmd_tid[TID_WIDTH-1:BASE_TID_ADDRESS_OFFSET], {(BASE_TID_ADDRESS_OFFSET){1'b0}}};
 
-    logic [base_tid_address_offset-1:0] incmd_tid_offset;
-    assign incmd_tid_offset = incmd_tid[base_tid_address_offset-1:0];
+    logic [BASE_TID_ADDRESS_OFFSET-1:0] incmd_tid_offset;
+    assign incmd_tid_offset = incmd_tid[BASE_TID_ADDRESS_OFFSET-1:0];
 
-    logic [63:0] incmd_base_address;
-    assign incmd_base_address = {incmd_address[63:base_address_offset], {(base_address_offset){1'b0}}};
+    logic [ADDR_WIDTH-1:0] incmd_base_address;
+    assign incmd_base_address = {incmd_address[ADDR_WIDTH-1:BASE_ADDRESS_OFFSET], {(BASE_ADDRESS_OFFSET){1'b0}}};
 
-    logic [base_address_offset-1:0] incmd_address_offset;
-    assign incmd_address_offset = incmd_address[base_address_offset-1:0];
+    logic [BASE_ADDRESS_OFFSET-1:0] incmd_address_offset;
+    assign incmd_address_offset = incmd_address[BASE_ADDRESS_OFFSET-1:0];
 
-    logic [cache_line_size-1:0] incmd_coalesce_mask;
+    logic [CACHE_LINE_SIZE-1:0] incmd_coalesce_mask;
 
     logic [3:0] incmd_actual_size;
     assign incmd_actual_size = incmd_size == 2'b00 ? 4'd1: 
@@ -185,7 +192,7 @@ module memory_cmd_coalesce_buffer#(
             outcmd_ld_dest_reg_next = incmd_ld_dest_reg; // Update load destination register
             // Update address map for the coalesced command
             if(!incmd_write_enable) begin
-                outcmd_address_map_next[incmd_tid_offset][base_address_offset-1:0]= incmd_address_offset;
+                outcmd_address_map_next[incmd_tid_offset][BASE_ADDRESS_OFFSET-1:0]= incmd_address_offset;
             end
         end else if (incmd_valid) begin
             // coalesce if can
@@ -205,9 +212,19 @@ module memory_cmd_coalesce_buffer#(
                     end
                 end
                 if(!incmd_write_enable) begin
-                    outcmd_address_map_next[incmd_tid_offset][base_address_offset-1:0]= incmd_address_offset;
+                    outcmd_address_map_next[incmd_tid_offset][BASE_ADDRESS_OFFSET-1:0]= incmd_address_offset;
                 end
             end 
         end
+    end
+
+    // Elaborate-time power-of-2 parameter check
+    initial begin
+        assert ((NUMBER_OF_MAX_COALESCED_COMMANDS > 0) &&
+                ((NUMBER_OF_MAX_COALESCED_COMMANDS &
+                  (NUMBER_OF_MAX_COALESCED_COMMANDS - 1)) == 0))
+        else $fatal(1,
+            "NUMBER_OF_MAX_COALESCED_COMMANDS (%0d) must be a power of 2.",
+            NUMBER_OF_MAX_COALESCED_COMMANDS);
     end
 endmodule
