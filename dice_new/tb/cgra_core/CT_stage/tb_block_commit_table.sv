@@ -1,10 +1,8 @@
 `timescale 1ns/1ps
 
 module tb_block_commit_table;
-
+import dice_pkg::*;
     // Parameters
-    parameter MAX_NUM_CTA = 4;
-    parameter MAX_EBLOCK = 8;
     parameter R_W = 14;
     parameter CLK_PERIOD = 2.5; // 400MHz clock (2.5ns period)
     
@@ -14,31 +12,29 @@ module tb_block_commit_table;
     
     // Entry insert interface
     logic                                    insert_valid;
-    logic [$clog2(MAX_NUM_CTA)-1:0]        insert_hw_cta_id;
-    logic [$clog2(MAX_EBLOCK)-1:0]          insert_e_block_id;
+    logic [DICE_HW_CTA_ID_WIDTH-1:0]        insert_hw_cta_id;
+    logic [DICE_EBLOCK_ID_WIDTH-1:0]          insert_e_block_id;
     logic [R_W-1:0]                            insert_pending_reads;
     logic [R_W-1:0]                            insert_pending_writes;
     
     // Pending read/write update interface
     logic                                    update_valid;
-    logic [$clog2(MAX_EBLOCK)-1:0]          update_e_block_id;
+    logic [DICE_EBLOCK_ID_WIDTH-1:0]          update_e_block_id;
     logic                                    update_is_write;
-    logic [MAX_NUM_CTA-1:0]                             update_reduce_count;
+    logic [2**DICE_HW_CTA_ID_WIDTH-1:0]                             update_reduce_count;
     
     // E-block commit interface
     logic                                    pop_valid;
-    logic [$clog2(MAX_EBLOCK)-1:0]          pop_e_block_id;
+    logic [DICE_EBLOCK_ID_WIDTH-1:0]          pop_e_block_id;
     logic                                    pop_ready;
     
     // Testbench variables
     int test_passed;
     int test_failed;
-    logic [MAX_NUM_CTA-1:0]         hw_cta_pending;
+    logic [2**DICE_HW_CTA_ID_WIDTH-1:0]         hw_cta_pending;
     
     // DUT instantiation
     block_commit_table #(
-        .MAX_EBLOCK(MAX_EBLOCK),
-        .MAX_NUM_CTA(MAX_NUM_CTA)
     ) dut (
         .clk(clk),
         .rst(rst),
@@ -87,7 +83,7 @@ module tb_block_commit_table;
         
         $display("\n========================================");
         $display("Starting Block Commit Table Testbench");
-        $display("MAX_NUM_CTA=%0d, MAX_EBLOCK=%0d", MAX_NUM_CTA, MAX_EBLOCK);
+        $display("MAX_NUM_CTA=%0d, EBLOCK_ID_WIDTH=%0d", DICE_HW_CTA_ID_WIDTH, DICE_EBLOCK_ID_WIDTH);
         $display("========================================\n");
         
         // Test 1: Basic insert and commit
@@ -145,7 +141,7 @@ module tb_block_commit_table;
         $display("\n[Test 2] Multiple inserts with different e_block_ids");
         
         // Insert multiple entries
-        for (int i = 0; i < MAX_NUM_CTA; i++) begin
+        for (int i = 0; i < 2**DICE_HW_CTA_ID_WIDTH; i++) begin
             @(posedge clk);
             insert_valid = 1;
             insert_e_block_id = i;
@@ -164,7 +160,7 @@ module tb_block_commit_table;
         end
 
         // Clear entries for next test - reduce by max of 8 at a time
-        for (int i = 0; i < MAX_NUM_CTA; i++) begin
+        for (int i = 0; i < 2**DICE_HW_CTA_ID_WIDTH; i++) begin
             // Reduce reads
             @(posedge clk);
             update_valid = 1;
@@ -205,7 +201,7 @@ module tb_block_commit_table;
         commit_order = 0;
         
         // Insert multiple entries that will be ready simultaneously
-        for (int i = 0; i < MAX_NUM_CTA; i++) begin
+        for (int i = 0; i < 2**DICE_HW_CTA_ID_WIDTH; i++) begin
             @(posedge clk);
             insert_valid = 1;
             insert_e_block_id = i;
@@ -216,7 +212,7 @@ module tb_block_commit_table;
             insert_valid = 0;
         end
         
-        for (int i = 0; i < MAX_NUM_CTA; i++) begin
+        for (int i = 0; i < 2**DICE_HW_CTA_ID_WIDTH; i++) begin
             if (hw_cta_pending[i]) begin
                 $display("  PASS: Entry successfully inserted with pending counts");
                 test_passed++;
@@ -229,7 +225,7 @@ module tb_block_commit_table;
         @(posedge clk);
         pop_ready = 0;
         // Clear entries for next test - reduce by max of 8 at a time
-        for (int i = 0; i < MAX_NUM_CTA; i++) begin
+        for (int i = 0; i < 2**DICE_HW_CTA_ID_WIDTH; i++) begin
             // Reduce reads
             @(posedge clk);
             update_valid = 1;
@@ -252,7 +248,7 @@ module tb_block_commit_table;
         @(posedge clk);
         pop_ready = 1;
         // Check commit order
-        for (int i = 0; i < MAX_NUM_CTA; i++) begin
+        for (int i = 0; i < 2**DICE_HW_CTA_ID_WIDTH; i++) begin
             @(posedge clk)
             if (!hw_cta_pending[i]) begin
                 $display("  PASS: Entry successfully popped in round-robin order");

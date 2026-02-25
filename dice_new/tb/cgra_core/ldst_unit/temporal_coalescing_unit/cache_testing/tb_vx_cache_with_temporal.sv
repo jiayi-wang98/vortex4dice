@@ -1,49 +1,56 @@
 module tb_vx_cache_with_temporal;
+import dice_pkg::*;
 
+    // --- Simulation Parameters ---
     parameter CLK_PERIOD = 2.5;
-    parameter int CACHE_LINE_SIZE = 32;
-    parameter int TID_WIDTH = 10;
-    parameter int DATA_WIDTH = 32; // Set to 32 bits
-    parameter int ADDR_WIDTH = 32;
-    parameter int EBLOCK_ID_WIDTH = 4;
-    parameter int NUMBER_OF_MAX_COALESCED_COMMANDS = 8;
-    parameter int NUMBER_OF_MAX_COALESCED_INTERVAL = 8;
-    parameter int MAX_REG_WIDTH = 7;
-    parameter int TID_BITMAP_WIDTH = 8;
+    
+    // --- Cache Configuration Parameters ---
     parameter int NUM_REQS = 1; 
     parameter int MEM_PORTS = 1;
-    parameter OUTCMD_TAG_WIDTH = NUMBER_OF_MAX_COALESCED_COMMANDS * $clog2(CACHE_LINE_SIZE) + EBLOCK_ID_WIDTH + TID_WIDTH + TID_BITMAP_WIDTH + MAX_REG_WIDTH;
-    parameter MSHR_SIZE = 16;
-    parameter MSHR_BITS = $clog2(MSHR_SIZE);
-    parameter MEM_TAG_WIDTH = OUTCMD_TAG_WIDTH + MSHR_BITS;
-    parameter MEM_ADDR_WIDTH = ADDR_WIDTH - $clog2(CACHE_LINE_SIZE); 
+    parameter int MSHR_SIZE = 16;
+    parameter int MSHR_BITS = $clog2(MSHR_SIZE);
 
-    // --- Signals --
+    // --- Derived Parameters using DICE_PKG ---
+    // Calculate Tag Width based on packed struct layout:
+    // {BlockID, BaseTID, Bitmap, DestReg, AddrMap}
+    parameter int OUTCMD_TAG_WIDTH = DICE_EBLOCK_ID_WIDTH + 
+                                     DICE_TID_WIDTH + 
+                                     DICE_TID_BITMAP_WIDTH + 
+                                     DICE_MAX_REG_WIDTH + 
+                                     (DICE_NUMBER_OF_MAX_COALESCED_COMMANDS * DICE_BASE_ADDRESS_OFFSET);
+
+    parameter int MEM_TAG_WIDTH = OUTCMD_TAG_WIDTH + MSHR_BITS;
+    parameter int MEM_ADDR_WIDTH = DICE_ADDR_WIDTH - DICE_BASE_ADDRESS_OFFSET; 
+
+    // --- Signals ---
     bit clk, rst;
+    
+    // Input Command Interface
     bit incmd_valid;
-    bit [EBLOCK_ID_WIDTH-1:0] incmd_block_id;
-    bit [TID_WIDTH-1:0] incmd_tid;
+    bit [DICE_EBLOCK_ID_WIDTH-1:0] incmd_block_id;
+    bit [DICE_TID_WIDTH-1:0] incmd_tid;
     bit incmd_write_enable;
-    bit [DATA_WIDTH-1:0] incmd_write_data;
-    bit [DATA_WIDTH/8-1:0] incmd_write_mask; // Now 4 bits
-    bit [ADDR_WIDTH-1:0] incmd_address;
+    bit [DICE_DATA_WIDTH-1:0] incmd_write_data;
+    bit [(DICE_DATA_WIDTH/8)-1:0] incmd_write_mask; 
+    bit [DICE_ADDR_WIDTH-1:0] incmd_address;
     bit [1:0] incmd_size;
-    bit [MAX_REG_WIDTH-1:0] incmd_ld_dest_reg;
+    bit [DICE_MAX_REG_WIDTH-1:0] incmd_ld_dest_reg;
     bit outcmd_ready, core_rsp_ready;
 
+    // Memory Interface
     bit mem_req_ready;
     bit mem_rsp_valid;
-    bit [255:0] mem_rsp_data;
+    bit [DICE_CACHE_LINE_SIZE*8-1:0] mem_rsp_data; // Assuming 256-bit wide memory interface
     bit [MEM_TAG_WIDTH-1:0] mem_rsp_tag;
 
-    logic [CACHE_LINE_SIZE*8-1:0] core_rsp_data; 
+    logic [DICE_CACHE_LINE_SIZE*8-1:0] core_rsp_data; 
     logic core_rsp_valid;
     logic [OUTCMD_TAG_WIDTH-1:0] core_rsp_tag;
 
     logic mem_req_valid, mem_req_rw;
-    logic [CACHE_LINE_SIZE-1:0] mem_req_byteen;
+    logic [DICE_CACHE_LINE_SIZE-1:0] mem_req_byteen;
     logic [MEM_ADDR_WIDTH-1:0] mem_req_addr;
-    logic [255:0] mem_req_data;
+    logic [DICE_CACHE_LINE_SIZE*8-1:0] mem_req_data;
     logic [MEM_TAG_WIDTH-1:0] mem_req_tag;
     logic mem_rsp_ready;
 
@@ -69,19 +76,12 @@ module tb_vx_cache_with_temporal;
     );
 
     // --- DUT Instance ---
+    // Only passing parameters that differ from defaults or are local to TB
     VX_cache_with_temporal #(
-        .NUMBER_OF_MAX_COALESCED_INTERVAL(NUMBER_OF_MAX_COALESCED_INTERVAL),
-        .CACHE_LINE_SIZE(CACHE_LINE_SIZE),
-        .NUMBER_OF_MAX_COALESCED_COMMANDS(NUMBER_OF_MAX_COALESCED_COMMANDS),
-        .EBLOCK_ID_WIDTH(EBLOCK_ID_WIDTH),
-        .TID_WIDTH(TID_WIDTH),
-        .DATA_WIDTH(DATA_WIDTH),
-        .ADDR_WIDTH(ADDR_WIDTH),
-        .MAX_REG_WIDTH(MAX_REG_WIDTH),
-        .TID_BITMAP_WIDTH(TID_BITMAP_WIDTH),
         .NUM_REQS(NUM_REQS),
         .MEM_PORTS(MEM_PORTS),
-        .OUTCMD_TAG_WIDTH(OUTCMD_TAG_WIDTH)
+        .OUTCMD_TAG_WIDTH(OUTCMD_TAG_WIDTH),
+        .MSHR_SIZE(MSHR_SIZE)
     ) dut (
         .clk(clk), .rst(rst),
         .incmd_valid(incmd_valid), .incmd_block_id(incmd_block_id),
@@ -100,14 +100,14 @@ module tb_vx_cache_with_temporal;
     );
 
     // --- Read Task ---
-    task send_read_request(input [31:0] addr, input [TID_WIDTH-1:0] tid);
+    task send_read_request(input [DICE_ADDR_WIDTH-1:0] addr, input [DICE_TID_WIDTH-1:0] tid);
     begin
         @(posedge clk);
         incmd_valid   = 1;
         incmd_address = addr;
         incmd_tid     = tid;
         incmd_write_enable = 0;
-        incmd_size    = 2'b10; // Changed to 2'b10 for 4-byte (32-bit) read
+        incmd_size    = 2'b10; // 4-byte read
         
         wait(dut.incmd_ready == 1'b1); 
         @(posedge clk);
@@ -129,10 +129,10 @@ module tb_vx_cache_with_temporal;
 
     // --- TASK: WRITE REQUEST ---
     task send_write_request(
-        input [31:0] addr, 
-        input [DATA_WIDTH-1:0] data, 
-        input [DATA_WIDTH/8-1:0] mask, 
-        input [TID_WIDTH-1:0] tid
+        input [DICE_ADDR_WIDTH-1:0] addr, 
+        input [DICE_DATA_WIDTH-1:0] data, 
+        input [(DICE_DATA_WIDTH/8)-1:0] mask, 
+        input [DICE_TID_WIDTH-1:0] tid
     );
     begin
         @(posedge clk);
@@ -142,7 +142,7 @@ module tb_vx_cache_with_temporal;
         incmd_write_enable = 1;
         incmd_write_data   = data;
         incmd_write_mask   = mask;
-        incmd_size         = 2'b10; // 2'b10 = 4 Bytes (32-bit)
+        incmd_size         = 2'b10; // 4 Bytes
         
         wait(dut.incmd_ready == 1'b1);
         @(posedge clk);
@@ -151,8 +151,14 @@ module tb_vx_cache_with_temporal;
     end
     endtask
 
-    wire [9:0] rsp_base_tid = core_rsp_tag[64:55];
-    wire [7:0] rsp_bitmap   = core_rsp_tag[54:47];
+    // --- Monitor Logic ---
+    // Calculating offsets based on struct packing order (MSB -> LSB):
+    // {BlockID, BaseTID, Bitmap, DestReg, AddrMap}
+    localparam int BITMAP_OFFSET = (DICE_NUMBER_OF_MAX_COALESCED_COMMANDS * DICE_BASE_ADDRESS_OFFSET) + DICE_MAX_REG_WIDTH;
+    localparam int BASE_TID_OFFSET = BITMAP_OFFSET + DICE_TID_BITMAP_WIDTH;
+
+    wire [DICE_TID_WIDTH-1:0] rsp_base_tid = core_rsp_tag[BASE_TID_OFFSET +: DICE_TID_WIDTH];
+    wire [DICE_TID_BITMAP_WIDTH-1:0] rsp_bitmap = core_rsp_tag[BITMAP_OFFSET +: DICE_TID_BITMAP_WIDTH];
 
     always @(posedge clk) begin
         if (core_rsp_valid && core_rsp_ready) begin

@@ -63,10 +63,10 @@ package VX_gpu_pkg;
     localparam NUM_OPCS_W = `UP(NUM_OPCS_BITS);
 
 `ifndef NDEBUG
-	localparam UUID_WIDTH = 69;
+	localparam UUID_WIDTH = 68;
 `else
 `ifdef SCOPE
-	localparam UUID_WIDTH = 69;
+	localparam UUID_WIDTH = 68;
 `else
 	localparam UUID_WIDTH = 1;
 `endif
