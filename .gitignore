@@ -4,3 +4,5 @@
 *.code-workspace
 */csrc/
 miscs/apptainer/vortex.sif
+# Synthesis build artifacts
+dice_new/rtl/cgra_core/dispatcher/dispatcher_refactor/syn/build/

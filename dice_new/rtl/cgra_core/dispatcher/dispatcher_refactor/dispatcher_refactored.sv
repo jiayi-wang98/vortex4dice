@@ -2,7 +2,7 @@ module dispatcher
     import dice_pkg::*, 
            dice_frontend_pkg::*;
 (
-    input logic clk,
+    input logic clk_i,
     input logic rst_n,
 
     // metadata input package
