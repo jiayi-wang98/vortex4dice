@@ -39,6 +39,8 @@ module tb_parameterized_dispatcher
     // Test control
     int test_num;
     int dispatched_count;
+    int tests_passed;
+    int tests_failed;
 
     // Clock generation (100MHz)
     initial begin
@@ -141,10 +143,11 @@ module tb_parameterized_dispatcher
     endtask
 
     // Task to simulate write-back
-    task writeback_register(logic [7:0] reg_num, logic [1023:0] tid_mask);
-        $display("Write-back: Register %0d for TIDs", reg_num);
+    task writeback_register(logic [REG_NUM-1:0] reg_bitmap, logic [1023:0] tid_mask);
+        $display("Write-back: reg_bitmap=0x%0h for TID mask", reg_bitmap);
         wb_valid = 1;
-        pgraph_meta_i.ld_dest_regs[0] = reg_num;  // Set in structure
+        // Set ld_dest_regs such that the assembled bitmap matches reg_bitmap
+        // You need to reverse-engineer which ld_dest_regs entries produce the desired bitmap
         wb_tid_bitmap = tid_mask;
         @(negedge clk);
         wb_valid = 0;
@@ -231,20 +234,26 @@ module tb_parameterized_dispatcher
 
         if (dispatcher_busy) begin
             $display("ERROR: Dispatcher should not be busy initially");
+            tests_failed++;
         end else begin
             $display("PASS: Dispatcher idle initially");
+            tests_passed++;
         end
 
         if (dispatcher_done) begin
             $display("ERROR: Dispatcher should not be done initially");
+            tests_failed++;
         end else begin
             $display("PASS: Dispatcher not done initially");
+            tests_passed++;
         end
 
         if (!dispatch_fifo_empty) begin
             $display("ERROR: Dispatch FIFOs should be empty initially");
+            tests_failed++;
         end else begin
             $display("PASS: All dispatch FIFOs empty initially");
+            tests_passed++;
         end
     endtask
 
@@ -261,8 +270,10 @@ module tb_parameterized_dispatcher
 
         if (dispatched_count == 128) begin
             $display("PASS: Dispatched exactly 128 threads");
+            tests_passed++;
         end else begin
             $display("ERROR: Expected 128 threads, got %0d", dispatched_count);
+            tests_failed++;
         end
 
         dispatched_count = 0;
@@ -296,8 +307,10 @@ module tb_parameterized_dispatcher
 
         if (dispatched_count == 8) begin
             $display("PASS: All 8 threads eventually dispatched");
+            tests_passed++;
         end else begin
-            $display("WARNING: Dispatched %0d/8 threads", dispatched_count);
+            $display("FAIL: Dispatched %0d/8 threads", dispatched_count);
+            tests_failed++;
         end
 
         dispatched_count = 0;
@@ -339,10 +352,12 @@ module tb_parameterized_dispatcher
         // Check results
         if (count_1way == 32 && count_2way == 32 && count_4way == 32) begin
             $display("PASS: All unrolling factors dispatch correct thread count");
+            tests_passed++;
         end else begin
             $display("ERROR: Unrolling factor test failed");
             $display("  Expected: 32, 32, 32");
             $display("  Got: %0d, %0d, %0d", count_1way, count_2way, count_4way);
+            tests_failed++;
         end
 
         dispatched_count = 0;
@@ -356,12 +371,12 @@ module tb_parameterized_dispatcher
 
         $display("\n=== Test %0d: Back-to-Back CTA Dispatch (No Reset) ===", ++test_num);
 
-        // First CTA: 16 threads, 2 GPRs, 4-way unrolling
+        // First CTA: 32 threads, 2 GPRs, 4-way unrolling
         mask1 = 1024'b0;
-        mask1[15:0] = 16'hFFFF;
+        mask1[31:0] = 32'hFFFFFFFF;
         regs1 = 66'h3;  // GPR 0 and 1
 
-        $display("\n--- CTA 1: 16 threads, 2 GPRs, 4-way ---");
+        $display("\n--- CTA 1: 32 threads, 2 GPRs, 4-way ---");
         start_cta(mask1, regs1, CTA_SIZE_1, 2'b10);
         wait_for_completion();
         cta1_count = dispatched_count;
@@ -370,14 +385,18 @@ module tb_parameterized_dispatcher
         // Verify state before next CTA
         if (!dispatcher_done) begin
             $display("ERROR: dispatcher_done should be asserted after CTA 1");
+            tests_failed++;
         end else begin
             $display("PASS: dispatcher_done asserted after CTA 1");
+            tests_passed++;
         end
 
         if (!dispatch_fifo_empty) begin
             $display("ERROR: FIFOs should be empty before CTA 2");
+            tests_failed++;
         end else begin
             $display("PASS: FIFOs empty before CTA 2");
+            tests_passed++;
         end
 
         dispatched_count = 0;
@@ -396,8 +415,10 @@ module tb_parameterized_dispatcher
         // Verify state before next CTA
         if (!dispatcher_done) begin
             $display("ERROR: dispatcher_done should be asserted after CTA 2");
+            tests_failed++;
         end else begin
             $display("PASS: dispatcher_done asserted after CTA 2");
+            tests_passed++;
         end
 
         dispatched_count = 0;
@@ -418,15 +439,17 @@ module tb_parameterized_dispatcher
 
         // Final verification
         $display("\n--- Back-to-Back CTA Results ---");
-        $display("CTA 1: %0d/16 threads", cta1_count);
+        $display("CTA 1: %0d/32 threads", cta1_count);
         $display("CTA 2: %0d/32 threads", cta2_count);
         $display("CTA 3: %0d/8 threads", cta3_count);
 
-        if (cta1_count == 16 && cta2_count == 32 && cta3_count == 8) begin
+        if (cta1_count == 32 && cta2_count == 32 && cta3_count == 8) begin
             $display("PASS: All CTAs dispatched correctly without reset");
+            tests_passed++;
         end else begin
-            $display("FAIL: Expected 16, 32, 8 threads");
+            $display("FAIL: Expected 32, 32, 8 threads");
             $display("      Got %0d, %0d, %0d", cta1_count, cta2_count, cta3_count);
+            tests_failed++;
         end
 
         dispatched_count = 0;
@@ -440,7 +463,9 @@ module tb_parameterized_dispatcher
         $display("Using DICE_NUM_MAX_THREADS_PER_CORE = %0d", DICE_NUM_MAX_THREADS_PER_CORE);
         $display("Using DICE_TID_WIDTH = %0d", DICE_TID_WIDTH);
 
-        test_num = 0;
+        test_num     = 0;
+        tests_passed = 0;
+        tests_failed = 0;
 
         // Initialize and check initial state
         reset_system();
@@ -460,6 +485,7 @@ module tb_parameterized_dispatcher
         // Final summary
         $display("\n========================================");
         $display("Parameterized Tests Completed");
+        $display("%0d/%0d checks passed", tests_passed, tests_passed + tests_failed);
         $display("========================================");
 
         $finish;

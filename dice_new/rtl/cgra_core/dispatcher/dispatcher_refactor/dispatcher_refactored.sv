@@ -15,22 +15,13 @@ module dispatcher
     
     // Write-back interface for scoreboards
     input logic wb_valid,                       // Valid signal for write-back command
-    input logic [1023:0] wb_tid_bitmap,         // 1024-bit bitmap of TIDs to release registers // DICE_NUM_MAX_THREADS_PER_CORE?
+    input logic [DICE_NUM_MAX_THREADS_PER_CORE-1:0] wb_tid_bitmap,         // 1024-bit bitmap of TIDs to release registers // DICE_NUM_MAX_THREADS_PER_CORE?
     
     // Ready-to-dispatch FIFO pop interface
     input logic dispatch_fifo_pop,       // Pop signals for ready-to-dispatch FIFO
     output logic dispatch_fifo_empty,        // 1 if ALL FIFOs are empty
     
-    // Output signals - dispatched threads
-    // output logic [9:0] dispatch_tid_0,         // TID for lane 0
-    // output logic dispatch_valid_0,             // Valid for lane 0
-    // output logic [9:0] dispatch_tid_1,         // TID for lane 1
-    // output logic dispatch_valid_1,             // Valid for lane 1
-    // output logic [9:0] dispatch_tid_2,         // TID for lane 2
-    // output logic dispatch_valid_2,             // Valid for lane 2
-    // output logic [9:0] dispatch_tid_3,         // TID for lane 3
-    // output logic dispatch_valid_3,             // Valid for lane 3
-
+    // Output signals - dispatched threads packed to one bus
     output logic [4*DICE_TID_WIDTH-1:0] dispatch_tid_o, // Combined TID output for all lanes
     output logic dispatch_valid_o,                      // Combined valid signal for all lanes
     
@@ -46,6 +37,19 @@ module dispatcher
     localparam int CHUNK_SIZE = THREADS_PER_SCOREBOARD;  // 256 threads per chunk
     localparam int NUM_CHUNKS = DICE_NUM_MAX_THREADS_PER_CORE / CHUNK_SIZE;  // 4 chunks
     localparam int CHUNK_ADDR_WIDTH = $clog2(NUM_CHUNKS);  // 2 bits for 4 chunks
+
+    // load destination registers (ld_dest_reg) bitmap assembly
+    localparam int NUM_LD_DEST_REGS = $clog2(`DICE_CGRA_MEM_PORTS-1) + 1; // number of ld_dest entries
+
+    // Convert parcked ld_dest_regs array into a flat REG_NUM-wide bitmap
+    logic [REG_NUM-1:0] ld_dest_regs_bitmap;
+
+    always_comb begin
+        ld_dest_regs_bitmap = '0;
+        for (int k = 0; k < NUM_LD_DEST_REGS; k++) begin
+            ld_dest_regs_bitmap[pgraph_meta_i.ld_dest_regs[k]] = 1'b1;
+        end
+    end
 
     // Next thread logic signals
     logic thread_fifo_pop;
@@ -107,7 +111,7 @@ module dispatcher
         .chunk_base_addr(chunk_base_addr),
         .latched_unrolling_factor(latched_unrolling_factor),
         .pred_bitmap(pred_bitmap),
-        // .clear_scoreboard(clear_scoreboard),
+        .start_new_cta(start_new_cta),
         .dispatcher_busy(dispatcher_busy),
         .dispatcher_done(dispatcher_done),
         .restart(restart),
@@ -167,6 +171,12 @@ module dispatcher
     assign lane_sb_sel[2] = thread_next_tid_2[DICE_TID_WIDTH-1:SCOREBOARD_TID_WIDTH];
     assign lane_sb_sel[3] = thread_next_tid_3[DICE_TID_WIDTH-1:SCOREBOARD_TID_WIDTH];
     
+    // Each lane's rsv_valid = fifo pop and lane has valid data
+    assign sb_rsv_valid[0] = dispatch_fifo_pop && dispatch_valid_0;
+    assign sb_rsv_valid[1] = dispatch_fifo_pop && dispatch_valid_1;
+    assign sb_rsv_valid[2] = dispatch_fifo_pop && dispatch_valid_2;
+    assign sb_rsv_valid[3] = dispatch_fifo_pop && dispatch_valid_3;
+
     // Valid signals for scoreboards - only check when thread FIFO has valid data
     always_comb begin
         // Initialize: no lanes checking any scoreboards
@@ -237,18 +247,21 @@ module dispatcher
     genvar i;
     generate
         for (i = 0; i < NUM_SCOREBOARDS; i++) begin : gen_scoreboards
-            scoreboard sb (
+            scoreboard #(
+                .THREADS_PER_SCOREBOARD(THREADS_PER_SCOREBOARD),
+                .SCOREBOARD_TID_WIDTH(SCOREBOARD_TID_WIDTH)  
+            ) sb (
                 .clk(clk),
                 .rst_n(rst_n),
-                .input_regs_map({pred_bitmap, gpr_bitmap}), // Direct from input: 32GPR + 2PR (34 bits)
+                .input_regs_map(pgraph_meta_i.in_regs_bitmap), // Direct from input: 32GPR + 2PR (34 bits)
                 .rd_tid(check_tid[i]),
                 .rd_valid(sb_rd_valid[i]),              // Valid signal for read operation
                 .rsv_tid(reserve_tid[i]),
                 .rsv_valid(sb_rsv_valid[i]),            // Valid signal for reserve operation
                 .wb_tid_bitmap(wb_tid_sb[i]),           // Each scoreboard gets its 256-bit slice
-                .ld_dest_reg(pgraph_meta_i.ld_dest_regs),         // Convert to 7 bits for scoreboard (GPR+Pred only)
-                // .clear_scoreboard(clear_scoreboard),
-                .wb_valid(wb_valid && ((pgraph_meta_i.ld_dest_regs[0] <= 7'd31) || (pgraph_meta_i.ld_dest_regs[0] >= 7'd64))), // Check first valid entry; Valid for GPR+Pred only
+                .ld_dest_regs_bitmap(ld_dest_regs_bitmap),         // Convert to 7 bits for scoreboard (GPR+Pred only)
+                .wb_valid(wb_valid), 
+                .clear_scoreboard(start_new_cta),           // Clear scoreboard on new CTA dispatch
                 .collision(collision[i])
             );
         end
@@ -262,8 +275,8 @@ module dispatcher
         .rd_valid(const_rd_valid),              // Valid when any lane needs checking
         .rsv_const_map(const_bitmap),           // Reserve the same constants
         .rsv_valid(const_rsv_valid),            // Valid when any lane is reserving
-        .wb_const_bitmap(32'b1 << (pgraph_meta_i.ld_dest_regs - 8'd32)),  // Single constant register to release
-        .wb_valid(wb_valid && (pgraph_meta_i.ld_dest_regs >= 8'd32) && (pgraph_meta_i.ld_dest_regs <= 8'd63)),  // Valid only for constant regs
+        .wb_const_bitmap(ld_dest_regs_bitmap[(`DICE_GPR_NUM + `DICE_CR_NUM - 1):`DICE_GPR_NUM]),  // Single constant register to release
+        .wb_valid(wb_valid && |ld_dest_regs_bitmap[(`DICE_GPR_NUM + `DICE_CR_NUM - 1):`DICE_GPR_NUM]),  // Valid only for constant regs
         .collision(const_collision)
     );
     

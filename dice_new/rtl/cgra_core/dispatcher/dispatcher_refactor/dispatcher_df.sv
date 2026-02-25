@@ -88,6 +88,7 @@ module dispatcher_dataflow
             dispatched_count <= '0;
             chunk_counter <= '0;
             last_chunk_done <= 1'b0;
+            restart <= 1'b1;
         end
     end
 endmodule
