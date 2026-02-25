@@ -1,3 +1,5 @@
+`include "dice_define.vh"
+
 module dispatcher_fsm
     import dice_pkg::*,
            dice_frontend_pkg::*;
@@ -6,17 +8,18 @@ module dispatcher_fsm
     parameter int CHUNK_ADDR_WIDTH = 2
 )(
     output logic [CHUNK_SIZE-1:0] current_chunk, // CHUNK_SIZE
-    output logic [31:0] gpr_bitmap, // Need metadata parameter for gpr_bitmap width
-    output logic [31:0] const_bitmap, // Need metadata parameter for const_bitmap width
-    output logic [1:0] pred_bitmap, // Need metadata parameter for pred_bitmap width
+    output logic [`DICE_GPR_NUM-1:0] gpr_bitmap, // Need metadata parameter for gpr_bitmap width
+    output logic [`DICE_CR_NUM-1:0] const_bitmap, // Need metadata parameter for const_bitmap width
+    output logic [`DICE_PR_NUM-1:0] pred_bitmap, // Need metadata parameter for pred_bitmap width
     output logic [CHUNK_ADDR_WIDTH-1:0] chunk_base_addr, // CHUNK_ADDR_WIDTH
     output logic [1:0] latched_unrolling_factor,
+    output logic start_new_cta,
     output logic dispatcher_busy,
     output logic dispatcher_done,
     output logic restart,
 
     input logic [DICE_NUM_MAX_THREADS_PER_CORE-1:0] active_mask, // DICE_NUM_MAX_THREADS_PER_CORE
-    input logic [REG_NUM-1:0] input_register_bitmap, // pgraph_meta_i.in_regs_bitmap--unsure if importing a localparam works like this
+    input logic [REG_NUM-1:0] input_register_bitmap, 
     input logic [1:0] unrolling_factor,
     input cta_size_e cta_size, // 0=256, 1=512, 3=1024
     input logic dispatch_valid_0,
@@ -42,8 +45,7 @@ module dispatcher_fsm
           incr_counter,
           rst_counter, 
           assert_restart, 
-          last_chunk_fin,
-          start_new_cta; // Control signals
+          last_chunk_fin; // Control signals
 
     // Calculate total CTA size
     always_comb begin
@@ -71,17 +73,17 @@ module dispatcher_fsm
         chunk_base_addr = chunk_counter;
         
         case (chunk_counter)
-            2'b00: current_chunk = latched_active_mask[255:0];     // Chunk 0
-            2'b01: current_chunk = latched_active_mask[511:256];   // Chunk 1
-            2'b10: current_chunk = latched_active_mask[767:512];   // Chunk 2
-            2'b11: current_chunk = latched_active_mask[1023:768];  // Chunk 3
+            2'b00: current_chunk = latched_active_mask[1*CHUNK_SIZE-1:0*CHUNK_SIZE];  // Chunk 0
+            2'b01: current_chunk = latched_active_mask[2*CHUNK_SIZE-1:1*CHUNK_SIZE];  // Chunk 1
+            2'b10: current_chunk = latched_active_mask[3*CHUNK_SIZE-1:2*CHUNK_SIZE];  // Chunk 2
+            2'b11: current_chunk = latched_active_mask[4*CHUNK_SIZE-1:3*CHUNK_SIZE];  // Chunk 3
         endcase
     end
 
     // Extract register bitmaps from latched input
-    assign gpr_bitmap = latched_input_regs[31:0];      // GPR (bits 0-31)
-    assign const_bitmap = latched_input_regs[63:32];   // Constants (bits 32-63)
-    assign pred_bitmap = latched_input_regs[65:64];    // Predicates (bits 64-65)
+    assign gpr_bitmap   = latched_input_regs[`DICE_GPR_NUM-1:0];      // GPR (bits 0-31)
+    assign const_bitmap = latched_input_regs[(`DICE_GPR_NUM+`DICE_CR_NUM)-1:`DICE_GPR_NUM];   // Constants (bits 32-63)
+    assign pred_bitmap  = latched_input_regs[(`DICE_GPR_NUM+`DICE_CR_NUM+`DICE_PR_NUM)-1:`DICE_GPR_NUM+`DICE_CR_NUM];    // Predicates (bits 64-65)
 
     dispatcher_dataflow dispatcher_df_inst (
         .latched_active_mask(latched_active_mask),
