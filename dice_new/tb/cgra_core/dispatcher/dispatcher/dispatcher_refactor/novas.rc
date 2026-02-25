@@ -223,7 +223,7 @@ Selection-LineWidth = 1
 Orientation = Landscape
 [FileBrowser]
 LoadSimulationResults = "\"/home/jami3jun/vortex4dice/dice_new/tb/cgra_core/dispatcher/dispatcher/dispatcher_basic.fsdb\"" "\"/home/jami3jun/vortex4dice-1/dice_new/tb/cgra_core/dispatcher/dispatcher/dispatcher_refactor/refactored_dispatcher.fsdb\"" "\"/home/jami3jun/vortex4dice-1\
-/dice_new/tb/cgra_core/dispatcher/dispatcher/dispatcher_refactor/refactored_dispatcher_fsm.fsdb\""
+/dice_new/tb/cgra_core/dispatcher/dispatcher/dispatcher_refactor/refactored_dispatcher_fsm.fsdb\"" "\"/home/jami3jun/vortex4dice/dice_new/tb/cgra_core/dispatcher/dispatcher/dispatcher_refactor/refactored_dispatcher.fsdb\""
 [Form]
 version = Verdi_X-2025.06
 [General]
@@ -236,8 +236,8 @@ SignalCaseInSensitive = FALSE
 ColorThemeModern = bright
 prevColorThemeModern = bright
 version = Verdi_X-2025.06
-recent_commands_Verdi = hbReload,hbLoadFsdbFile,nsFullScreen,hbImpDsg,srcCompile,aboutFsdb,hbCloseFsdbFile
-recent_commands_nWave = digitalFHex,digitalFUDec,zoomOut,editCut,getAllSignals,getSignal,getSignal,getSignal
+recent_commands_Verdi = hbLoadFsdbFile,hbImpDsg,hbReload,textCaretLineEnd,nsFullScreen,srcCompile,aboutFsdb,hbCloseFsdbFile
+recent_commands_nWave = editCut,digitalFUDec,toggleExpand,digitalFHex,zoomIn,zoomOut,getAllSignals,getSignal,getSignal,getSignal
 [GlobalProp]
 ErrWindow_Font = Helvetica_M_R_12
 [Globals]
@@ -274,8 +274,8 @@ PrefetchViewableAnnot = TRUE
 designTreeBgColor = ID_WHITE
 import_default_language = Verilog
 import_from = source
-simulation_file_type = *.fsdb;*.vf;*.jf;*.zwd*
 ShowFileListView = FALSE
+simulation_file_type = *.fsdb;*.vf;*.jf;*.zwd*
 [Hier]
 filterTimeout = 1500
 [ImportLiberty]
@@ -393,10 +393,10 @@ qWaveSignalDialog = 217,262,800,479
 QwQuestionMsgDlg = 404,406,406,101
 QwInfoMsgDlg = 232,297,750,250
 CompileDesignUi = 166,174,691,410
-importDesignForm = 602,212,715,574
-QwUserAskDlg = 788,386,324,128
 tipViewerDlg = 751,386,398,259
-loadFile = 205,200,614,432
+QwUserAskDlg = 606,380,324,128
+importDesignForm = 410,120,715,574
+loadFile = 461,191,614,432
 [Safety]
 RegisterObject = ID_RED4
 CoreObject = ID_ORANGE5
@@ -406,11 +406,11 @@ ErrorObject = ID_GRAY5
 AnnotateSignal = TRUE
 HighlightSafetyObject = TRUE
 [Session Cache]
-3 = string (session file name)
 4 = string (session file name)
 5 = string (session file name)
-1 = /home/jami3jun/vortex4dice-1/dice_new/tb/cgra_core/dispatcher/dispatcher/dispatcher_refactor/verdiLog/novas_autosave.ses
-2 = /home/jami3jun/verdiLog/novas_autosave.ses
+1 = /home/jami3jun/vortex4dice/dice_new/tb/cgra_core/dispatcher/dispatcher/dispatcher_refactor/verdiLog/novas_autosave.ses
+2 = /home/jami3jun/vortex4dice-1/dice_new/tb/cgra_core/dispatcher/dispatcher/dispatcher_refactor/verdiLog/novas_autosave.ses
+3 = /home/jami3jun/verdiLog/novas_autosave.ses
 [Signal List]
 sigListBackgroundColor = ID_WHITE
 [Simulation]
@@ -481,7 +481,7 @@ bSVTBMode = TRUE
 SimMode = TRUE
 interactiveDebugging = TRUE
 KeepBreakPoints = FALSE
-vcs_svPath = /home/jami3jun/vortex4dice-1/dice_new/tb/cgra_core/dispatcher/dispatcher/dispatcher_refactor/simv
+vcs_svPath = /home/jami3jun/vortex4dice/dice_new/tb/cgra_core/dispatcher/dispatcher/dispatcher_refactor/simv
 [SimulationPlus2]
 eventDumpUnfinish = FALSE
 [Source]
@@ -599,7 +599,7 @@ pdmlMacro = ID_BLACK
 font = COURIER12
 annotFont = FIXED12
 [Text.1]
-viewport = 195 27 1461 860 45
+viewport = 0 27 1536 760 45
 [TextPrinter]
 Orientation = Landscape
 Indicator = FALSE
@@ -704,31 +704,31 @@ isHidden = FALSE
 isUserChangeColumnVisible = FALSE
 isColFilterColorCoding = FALSE
 [VIA.oneSearch.preference.vgifColumnSettingRC.setting0.column2]
+name = "Code"
+width = 60
+visualIndex = 3
+isHidden = TRUE
+isUserChangeColumnVisible = FALSE
+isColFilterColorCoding = FALSE
+[VIA.oneSearch.preference.vgifColumnSettingRC.setting0.column3]
 name = "Type"
 width = 60
 visualIndex = 4
 isHidden = TRUE
 isUserChangeColumnVisible = FALSE
 isColFilterColorCoding = FALSE
-[VIA.oneSearch.preference.vgifColumnSettingRC.setting0.column3]
+[VIA.oneSearch.preference.vgifColumnSettingRC.setting0.column4]
 name = "Message"
 width = 2000
 visualIndex = 5
 isHidden = FALSE
 isUserChangeColumnVisible = FALSE
 isColFilterColorCoding = FALSE
-[VIA.oneSearch.preference.vgifColumnSettingRC.setting0.column4]
+[VIA.oneSearch.preference.vgifColumnSettingRC.setting0.column5]
 name = "Time"
 width = 60
 visualIndex = 0
 isHidden = FALSE
-isUserChangeColumnVisible = FALSE
-isColFilterColorCoding = FALSE
-[VIA.oneSearch.preference.vgifColumnSettingRC.setting0.column5]
-name = "Code"
-width = 60
-visualIndex = 3
-isHidden = TRUE
 isUserChangeColumnVisible = FALSE
 isColFilterColorCoding = FALSE
 [VIA.ruleHistory]
@@ -807,7 +807,8 @@ AutoApplySeverityColor = TRUE
 scope_to_save_with_macro
 open_file_dir
 open_rc_file_dir
-viewPort = 0 11 1461 356 248 241
+getSignalForm = 217 262 800 479 165 387 391 91
+viewPort = 0 11 1536 410 228 128
 legendBackground = -c ID_BLACK
 valueBackground = -c ID_BLACK
 curveBackground = -c ID_BLACK
@@ -974,6 +975,7 @@ printDest = -printer {}
 printSignature = {%f %h %t} {}
 curveWindow_Drag&Drop_Mode = TRUE
 RecentFile1 = "\"/home/jami3jun/vortex4dice-1/dice_new/tb/cgra_core/dispatcher/dispatcher/dispatcher_refactor/refactored_dispatcher.fsdb\""
+RecentFile2 = "\"/home/jami3jun/vortex4dice/dice_new/tb/cgra_core/dispatcher/dispatcher/dispatcher_basic.fsdb\""
 open_file_time_range = FALSE
 legend_window_font = -f COURIER12 -c ID_CYAN5
 value_window_font = -f COURIER12 -c ID_CYAN5
@@ -1006,8 +1008,6 @@ maskFsaCoreRule = TRUE
 maskFsaSfsmRule = TRUE
 maskFsaEcrRule = TRUE
 maskTPropagation = TRUE
-RecentFile2 = "\"/home/jami3jun/vortex4dice/dice_new/tb/cgra_core/dispatcher/dispatcher/dispatcher_basic.fsdb\""
-getSignalForm = 217 262 800 479 165 387 391 91
 [compile_design]
 DefaultLang = Verilog
 [cov_hier_name_column]
@@ -1614,7 +1614,7 @@ AddImportArgument = FALSE
 LineBreakWithScope = TRUE
 StopAfterCompileOption = -s
 [wave.0]
-viewPort = 0 11 1024 276 100 65
+viewPort = 0 11 1536 410 228 128
 [wave.1]
 viewPort = 127 219 960 332 100 65
 [wave.2]

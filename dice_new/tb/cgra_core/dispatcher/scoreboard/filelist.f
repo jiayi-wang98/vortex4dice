@@ -1,2 +1,2 @@
-../../../../cgra_core/dispatcher/scoreboard.sv
-./tb_scoreboard_power.sv
+$DICE_HOME/rtl/cgra_core/dispatcher/scoreboard_refactor.sv
+./tb_scoreboard.sv
