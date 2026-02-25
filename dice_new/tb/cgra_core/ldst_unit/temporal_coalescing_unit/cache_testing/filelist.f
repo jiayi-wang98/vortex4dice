@@ -3,6 +3,9 @@
 +incdir+$HW_HOME/rtl/libs
 +incdir+$HW_HOME/rtl/cache
 
+${DICE_HOME}/rtl/dice_config.vh
+${DICE_HOME}/rtl/dice_define.vh
+${DICE_HOME}/rtl/dice_pkg.sv
 $HW_HOME/rtl/VX_define.vh
 $HW_HOME/rtl/VX_platform.vh
 $HW_HOME/rtl/cache/VX_cache_define.vh

@@ -35,11 +35,16 @@ module smem #(
     // ---------------------------------------------------------
     // COMBINED MEMORY BLOCK: Using a single block for everything
     // ---------------------------------------------------------
+
     initial begin
-    // Path from: tb/cgra_core/ldst_unit/temporal_coalescing_unit/cache_testing/
-    // To: rtl/cgra_core/ldst_unit/test_cases.hex
-    $readmemh("../../../../../rtl/cgra_core/ldst_unit/test_cases.hex", mem);
-end
+        for (int i = 0; i < 4096; i = i + 1) begin
+            // Replicating your Python logic: W3 | W2 | W1 | W0
+            mem[i] = {64'h3333333333333333, 
+                    64'h2222222222222222, 
+                    64'h1111111111111111, 
+                    64'h00000000deadbeef};
+        end
+    end
 
     // Use a standard 'always' instead of 'always_ff' for the memory array 
     // to satisfy strict tool check rules for memory modeling.

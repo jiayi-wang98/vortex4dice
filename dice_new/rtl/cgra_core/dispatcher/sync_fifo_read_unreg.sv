@@ -55,7 +55,7 @@ module sync_fifo_read_unreg #(
     end
     
     // Memory write logic
-    always_ff @(posedge clk or negedge rst) begin
+    always_ff @(posedge clk) begin
         if (rst) begin
             // Reset memory contents (optional, can be omitted)
             for (int i = 0; i < DEPTH; i++) begin

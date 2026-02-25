@@ -1,32 +1,29 @@
 module tb_vx_cache_with_temporal;
-
+import dice_pkg::*;
     parameter CLK_PERIOD = 2.5;
     parameter int CACHE_LINE_SIZE = 32;
-    parameter int TID_WIDTH = 10;
     parameter int DATA_WIDTH = 32; // Set to 32 bits
-    parameter int ADDR_WIDTH = 32;
-    parameter int EBLOCK_ID_WIDTH = 4;
     parameter int NUMBER_OF_MAX_COALESCED_COMMANDS = 8;
     parameter int NUMBER_OF_MAX_COALESCED_INTERVAL = 8;
     parameter int MAX_REG_WIDTH = 7;
     parameter int TID_BITMAP_WIDTH = 8;
     parameter int NUM_REQS = 1; 
     parameter int MEM_PORTS = 1;
-    parameter OUTCMD_TAG_WIDTH = NUMBER_OF_MAX_COALESCED_COMMANDS * $clog2(CACHE_LINE_SIZE) + EBLOCK_ID_WIDTH + TID_WIDTH + TID_BITMAP_WIDTH + MAX_REG_WIDTH;
+    parameter OUTCMD_TAG_WIDTH = NUMBER_OF_MAX_COALESCED_COMMANDS * $clog2(CACHE_LINE_SIZE) + DICE_EBLOCK_ID_WIDTH + DICE_TID_WIDTH + TID_BITMAP_WIDTH + MAX_REG_WIDTH;
     parameter MSHR_SIZE = 16;
     parameter MSHR_BITS = $clog2(MSHR_SIZE);
     parameter MEM_TAG_WIDTH = OUTCMD_TAG_WIDTH + MSHR_BITS;
-    parameter MEM_ADDR_WIDTH = ADDR_WIDTH - $clog2(CACHE_LINE_SIZE); 
+    parameter MEM_ADDR_WIDTH = DICE_ADDR_WIDTH - $clog2(CACHE_LINE_SIZE); 
 
     // --- Signals --
     bit clk, rst;
     bit incmd_valid;
-    bit [EBLOCK_ID_WIDTH-1:0] incmd_block_id;
-    bit [TID_WIDTH-1:0] incmd_tid;
+    bit [DICE_EBLOCK_ID_WIDTH-1:0] incmd_block_id;
+    bit [DICE_TID_WIDTH-1:0] incmd_tid;
     bit incmd_write_enable;
     bit [DATA_WIDTH-1:0] incmd_write_data;
     bit [DATA_WIDTH/8-1:0] incmd_write_mask; // Now 4 bits
-    bit [ADDR_WIDTH-1:0] incmd_address;
+    bit [DICE_ADDR_WIDTH-1:0] incmd_address;
     bit [1:0] incmd_size;
     bit [MAX_REG_WIDTH-1:0] incmd_ld_dest_reg;
     bit outcmd_ready, core_rsp_ready;
@@ -73,10 +70,7 @@ module tb_vx_cache_with_temporal;
         .NUMBER_OF_MAX_COALESCED_INTERVAL(NUMBER_OF_MAX_COALESCED_INTERVAL),
         .CACHE_LINE_SIZE(CACHE_LINE_SIZE),
         .NUMBER_OF_MAX_COALESCED_COMMANDS(NUMBER_OF_MAX_COALESCED_COMMANDS),
-        .EBLOCK_ID_WIDTH(EBLOCK_ID_WIDTH),
-        .TID_WIDTH(TID_WIDTH),
         .DATA_WIDTH(DATA_WIDTH),
-        .ADDR_WIDTH(ADDR_WIDTH),
         .MAX_REG_WIDTH(MAX_REG_WIDTH),
         .TID_BITMAP_WIDTH(TID_BITMAP_WIDTH),
         .NUM_REQS(NUM_REQS),
@@ -100,7 +94,7 @@ module tb_vx_cache_with_temporal;
     );
 
     // --- Read Task ---
-    task send_read_request(input [31:0] addr, input [TID_WIDTH-1:0] tid);
+    task send_read_request(input [DICE_ADDR_WIDTH-1:0] addr, input [DICE_TID_WIDTH-1:0] tid);
     begin
         @(posedge clk);
         incmd_valid   = 1;
@@ -129,10 +123,10 @@ module tb_vx_cache_with_temporal;
 
     // --- TASK: WRITE REQUEST ---
     task send_write_request(
-        input [31:0] addr, 
+        input [DICE_ADDR_WIDTH-1:0] addr, 
         input [DATA_WIDTH-1:0] data, 
         input [DATA_WIDTH/8-1:0] mask, 
-        input [TID_WIDTH-1:0] tid
+        input [DICE_TID_WIDTH-1:0] tid
     );
     begin
         @(posedge clk);

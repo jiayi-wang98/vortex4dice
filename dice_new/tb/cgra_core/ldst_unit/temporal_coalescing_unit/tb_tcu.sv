@@ -1,5 +1,5 @@
 module temporal_coalescing_unit_testbench;
-
+import dice_pkg::*;
     // Test parameters
     parameter CLK_PERIOD = 2.5;
     parameter int NUMBER_OF_MAX_COALESCED_COMMANDS = 8;
@@ -7,10 +7,7 @@ module temporal_coalescing_unit_testbench;
     parameter int CACHE_LINE_SIZE = 32;
     parameter int BASE_ADDRESS_OFFSET = $clog2(CACHE_LINE_SIZE);
     parameter int BASE_TID_ADDRESS_OFFSET = $clog2(NUMBER_OF_MAX_COALESCED_COMMANDS);
-    parameter int EBLOCK_ID_WIDTH = 4;
-    parameter int TID_WIDTH = 10;
-    parameter int DATA_WIDTH = 64;
-    parameter int ADDR_WIDTH = 64;
+    parameter int DATA_WIDTH = 32;
     parameter int MAX_REG_WIDTH = 7;
     parameter int TID_BITMAP_WIDTH = NUMBER_OF_MAX_COALESCED_COMMANDS;
     parameter int WRITE_MASK_WIDTH = 8;
@@ -21,12 +18,12 @@ module temporal_coalescing_unit_testbench;
     
     // DUT input signals
     bit incmd_valid;
-    bit [EBLOCK_ID_WIDTH-1:0] incmd_block_id;
-    bit [TID_WIDTH-1:0] incmd_tid;
+    bit [DICE_EBLOCK_ID_WIDTH-1:0] incmd_block_id;
+    bit [DICE_TID_WIDTH-1:0] incmd_tid;
     bit incmd_write_enable;
     bit [DATA_WIDTH-1:0] incmd_write_data;
     bit [WRITE_MASK_WIDTH-1:0] incmd_write_mask;
-    bit [ADDR_WIDTH-1:0] incmd_address;
+    bit [DICE_ADDR_WIDTH-1:0] incmd_address;
     bit [1:0] incmd_size;
     bit [MAX_REG_WIDTH-1:0] incmd_ld_dest_reg;
     bit outcmd_ready;
@@ -34,13 +31,13 @@ module temporal_coalescing_unit_testbench;
     // DUT output signals
     logic incmd_ready;
     logic outcmd_valid;
-    logic [EBLOCK_ID_WIDTH-1:0] outcmd_block_id;
-    logic [TID_WIDTH-1:0] outcmd_base_tid;
+    logic [DICE_EBLOCK_ID_WIDTH-1:0] outcmd_block_id;
+    logic [DICE_TID_WIDTH-1:0] outcmd_base_tid;
     logic [TID_BITMAP_WIDTH-1:0] outcmd_tid_bitmap;
     logic outcmd_write_enable;
     logic [CACHE_LINE_SIZE*8-1:0] outcmd_write_data;
     logic [CACHE_LINE_SIZE-1:0] outcmd_write_mask;
-    logic [ADDR_WIDTH-1:0] outcmd_address;
+    logic [DICE_ADDR_WIDTH-1:0] outcmd_address;
     logic [1:0] outcmd_size;
     logic [MAX_REG_WIDTH-1:0] outcmd_ld_dest_reg;
     logic [NUMBER_OF_MAX_COALESCED_COMMANDS-1:0][BASE_ADDRESS_OFFSET-1:0] outcmd_address_map;
@@ -55,12 +52,12 @@ module temporal_coalescing_unit_testbench;
     
     // Input command structure
     typedef struct {
-        logic [EBLOCK_ID_WIDTH-1:0] block_id;
-        logic [TID_WIDTH-1:0] tid;
+        logic [DICE_EBLOCK_ID_WIDTH-1:0] block_id;
+        logic [DICE_TID_WIDTH-1:0] tid;
         logic write_enable;
         logic [DATA_WIDTH-1:0] write_data;
         logic [WRITE_MASK_WIDTH-1:0] write_mask;
-        logic [ADDR_WIDTH-1:0] address;
+        logic [DICE_ADDR_WIDTH-1:0] address;
         logic [1:0] size;
         logic [MAX_REG_WIDTH-1:0] ld_dest_reg;
         string description;
@@ -68,13 +65,13 @@ module temporal_coalescing_unit_testbench;
     
     // Expected output command structure
     typedef struct {
-        logic [EBLOCK_ID_WIDTH-1:0] block_id;
-        logic [TID_WIDTH-1:0] base_tid;
+        logic [DICE_EBLOCK_ID_WIDTH-1:0] block_id;
+        logic [DICE_TID_WIDTH-1:0] base_tid;
         logic [TID_BITMAP_WIDTH-1:0] tid_bitmap;
         logic write_enable;
         logic [CACHE_LINE_SIZE*8-1:0] write_data;
         logic [CACHE_LINE_SIZE-1:0] write_mask;
-        logic [ADDR_WIDTH-1:0] address;
+        logic [DICE_ADDR_WIDTH-1:0] address;
         logic [1:0] size;
         logic [MAX_REG_WIDTH-1:0] ld_dest_reg;
         string description;
@@ -131,12 +128,12 @@ module temporal_coalescing_unit_testbench;
     
     // Task to add input command to queue
     task automatic add_input_command(
-        input [EBLOCK_ID_WIDTH-1:0] block_id,
-        input [TID_WIDTH-1:0] tid,
+        input [DICE_EBLOCK_ID_WIDTH-1:0] block_id,
+        input [DICE_TID_WIDTH-1:0] tid,
         input logic write_enable,
         input [DATA_WIDTH-1:0] write_data,
         input [WRITE_MASK_WIDTH-1:0] write_mask,
-        input [ADDR_WIDTH-1:0] address,
+        input [DICE_ADDR_WIDTH-1:0] address,
         input [1:0] size,
         input [MAX_REG_WIDTH-1:0] ld_dest_reg,
         input string description
@@ -161,13 +158,13 @@ module temporal_coalescing_unit_testbench;
     
     // Task to add expected output command to queue
     task automatic add_expected_output(
-        input [EBLOCK_ID_WIDTH-1:0] block_id,
-        input [TID_WIDTH-1:0] base_tid,
+        input [DICE_EBLOCK_ID_WIDTH-1:0] block_id,
+        input [DICE_TID_WIDTH-1:0] base_tid,
         input [TID_BITMAP_WIDTH-1:0] tid_bitmap,
         input logic write_enable,
         input [CACHE_LINE_SIZE*8-1:0] write_data,
         input [CACHE_LINE_SIZE-1:0] write_mask,
-        input [ADDR_WIDTH-1:0] address,
+        input [DICE_ADDR_WIDTH-1:0] address,
         input [1:0] size,
         input [MAX_REG_WIDTH-1:0] ld_dest_reg,
         input string description,
@@ -197,12 +194,12 @@ module temporal_coalescing_unit_testbench;
     always @(posedge clk) begin
         if (rst) begin
             incmd_valid <= 1'b0;
-            incmd_block_id <= {EBLOCK_ID_WIDTH{1'b0}};;
-            incmd_tid <= {TID_WIDTH{1'b0}};
+            incmd_block_id <= {DICE_EBLOCK_ID_WIDTH{1'b0}};;
+            incmd_tid <= {DICE_TID_WIDTH{1'b0}};
             incmd_write_enable <= 1'b0;
             incmd_write_data <= {DATA_WIDTH{1'b0}};
             incmd_write_mask <= {WRITE_MASK_WIDTH{1'b0}};
-            incmd_address <= {ADDR_WIDTH{1'b0}};
+            incmd_address <= {DICE_ADDR_WIDTH{1'b0}};
             incmd_size <= 2'b0;
             incmd_ld_dest_reg <= {MAX_REG_WIDTH{1'b0}};
  
@@ -233,12 +230,12 @@ module temporal_coalescing_unit_testbench;
             end
         end else begin
             incmd_valid <= 1'b0;
-            incmd_block_id <= {EBLOCK_ID_WIDTH{1'b0}};;
-            incmd_tid <= {TID_WIDTH{1'b0}};
+            incmd_block_id <= {DICE_EBLOCK_ID_WIDTH{1'b0}};;
+            incmd_tid <= {DICE_TID_WIDTH{1'b0}};
             incmd_write_enable <= 1'b0;
             incmd_write_data <= '{DATA_WIDTH{1'b0}};
             incmd_write_mask <= {WRITE_MASK_WIDTH{1'b0}};
-            incmd_address <= {ADDR_WIDTH{1'b0}};
+            incmd_address <= {DICE_ADDR_WIDTH{1'b0}};
             incmd_size <= 2'b0;
             incmd_ld_dest_reg <= {MAX_REG_WIDTH{1'b0}};
  
@@ -403,15 +400,15 @@ module temporal_coalescing_unit_testbench;
     int real_tid_base;
 
     // Parameterized variables for testbenches
-    logic [EBLOCK_ID_WIDTH-1:0] e_block_temp = 'd1;
-    logic [EBLOCK_ID_WIDTH-1:0] e_block_temp_2 = 'd3;
+    logic [DICE_EBLOCK_ID_WIDTH-1:0] e_block_temp = 'd1;
+    logic [DICE_EBLOCK_ID_WIDTH-1:0] e_block_temp_2 = 'd3;
     logic [DATA_WIDTH-1:0] write_data_temp = 'd0;
     logic [DATA_WIDTH-1:0] write_data_temp2 = 'hDEADBEEF_00000000;
     logic [DATA_WIDTH-1:0] write_data_temp3 = 'h00000000_DEADBEEF;
     logic [WRITE_MASK_WIDTH-1:0] write_mask_temp = 'h00;
-    logic [ADDR_WIDTH-1:0] addr_data_temp = 'd0;
-    logic [ADDR_WIDTH-1:0] addr_data_temp2 = 'hDEADBEEF_00000000;
-    logic [ADDR_WIDTH-1:0] addr_data_temp3 = 'hDEEDBEEB_00000000;
+    logic [DICE_ADDR_WIDTH-1:0] addr_data_temp = 'd0;
+    logic [DICE_ADDR_WIDTH-1:0] addr_data_temp2 = 'hDEADBEEF_00000000;
+    logic [DICE_ADDR_WIDTH-1:0] addr_data_temp3 = 'hDEEDBEEB_00000000;
     logic [MAX_REG_WIDTH-1:0] ld_dest_reg_temp = 'd10;
     logic [TID_BITMAP_WIDTH-1:0] bitmap_temp = 'hFF;
     

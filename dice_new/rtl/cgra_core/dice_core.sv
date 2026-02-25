@@ -197,40 +197,44 @@ dummy_cgra u_dummy_cgra (
   .data_o(cgra_data_lo)
 );
 
-
-// TODO: Check if this is what should be in the core or if the
-// internal TMCU should be here
-// VX_cache_with_temporal u_vx_cache_with_temporal (
-//     .clk(clk_i),
-//     .rst(rst_i),
-//     .incmd_valid(),
-//     .incmd_block_id(),
-//     .incmd_tid(),
-//     .incmd_write_enable(),
-//     .incmd_write_data(),
-//     .incmd_write_mask(),
-//     .incmd_address(),
-//     .incmd_size(),
-//     .incmd_ld_dest_reg(),
-//     .outcmd_ready(),
-//     .core_rsp_data(),
-//     .core_rsp_valid(),
-//     .core_rsp_tag(),
-//     .core_rsp_ready(),
-//     .mem_req_valid(),
-//     .mem_req_rw(),
-//     .mem_req_byteen(),
-//     .mem_req_addr(),
-//     .mem_req_data(),
-//     .mem_req_tag(),
-//     .mem_req_ready(),
-//     .mem_rsp_valid(),
-//     .mem_rsp_data(),
-//     .mem_rsp_tag(),
-//     .mem_rsp_ready()
-// );
-
-
+// This should be an output of the module, will wire tomorrow
+/*
+temporal_coalescing_unit #(
+    .NUMBER_OF_MAX_COALESCED_INTERVAL(),
+    .CACHE_LINE_SIZE(),
+    .NUMBER_OF_MAX_COALESCED_COMMANDS(),
+    .BASE_ADDRESS_OFFSET(),
+    .BASE_TID_ADDRESS_OFFSET(),
+    .DATA_WIDTH(),
+    .MAX_REG_WIDTH(),
+    .TID_BITMAP_WIDTH()
+) u_temporal_coalescing_unit (
+    .clk_i(clk_i),
+    .rst(rst_i),
+    .incmd_valid(cgra_v_lo),
+    .incmd_block_id(),
+    .incmd_tid(cgra_tid_lo),
+    .incmd_write_enable(),
+    .incmd_write_data(cgra_data_lo),
+    .incmd_write_mask(),
+    .incmd_address(),
+    .incmd_size(),
+    .incmd_ld_dest_reg(),
+    .incmd_ready(),
+    .outcmd_valid(),
+    .outcmd_block_id(),
+    .outcmd_base_tid(),
+    .outcmd_tid_bitmap(),
+    .outcmd_write_enable(),
+    .outcmd_write_data(),
+    .outcmd_write_mask(),
+    .outcmd_address(),
+    .outcmd_size(),
+    .outcmd_ld_dest_reg(),
+    .outcmd_address_map(),
+    .outcmd_ready()
+);
+*/
 
 
 
