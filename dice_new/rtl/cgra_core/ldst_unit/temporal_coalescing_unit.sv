@@ -1,15 +1,5 @@
 module temporal_coalescing_unit
 import dice_pkg::*;
-#(
-    parameter int NUMBER_OF_MAX_COALESCED_INTERVAL = 8, // Maximum number of clk cycles to hold internal commands
-    parameter int CACHE_LINE_SIZE = 32, // Size of a cache line in bytes
-    parameter int NUMBER_OF_MAX_COALESCED_COMMANDS = CACHE_LINE_SIZE/4, // Maximum number of commands that can be coalesced
-    parameter int BASE_ADDRESS_OFFSET = $clog2(CACHE_LINE_SIZE), // Width of base address offset in bits
-    parameter int BASE_TID_ADDRESS_OFFSET = $clog2(NUMBER_OF_MAX_COALESCED_COMMANDS), // Width of base TID address offset in bits
-    parameter int DATA_WIDTH = 32,
-    parameter int MAX_REG_WIDTH = 7,
-    parameter int TID_BITMAP_WIDTH = NUMBER_OF_MAX_COALESCED_COMMANDS
-)
 (   
     input logic clk,                     // Clock signal
     input logic rst,                    // Active high reset signal
@@ -19,11 +9,11 @@ import dice_pkg::*;
     input logic [DICE_EBLOCK_ID_WIDTH-1:0] incmd_block_id,       // Input command block ID
     input logic [DICE_TID_WIDTH-1:0] incmd_tid,            // Input command thread ID
     input logic incmd_write_enable,         // Write enable signal
-    input logic [DATA_WIDTH-1:0] incmd_write_data,    // Data to write
-    input logic [DATA_WIDTH/8-1:0] incmd_write_mask,     // 1 means no write, 0 means write
+    input logic [DICE_DATA_WIDTH-1:0] incmd_write_data,    // Data to write
+    input logic [DICE_DATA_WIDTH/8-1:0] incmd_write_mask,     // 1 means no write, 0 means write
     input logic [DICE_ADDR_WIDTH-1:0] incmd_address,       // Address for the command
     input logic [1:0] incmd_size,          // Size of the command (e.g., 00=1B, 01=2B, 10=4B, 11=8B)
-    input logic [MAX_REG_WIDTH-1:0] incmd_ld_dest_reg,    // Load destination register
+    input logic [DICE_MAX_REG_WIDTH-1:0] incmd_ld_dest_reg,    // Load destination register
     //ready signal
     output logic incmd_ready,            // Ready signal for input command
 
@@ -31,14 +21,14 @@ import dice_pkg::*;
     output logic outcmd_valid,              // Output command valid signal
     output logic [DICE_EBLOCK_ID_WIDTH-1:0] outcmd_block_id,     // Output command block ID
     output logic [DICE_TID_WIDTH-1:0] outcmd_base_tid,     // Output command thread ID
-    output logic [TID_BITMAP_WIDTH-1:0] outcmd_tid_bitmap,  // Bitmap of TIDs for the command
+    output logic [DICE_TID_BITMAP_WIDTH-1:0] outcmd_tid_bitmap,  // Bitmap of TIDs for the command
     output logic outcmd_write_enable,       // Write enable signal
-    output logic [CACHE_LINE_SIZE*8-1:0] outcmd_write_data,  // Data to write
-    output logic [CACHE_LINE_SIZE-1:0] outcmd_write_mask, // 1 means no write, 0 means write
+    output logic [DICE_CACHE_LINE_SIZE*8-1:0] outcmd_write_data,  // Data to write
+    output logic [DICE_CACHE_LINE_SIZE-1:0] outcmd_write_mask, // 1 means no write, 0 means write
     output logic [DICE_ADDR_WIDTH-1:0] outcmd_address,     // Address for the command
     output logic [1:0] outcmd_size,        // Size of the command (e.g., 00=1B, 01=2B, 10=4B, 11=8B)
-    output logic [MAX_REG_WIDTH-1:0] outcmd_ld_dest_reg,  // Load destination register
-    output logic [NUMBER_OF_MAX_COALESCED_COMMANDS-1:0][BASE_ADDRESS_OFFSET-1:0] outcmd_address_map, //map from tid bitmap to address_offset
+    output logic [DICE_MAX_REG_WIDTH-1:0] outcmd_ld_dest_reg,  // Load destination register
+    output logic [DICE_NUMBER_OF_MAX_COALESCED_COMMANDS-1:0][DICE_BASE_ADDRESS_OFFSET-1:0] outcmd_address_map, //map from tid bitmap to address_offset
    
     input logic outcmd_ready                   // Ready signal to control flow
 );
@@ -46,19 +36,19 @@ import dice_pkg::*;
     parameter int total_output_cmd_width = 
           DICE_EBLOCK_ID_WIDTH              // 4
         + DICE_TID_WIDTH                    // 10
-        + TID_BITMAP_WIDTH             // 8
-        + 1                            // write_enable
-        + (CACHE_LINE_SIZE * 8)        // write_data (256)
-        + CACHE_LINE_SIZE              // write_mask (32)
+        + DICE_TID_BITMAP_WIDTH             // 8
+        + 1                                    // write_enable
+        + (DICE_CACHE_LINE_SIZE * 8)        // write_data (256)
+        + DICE_CACHE_LINE_SIZE              // write_mask (32)
         + DICE_ADDR_WIDTH                   // 32
-        + 2                            // size
-        + MAX_REG_WIDTH                // 7
-        + (NUMBER_OF_MAX_COALESCED_COMMANDS * BASE_ADDRESS_OFFSET);
+        + 2                                    // size
+        + DICE_MAX_REG_WIDTH                // 7
+        + (DICE_NUMBER_OF_MAX_COALESCED_COMMANDS * DICE_BASE_ADDRESS_OFFSET);
         
     // Coalescing interval counter
-    logic [$clog2(NUMBER_OF_MAX_COALESCED_INTERVAL)-1:0] interval_counter;
+    logic [$clog2(DICE_NUMBER_OF_MAX_COALESCED_COMMANDS)-1:0] interval_counter;
     logic interval_timeout;
-    assign interval_timeout = (interval_counter == (NUMBER_OF_MAX_COALESCED_INTERVAL - 1));
+    assign interval_timeout = (interval_counter == (DICE_NUMBER_OF_MAX_COALESCED_COMMANDS - 1));
 
     // Buffer control signals
     logic buffer_incmd_valid;
@@ -70,14 +60,14 @@ import dice_pkg::*;
     logic buffer_outcmd_valid;
     logic [DICE_EBLOCK_ID_WIDTH-1:0] buffer_outcmd_block_id;
     logic [DICE_TID_WIDTH-1:0] buffer_outcmd_base_tid;
-    logic [TID_BITMAP_WIDTH-1:0] buffer_outcmd_tid_bitmap;
+    logic [DICE_TID_BITMAP_WIDTH-1:0] buffer_outcmd_tid_bitmap;
     logic buffer_outcmd_write_enable;
-    logic [CACHE_LINE_SIZE*8-1:0] buffer_outcmd_write_data;
-    logic [CACHE_LINE_SIZE-1:0] buffer_outcmd_write_mask;
+    logic [DICE_CACHE_LINE_SIZE*8-1:0] buffer_outcmd_write_data;
+    logic [DICE_CACHE_LINE_SIZE-1:0] buffer_outcmd_write_mask;
     logic [DICE_ADDR_WIDTH-1:0] buffer_outcmd_address;
     logic [1:0] buffer_outcmd_size;
-    logic [MAX_REG_WIDTH-1:0] buffer_outcmd_ld_dest_reg;
-    logic [NUMBER_OF_MAX_COALESCED_COMMANDS-1:0] [BASE_ADDRESS_OFFSET-1:0] buffer_outcmd_address_map;
+    logic [DICE_MAX_REG_WIDTH-1:0] buffer_outcmd_ld_dest_reg;
+    logic [DICE_NUMBER_OF_MAX_COALESCED_COMMANDS-1:0] [DICE_BASE_ADDRESS_OFFSET-1:0] buffer_outcmd_address_map;
 
     logic output_valid;
 
@@ -90,7 +80,7 @@ import dice_pkg::*;
 
     // Input command base address for comparison
     logic [DICE_ADDR_WIDTH-1:0] incmd_base_address;
-    assign incmd_base_address = {incmd_address[DICE_ADDR_WIDTH-1:BASE_ADDRESS_OFFSET], {BASE_ADDRESS_OFFSET{1'b0}}};
+    assign incmd_base_address = {incmd_address[DICE_ADDR_WIDTH-1:DICE_BASE_ADDRESS_OFFSET], {DICE_BASE_ADDRESS_OFFSET{1'b0}}};
 
     // Interval counter logic - only counts when there are active buffers
     always_ff @(posedge clk) begin
@@ -124,12 +114,8 @@ import dice_pkg::*;
     assign fifo_pop = outcmd_ready && outcmd_valid; // pop from FIFO when ready and valid
 
     // Generate coalesce buffer instances
-    memory_cmd_coalesce_buffer #(
-        .CACHE_LINE_SIZE(CACHE_LINE_SIZE),
-        .NUMBER_OF_MAX_COALESCED_COMMANDS(NUMBER_OF_MAX_COALESCED_COMMANDS),
-        .BASE_ADDRESS_OFFSET(BASE_ADDRESS_OFFSET),
-        .BASE_TID_ADDRESS_OFFSET(BASE_TID_ADDRESS_OFFSET)
-    ) coalesce_buffer_inst (
+    // NOTE: Parameters removed as the module now imports dice_pkg directly
+    memory_cmd_coalesce_buffer coalesce_buffer_inst (
         .clk(clk),
         .rst(rst),
         .clear(buffer_clear),

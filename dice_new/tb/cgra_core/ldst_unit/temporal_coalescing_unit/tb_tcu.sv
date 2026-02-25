@@ -1,17 +1,9 @@
 module temporal_coalescing_unit_testbench;
-import dice_pkg::*;
+    import dice_pkg::*;
+    
     // Test parameters
     parameter CLK_PERIOD = 2.5;
-    parameter int NUMBER_OF_MAX_COALESCED_COMMANDS = 8;
-    parameter int NUMBER_OF_MAX_COALESCED_INTERNAL = 8;
-    parameter int CACHE_LINE_SIZE = 32;
-    parameter int BASE_ADDRESS_OFFSET = $clog2(CACHE_LINE_SIZE);
-    parameter int BASE_TID_ADDRESS_OFFSET = $clog2(NUMBER_OF_MAX_COALESCED_COMMANDS);
-    parameter int DATA_WIDTH = 32;
-    parameter int MAX_REG_WIDTH = 7;
-    parameter int TID_BITMAP_WIDTH = NUMBER_OF_MAX_COALESCED_COMMANDS;
-    parameter int WRITE_MASK_WIDTH = 8;
-
+    
     // Clock and reset
     bit clk;
     bit rst;
@@ -21,11 +13,11 @@ import dice_pkg::*;
     bit [DICE_EBLOCK_ID_WIDTH-1:0] incmd_block_id;
     bit [DICE_TID_WIDTH-1:0] incmd_tid;
     bit incmd_write_enable;
-    bit [DATA_WIDTH-1:0] incmd_write_data;
-    bit [WRITE_MASK_WIDTH-1:0] incmd_write_mask;
+    bit [DICE_DATA_WIDTH-1:0] incmd_write_data;
+    bit [DICE_DATA_WIDTH/8-1:0] incmd_write_mask;
     bit [DICE_ADDR_WIDTH-1:0] incmd_address;
     bit [1:0] incmd_size;
-    bit [MAX_REG_WIDTH-1:0] incmd_ld_dest_reg;
+    bit [DICE_MAX_REG_WIDTH-1:0] incmd_ld_dest_reg;
     bit outcmd_ready;
     
     // DUT output signals
@@ -33,14 +25,14 @@ import dice_pkg::*;
     logic outcmd_valid;
     logic [DICE_EBLOCK_ID_WIDTH-1:0] outcmd_block_id;
     logic [DICE_TID_WIDTH-1:0] outcmd_base_tid;
-    logic [TID_BITMAP_WIDTH-1:0] outcmd_tid_bitmap;
+    logic [DICE_TID_BITMAP_WIDTH-1:0] outcmd_tid_bitmap;
     logic outcmd_write_enable;
-    logic [CACHE_LINE_SIZE*8-1:0] outcmd_write_data;
-    logic [CACHE_LINE_SIZE-1:0] outcmd_write_mask;
+    logic [DICE_CACHE_LINE_SIZE*8-1:0] outcmd_write_data;
+    logic [DICE_CACHE_LINE_SIZE-1:0] outcmd_write_mask;
     logic [DICE_ADDR_WIDTH-1:0] outcmd_address;
     logic [1:0] outcmd_size;
-    logic [MAX_REG_WIDTH-1:0] outcmd_ld_dest_reg;
-    logic [NUMBER_OF_MAX_COALESCED_COMMANDS-1:0][BASE_ADDRESS_OFFSET-1:0] outcmd_address_map;
+    logic [DICE_MAX_REG_WIDTH-1:0] outcmd_ld_dest_reg;
+    logic [DICE_NUMBER_OF_MAX_COALESCED_COMMANDS-1:0][DICE_BASE_ADDRESS_OFFSET-1:0] outcmd_address_map;
     
     // Test tracking variables
     int test_count = 0;
@@ -55,11 +47,11 @@ import dice_pkg::*;
         logic [DICE_EBLOCK_ID_WIDTH-1:0] block_id;
         logic [DICE_TID_WIDTH-1:0] tid;
         logic write_enable;
-        logic [DATA_WIDTH-1:0] write_data;
-        logic [WRITE_MASK_WIDTH-1:0] write_mask;
+        logic [DICE_DATA_WIDTH-1:0] write_data;
+        logic [DICE_DATA_WIDTH/8-1:0] write_mask;
         logic [DICE_ADDR_WIDTH-1:0] address;
         logic [1:0] size;
-        logic [MAX_REG_WIDTH-1:0] ld_dest_reg;
+        logic [DICE_MAX_REG_WIDTH-1:0] ld_dest_reg;
         string description;
     } input_cmd_t;
     
@@ -67,13 +59,13 @@ import dice_pkg::*;
     typedef struct {
         logic [DICE_EBLOCK_ID_WIDTH-1:0] block_id;
         logic [DICE_TID_WIDTH-1:0] base_tid;
-        logic [TID_BITMAP_WIDTH-1:0] tid_bitmap;
+        logic [DICE_TID_BITMAP_WIDTH-1:0] tid_bitmap;
         logic write_enable;
-        logic [CACHE_LINE_SIZE*8-1:0] write_data;
-        logic [CACHE_LINE_SIZE-1:0] write_mask;
+        logic [DICE_CACHE_LINE_SIZE*8-1:0] write_data;
+        logic [DICE_CACHE_LINE_SIZE-1:0] write_mask;
         logic [DICE_ADDR_WIDTH-1:0] address;
         logic [1:0] size;
-        logic [MAX_REG_WIDTH-1:0] ld_dest_reg;
+        logic [DICE_MAX_REG_WIDTH-1:0] ld_dest_reg;
         string description;
         logic check_tid_bitmap;
         logic check_write_data;
@@ -97,8 +89,6 @@ import dice_pkg::*;
     
     // DUT instantiation
     temporal_coalescing_unit #(
-        .number_of_max_coalesced_interval(NUMBER_OF_MAX_COALESCED_INTERNAL),
-        .CACHE_LINE_SIZE(CACHE_LINE_SIZE)
     ) dut (
         .clk(clk),
         .rst(rst),
@@ -131,11 +121,11 @@ import dice_pkg::*;
         input [DICE_EBLOCK_ID_WIDTH-1:0] block_id,
         input [DICE_TID_WIDTH-1:0] tid,
         input logic write_enable,
-        input [DATA_WIDTH-1:0] write_data,
-        input [WRITE_MASK_WIDTH-1:0] write_mask,
+        input [DICE_DATA_WIDTH-1:0] write_data,
+        input [DICE_DATA_WIDTH/8-1:0] write_mask,
         input [DICE_ADDR_WIDTH-1:0] address,
         input [1:0] size,
-        input [MAX_REG_WIDTH-1:0] ld_dest_reg,
+        input [DICE_MAX_REG_WIDTH-1:0] ld_dest_reg,
         input string description
     );
         input_cmd_t cmd;
@@ -160,13 +150,13 @@ import dice_pkg::*;
     task automatic add_expected_output(
         input [DICE_EBLOCK_ID_WIDTH-1:0] block_id,
         input [DICE_TID_WIDTH-1:0] base_tid,
-        input [TID_BITMAP_WIDTH-1:0] tid_bitmap,
+        input [DICE_TID_BITMAP_WIDTH-1:0] tid_bitmap,
         input logic write_enable,
-        input [CACHE_LINE_SIZE*8-1:0] write_data,
-        input [CACHE_LINE_SIZE-1:0] write_mask,
+        input [DICE_CACHE_LINE_SIZE*8-1:0] write_data,
+        input [DICE_CACHE_LINE_SIZE-1:0] write_mask,
         input [DICE_ADDR_WIDTH-1:0] address,
         input [1:0] size,
-        input [MAX_REG_WIDTH-1:0] ld_dest_reg,
+        input [DICE_MAX_REG_WIDTH-1:0] ld_dest_reg,
         input string description,
         input logic check_tid_bitmap = 1'b0,
         input logic check_write_data = 1'b0,
@@ -197,11 +187,11 @@ import dice_pkg::*;
             incmd_block_id <= {DICE_EBLOCK_ID_WIDTH{1'b0}};;
             incmd_tid <= {DICE_TID_WIDTH{1'b0}};
             incmd_write_enable <= 1'b0;
-            incmd_write_data <= {DATA_WIDTH{1'b0}};
-            incmd_write_mask <= {WRITE_MASK_WIDTH{1'b0}};
+            incmd_write_data <= {DICE_DATA_WIDTH{1'b0}};
+            incmd_write_mask <= {(DICE_DATA_WIDTH/8){1'b0}};
             incmd_address <= {DICE_ADDR_WIDTH{1'b0}};
             incmd_size <= 2'b0;
-            incmd_ld_dest_reg <= {MAX_REG_WIDTH{1'b0}};
+            incmd_ld_dest_reg <= {DICE_MAX_REG_WIDTH{1'b0}};
  
         end else if (driver_active) begin
             if (incmd_ready) begin
@@ -233,11 +223,11 @@ import dice_pkg::*;
             incmd_block_id <= {DICE_EBLOCK_ID_WIDTH{1'b0}};;
             incmd_tid <= {DICE_TID_WIDTH{1'b0}};
             incmd_write_enable <= 1'b0;
-            incmd_write_data <= '{DATA_WIDTH{1'b0}};
-            incmd_write_mask <= {WRITE_MASK_WIDTH{1'b0}};
+            incmd_write_data <= {DICE_DATA_WIDTH{1'b0}};
+            incmd_write_mask <= {(DICE_DATA_WIDTH/8){1'b0}};
             incmd_address <= {DICE_ADDR_WIDTH{1'b0}};
             incmd_size <= 2'b0;
-            incmd_ld_dest_reg <= {MAX_REG_WIDTH{1'b0}};
+            incmd_ld_dest_reg <= {DICE_MAX_REG_WIDTH{1'b0}};
  
         end
     end
@@ -305,7 +295,7 @@ import dice_pkg::*;
 
                     if (expected.check_write_data) begin
                         //need to check only not masked parts
-                        for (int i = 0; i < 8; i++) begin
+                        for (int i = 0; i < DICE_CACHE_LINE_SIZE; i++) begin
                             if (!expected.write_mask[i] && (outcmd_write_data[i*8 +: 8] !== expected.write_data[i*8 +: 8])) begin
                                 $display("❌ FAIL: Write data mismatch at byte %0d - Expected: 0x%h, Got: 0x%h", i, expected.write_data[i*8 +: 8], outcmd_write_data[i*8 +: 8]);
                                 cmd_match = 1'b0;
@@ -396,21 +386,21 @@ import dice_pkg::*;
     endtask
     
     // Main test sequence
-    logic [CACHE_LINE_SIZE*8-1:0]  expected_write_data;
+    logic [DICE_CACHE_LINE_SIZE*8-1:0]  expected_write_data;
     int real_tid_base;
 
     // Parameterized variables for testbenches
     logic [DICE_EBLOCK_ID_WIDTH-1:0] e_block_temp = 'd1;
     logic [DICE_EBLOCK_ID_WIDTH-1:0] e_block_temp_2 = 'd3;
-    logic [DATA_WIDTH-1:0] write_data_temp = 'd0;
-    logic [DATA_WIDTH-1:0] write_data_temp2 = 'hDEADBEEF_00000000;
-    logic [DATA_WIDTH-1:0] write_data_temp3 = 'h00000000_DEADBEEF;
-    logic [WRITE_MASK_WIDTH-1:0] write_mask_temp = 'h00;
+    logic [DICE_DATA_WIDTH-1:0] write_data_temp = 'd0;
+    logic [DICE_DATA_WIDTH-1:0] write_data_temp2 = 'hDEADBEEF_00000000;
+    logic [DICE_DATA_WIDTH-1:0] write_data_temp3 = 'h00000000_DEADBEEF;
+    logic [DICE_DATA_WIDTH/8-1:0] write_mask_temp = 'h00;
     logic [DICE_ADDR_WIDTH-1:0] addr_data_temp = 'd0;
     logic [DICE_ADDR_WIDTH-1:0] addr_data_temp2 = 'hDEADBEEF_00000000;
     logic [DICE_ADDR_WIDTH-1:0] addr_data_temp3 = 'hDEEDBEEB_00000000;
-    logic [MAX_REG_WIDTH-1:0] ld_dest_reg_temp = 'd10;
-    logic [TID_BITMAP_WIDTH-1:0] bitmap_temp = 'hFF;
+    logic [DICE_MAX_REG_WIDTH-1:0] ld_dest_reg_temp = 'd10;
+    logic [DICE_TID_BITMAP_WIDTH-1:0] bitmap_temp = 'hFF;
     
 
 
@@ -419,12 +409,12 @@ import dice_pkg::*;
         
         // Elaborate-time power-of-2 parameter check
    
-        assert ((NUMBER_OF_MAX_COALESCED_COMMANDS > 0) &&
-                ((NUMBER_OF_MAX_COALESCED_COMMANDS &
-                  (NUMBER_OF_MAX_COALESCED_COMMANDS - 1)) == 0))
+        assert ((DICE_NUMBER_OF_MAX_COALESCED_COMMANDS > 0) &&
+                ((DICE_NUMBER_OF_MAX_COALESCED_COMMANDS &
+                  (DICE_NUMBER_OF_MAX_COALESCED_COMMANDS - 1)) == 0))
         else $fatal(1,
-            "NUMBER_OF_MAX_COALESCED_COMMANDS (%0d) must be a power of 2.",
-            NUMBER_OF_MAX_COALESCED_COMMANDS);
+            "DICE_NUMBER_OF_MAX_COALESCED_COMMANDS (%0d) must be a power of 2.",
+            DICE_NUMBER_OF_MAX_COALESCED_COMMANDS);
 
 
 
@@ -452,7 +442,7 @@ import dice_pkg::*;
             real_tid_base = i * 8;
 
             add_expected_output(
-                .block_id(e_block_temp), .base_tid({real_tid_base[9:BASE_TID_ADDRESS_OFFSET],{BASE_TID_ADDRESS_OFFSET{1'b0}}}), .tid_bitmap(bitmap_temp),
+                .block_id(e_block_temp), .base_tid({real_tid_base[9:DICE_BASE_TID_ADDRESS_OFFSET],{DICE_BASE_TID_ADDRESS_OFFSET{1'b0}}}), .tid_bitmap(bitmap_temp),
                 .write_enable(1'b1), .write_data(expected_write_data), .write_mask(write_mask_temp),
                 .address(i<<5), .size(2'b10), .ld_dest_reg(ld_dest_reg_temp),
                 .description("Expected perfect coalesced store output"),
@@ -485,7 +475,7 @@ import dice_pkg::*;
             real_tid_base = i * 8+512;
 
             add_expected_output(
-                .block_id(e_block_temp), .base_tid({real_tid_base[9:BASE_TID_ADDRESS_OFFSET],{BASE_TID_ADDRESS_OFFSET{1'b0}}}), .tid_bitmap(bitmap_temp),
+                .block_id(e_block_temp), .base_tid({real_tid_base[9:DICE_BASE_TID_ADDRESS_OFFSET],{DICE_BASE_TID_ADDRESS_OFFSET{1'b0}}}), .tid_bitmap(bitmap_temp),
                 .write_enable(1'b0), .write_data(write_data_temp), .write_mask(write_mask_temp),
                 .address(addr_data_temp2 + (i<<5)), .size(2'b10), .ld_dest_reg(ld_dest_reg_temp),
                 .description("Expected perfect coalesced load output"),
@@ -512,7 +502,8 @@ import dice_pkg::*;
         for(int i=0;i<128;i++) begin
 
             add_expected_output(
-                .block_id(e_block_temp_2), .base_tid({i[9:BASE_TID_ADDRESS_OFFSET],{BASE_TID_ADDRESS_OFFSET{1'b0}}}), .tid_bitmap(1<<i[4:0]),
+                .block_id(e_block_temp_2), .base_tid({i[9:DICE_BASE_TID_ADDRESS_OFFSET],{DICE_BASE_TID_ADDRESS_OFFSET{1'b0}}}), 
+                .tid_bitmap(1<<(i % DICE_NUMBER_OF_MAX_COALESCED_COMMANDS)), // Corrected shift logic for bitmap
                 .write_enable(1'b1), .write_data(write_data_temp3*i), .write_mask(write_mask_temp),
                 .address(addr_data_temp3+ (i<<5)), .size(2'b10), .ld_dest_reg(ld_dest_reg_temp),
                 .description("Expected Bad write store output"),
@@ -539,7 +530,8 @@ import dice_pkg::*;
         for(int i=0;i<128;i++) begin
 
             add_expected_output(
-                .block_id(e_block_temp_2), .base_tid({i[9:BASE_TID_ADDRESS_OFFSET],{BASE_TID_ADDRESS_OFFSET{1'b0}}}), .tid_bitmap(1<<i[4:0]),
+                .block_id(e_block_temp_2), .base_tid({i[9:DICE_BASE_TID_ADDRESS_OFFSET],{DICE_BASE_TID_ADDRESS_OFFSET{1'b0}}}), 
+                .tid_bitmap(1<<(i % DICE_NUMBER_OF_MAX_COALESCED_COMMANDS)), // Corrected shift logic for bitmap
                 .write_enable(1'b0), .write_data(write_data_temp3*i), .write_mask(write_mask_temp),
                 .address(addr_data_temp3 + (i<<5)), .size(2'b10), .ld_dest_reg(ld_dest_reg_temp),
                 .description("Expected Bad read output"),
