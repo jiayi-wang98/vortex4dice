@@ -88,7 +88,7 @@ module dice_core
 
   dispatcher u_dispatcher (
       .clk_i(clk_i),
-      .rst_n(~rst_i),
+      .rst(rst_i),
       .unrolling_factor(fdr_out_if.data.metadata.unrolling_factor),
       .input_register_bitmap(fdr_out_if.data.metadata.in_regs_bitmap),
       .active_mask(fdr_out_if.data.real_active_mask),

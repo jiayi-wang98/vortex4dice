@@ -1,6 +1,6 @@
 module next_thread_logic_top(
     input logic clk,
-    input logic rst_n,
+    input logic rst,
     input logic [1:0] unrolling_factor,     // 0=1, 1=2, 2=4
     input logic [255:0] active_mask_chunk,  // 256-bit active mask chunk
     input logic [1:0] chunk_base_addr,      // Base address of current chunk (00=0, 01=256, 10=512, 11=768)
@@ -75,7 +75,7 @@ module next_thread_logic_top(
                 .UNROLLING_INDEX(i)
             ) lane (
                 .clk(clk),
-                .rst_n(rst_n),
+                .rst(rst),
                 .unrolling_factor(unrolling_factor),
                 .update(update_next_active_thread_logic[i]),
                 .active_mask_lane(i == 0 ? mask_lane0 : 
@@ -91,7 +91,7 @@ module next_thread_logic_top(
 
     thread_lane_reroute u_thread_lane_reroute(
         .clk(clk),
-        .rst_n(rst_n),
+        .rst(rst),
         .unrolling_factor(unrolling_factor),
         .chunk_base_addr(chunk_base_addr),
         .update_next_active_thread_logic(update_next_active_thread_logic),
@@ -130,7 +130,7 @@ module next_thread_logic_top(
     // Thread Filter instance
     thread_filter filter (
         .clk(clk),
-        .rst_n(rst_n),
+        .rst(rst),
         .unrolling_factor(unrolling_factor),
         .next_tid_0(pre_next_tid_0),
         .valid_0(pre_valid_0),

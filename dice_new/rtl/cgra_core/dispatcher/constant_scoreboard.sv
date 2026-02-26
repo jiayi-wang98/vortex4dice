@@ -2,7 +2,7 @@ module constant_scoreboard #(
     parameter int NUM_CONSTANT_REGS = 32    // Number of constant registers
 )(
     input logic clk,
-    input logic rst_n,
+    input logic rst,
     
     // Input signals
     input logic [NUM_CONSTANT_REGS-1:0] input_const_map,  // Constant register bitmap from input
@@ -20,8 +20,8 @@ module constant_scoreboard #(
     logic [NUM_CONSTANT_REGS-1:0] pending_constants;
     
     // Update logic for pending constants register
-    always_ff @(posedge clk or negedge rst_n) begin
-        if (!rst_n) begin
+    always_ff @(posedge clk) begin
+        if (rst) begin
             pending_constants <= {NUM_CONSTANT_REGS{1'b0}};  // Clear all pending bits
         end else begin
             // Apply reservation and write-back updates only when valid

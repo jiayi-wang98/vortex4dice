@@ -30,11 +30,11 @@ module dispatcher_dataflow
     input logic assert_restart, 
     input logic last_chunk_fin,
     input logic start_new_cta,
-    input logic clk, rst_n
+    input logic clk, rst
 );
 
     always_ff @(posedge clk) begin
-        if (!rst_n) begin
+        if (rst) begin
             latched_unrolling_factor <= 2'b0;
             latched_input_regs <= '0;
             latched_active_mask <= '0;

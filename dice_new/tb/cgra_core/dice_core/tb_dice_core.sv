@@ -184,7 +184,7 @@ module tb_dice_core;
   //Resets the DUT
   task automatic reset_dut();
     reset = 1'b1;
-    repeat (5) @(posedge clk);
+    repeat (10) @(posedge clk);
     reset = 1'b0;
   endtask
 

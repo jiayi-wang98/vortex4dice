@@ -223,20 +223,21 @@ Selection-LineWidth = 1
 [FSM_Dlg-Print]
 Orientation = Landscape
 [FileBrowser]
-LoadSimulationResults = "\"/data/amanoj3/vortex4dice/dice_new/tb/cgra_core/dice_core/tb_dice_core.fsdb\""
 nWaveOpenFsdbDirHistory = "\"/data/amanoj3/vortex4dice/dice_new/tb/cgra_core/dice_core/tb_dice_core.fsdb\"" "\"/data/amanoj3/vortex4dice/dice_new/tb/cgra_core/dice_core/elliot_verdi_session.ses.wave.0\"" "\"/data/amanoj3/vortex4dice/dice_new/tb/cgra_core/dice_core/elliot_verdi_sess\
 ion.ses\""
+LoadSimulationResults = "\"/data/amanoj3/vortex4dice/dice_new/tb/cgra_core/dice_core/tb_dice_core.fsdb\"" "\"/data/amanoj3/vortex4dice/dice_new/tb/cgra_core/dice_core/build/tb_dice_core.fsdb\""
 [Form]
 version = Verdi_X-2025.06
 [General]
 autoSaveSession = FALSE
 TclAutoSource = 
 SyncBrowserDir = TRUE
+recent_commands_tFlowView = tsViewVHZoomOut,tsNodeJumpToDriver,tsViewPanOff,tsViewPanOn,tsViewVHZoomIn,tsViewFit,tsNodeJumpToDriver,tsViewPanOff,tsViewPanOn,tsViewVHZoomIn
 ColorThemeModern = bright
 version = Verdi_X-2025.06
 cmd_enter_form = FALSE
-recent_commands_Verdi = raiseNextWinAct,hbRestoreSession,hbImpDsg,hbInvokeWave,hbLoadFsdbFile,srcShowFile
-recent_commands_nWave = getSignal,raiseNextWinAct,zoomAll,snap,selectStuckSignals,GroupPopUp_SHOW_UNIFIED_FIND_CMD,reread,openFile,createWaveformWindow,saveSignal
+recent_commands_Verdi = hbLoadFsdbFile,hbRestoreSes1,hbRestoreSession,raiseNextWinAct,hbImpDsg,hbInvokeWave,srcShowFile
+recent_commands_nWave = zoomAll,getSignal,reread,previousEvent,nextEvent,digitalFBin,toggleExpand,raiseNextWinAct,snap,selectStuckSignals
 prevColorThemeModern = bright
 SignalCaseInSensitive = FALSE
 FindBarVisible = nWave
@@ -275,8 +276,8 @@ import_default_language = Verilog
 import_filter_verilog = *.v; *.vc; *.f
 PrefetchViewableAnnot = TRUE
 designTreeBgColor = ID_WHITE
-simulation_file_type = *.fsdb;*.vf;*.jf;*.zwd*
 ShowFileListView = FALSE
+simulation_file_type = *.fsdb;*.vf;*.jf;*.zwd*
 [Hier]
 filterTimeout = 1500
 [ImportLiberty]
@@ -350,6 +351,11 @@ schematics_fixFontSize = False
 cmd1 = "xterm -font 9x15 -fg black -bg gray -e"
 name = "vi"
 options = "+${CurLine} ${CurFullFileName}"
+[PostProcessPlus]
+SaveOpenDatabase = TRUE
+RelativePath = FALSE
+SaveAllWindow = TRUE
+AdvancePanel = FALSE
 [Power]
 PowerDownInstance = ID_GRAY1
 RetentionSignal = ID_YELLOW2
@@ -393,13 +399,19 @@ savePropDtl = TRUE
 Verdi_OpenFile = 665,373,590,340
 unknownSave = 729,383,461,245
 saveSigDlg = 684,276,551,386
-loadFile = 593,262,614,432
 openFileDlg = 599,236,602,483
 importDesignForm = 542,228,715,574
+QwWarnMsgDlg = 650,544,600,250
+tipViewerDlg = 547,379,398,259
+GoToLineForm_base = 637,401,238,103
+QwInfoMsgDlg = 371,346,750,250
+AMS_MAIN = 634,250,652,690
+restoreSigDlg = 684,376,551,438
+fileWithNote = 632,360,655,543
 FileWithNoteForm_base = 572,243,655,543
-QwWarnMsgDlg = 650,507,600,250
-qWaveSignalDialog = 386,321,800,479
-QwUserAskDlg = 760,511,400,122
+loadFile = 653,290,614,432
+qWaveSignalDialog = 133,118,1654,776
+QwUserAskDlg = 798,479,324,128
 [Safety]
 RegisterObject = ID_RED4
 CoreObject = ID_ORANGE5
@@ -479,12 +491,14 @@ iscCmdSep = FALSE
 ScsDebugAll = FALSE
 NoAppendOption = FALSE
 invokeSimPath = work
+restoreSimState = FALSE
+enableReverseDebug = FALSE
 simType = vcssv
 bSVTBMode = TRUE
 SimMode = TRUE
 interactiveDebugging = TRUE
 KeepBreakPoints = FALSE
-vcs_svPath = /data/amanoj3/vortex4dice/dice_new/tb/cgra_core/dice_core/simv
+vcs_svPath = /data/amanoj3/vortex4dice/dice_new/tb/cgra_core/dice_core/build/simv
 [SimulationPlus2]
 eventDumpUnfinish = FALSE
 [Source]
@@ -602,7 +616,7 @@ pdmlMacro = ID_BLACK
 font = COURIER12
 annotFont = FIXED12
 [Text.1]
-viewport = 0 27 1920 1016 45
+viewport = 0 27 1920 958 45
 [TextPrinter]
 Orientation = Landscape
 Indicator = FALSE
@@ -693,31 +707,31 @@ isOneSearchVisible = TRUE
 [VIA.oneSearch.preference.vgifColumnSettingRC.setting0]
 parRuleSets = ""
 [VIA.oneSearch.preference.vgifColumnSettingRC.setting0.column0]
-name = "Code"
-width = 60
-visualIndex = 3
-isHidden = TRUE
-isUserChangeColumnVisible = FALSE
-isColFilterColorCoding = FALSE
-[VIA.oneSearch.preference.vgifColumnSettingRC.setting0.column1]
-name = "Type"
-width = 60
-visualIndex = 4
-isHidden = TRUE
-isUserChangeColumnVisible = FALSE
-isColFilterColorCoding = FALSE
-[VIA.oneSearch.preference.vgifColumnSettingRC.setting0.column2]
 name = "Message"
 width = 2000
 visualIndex = 5
 isHidden = FALSE
 isUserChangeColumnVisible = FALSE
 isColFilterColorCoding = FALSE
-[VIA.oneSearch.preference.vgifColumnSettingRC.setting0.column3]
+[VIA.oneSearch.preference.vgifColumnSettingRC.setting0.column1]
 name = "Time"
 width = 60
 visualIndex = 0
 isHidden = FALSE
+isUserChangeColumnVisible = FALSE
+isColFilterColorCoding = FALSE
+[VIA.oneSearch.preference.vgifColumnSettingRC.setting0.column2]
+name = "Code"
+width = 60
+visualIndex = 3
+isHidden = TRUE
+isUserChangeColumnVisible = FALSE
+isColFilterColorCoding = FALSE
+[VIA.oneSearch.preference.vgifColumnSettingRC.setting0.column3]
+name = "Type"
+width = 60
+visualIndex = 4
+isHidden = TRUE
 isUserChangeColumnVisible = FALSE
 isColFilterColorCoding = FALSE
 [VIA.oneSearch.preference.vgifColumnSettingRC.setting0.column4]
@@ -810,8 +824,8 @@ AutoApplySeverityColor = TRUE
 scope_to_save_with_macro
 open_file_dir
 open_rc_file_dir
-getSignalForm = 386 284 800 479 117 387 439 149
-viewPort = 0 11 1800 280 630 65
+getSignalForm = 133 81 1654 776 363 684 604 335
+viewPort = 0 11 1920 494 630 65
 legendBackground = -c ID_BLACK
 valueBackground = -c ID_BLACK
 curveBackground = -c ID_BLACK
@@ -977,7 +991,10 @@ printBasic = 1 0 0 TRUE FALSE
 printDest = -printer {}
 printSignature = {%f %h %t} {}
 curveWindow_Drag&Drop_Mode = TRUE
-RecentFile1 = "\"/data/amanoj3/vortex4dice/dice_new/tb/cgra_core/dice_core/tb_dice_core.fsdb\""
+RecentFile1 = "\"/data/amanoj3/vortex4dice/dice_new/tb/cgra_core/dice_core/build/tb_dice_core.fsdb\""
+RecentFile2 = "\"/data/amanoj3/vortex4dice/dice_new/tb/cgra_core/dice_core/tb_dice_core.fsdb\""
+RecentFile3 = "\"/data2/enorman/vortex4dice/dice_new/tb/cgra_core/dice_core/tb_dice_core.fsdb\""
+RecentFile4 = "\"/data/amanoj3/vortex4dice/dice_new/tb/cgra_core/dice_core/tb_dice_core.fsdb\""
 open_file_time_range = FALSE
 legend_window_font = -f COURIER12 -c ID_CYAN5
 value_window_font = -f COURIER12 -c ID_CYAN5
@@ -1614,7 +1631,7 @@ AddImportArgument = FALSE
 LineBreakWithScope = TRUE
 StopAfterCompileOption = -s
 [wave.0]
-viewPort = 0 11 1800 280 630 65
+viewPort = 0 11 1920 494 630 65
 [wave.1]
 viewPort = 127 219 960 332 100 65
 [wave.2]

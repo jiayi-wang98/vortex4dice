@@ -5,7 +5,7 @@ module scoreboard_tid_entry
            dice_frontend_pkg::*;
 (
     input logic clk,
-    input logic rst_n,
+    input logic rst,
     input logic [REG_NUM-1:0] update_data, // Data to be stored in the entry
     input logic [REG_NUM-1:0] update_mask, // Mask, 1 means update, 0 means keep current value
 
@@ -17,8 +17,8 @@ module scoreboard_tid_entry
     logic [REG_NUM-1:0] entry_data;
 
     // Update logic
-    always_ff @(posedge clk or negedge rst_n) begin
-        if (!rst_n) begin
+    always_ff @(posedge clk) begin
+        if (rst) begin
             entry_data <= '0; // Reset the entry data
         end else begin
             // Apply the update mask to the entry data
@@ -53,7 +53,7 @@ module scoreboard
     parameter int SCOREBOARD_TID_WIDTH = $clog2(THREADS_PER_SCOREBOARD)
 )(
     input logic clk,
-    input logic rst_n,
+    input logic rst,
     
     // Input signals
     input logic [REG_NUM-1:0] input_regs_map,    // Bitmap of current inputs to CGRA
@@ -85,7 +85,7 @@ module scoreboard
         for (i = 0; i < THREADS_PER_SCOREBOARD; i++) begin : gen_scoreboard_entries
             scoreboard_tid_entry tid_entry (
                 .clk(clk),
-                .rst_n(rst_n),
+                .rst(rst),
                 .update_data(update_data[i]),
                 .update_mask(update_mask[i]),
                 .scoreboard_data(scoreboard_data[i])

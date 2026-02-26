@@ -1,6 +1,6 @@
 module thread_lane_reroute(
     input logic clk,                     // Clock signal
-    input logic rst_n,                   // Active low reset signal
+    input logic rst,                   // Active low reset signal
     input logic [1:0] unrolling_factor, // Unrolling factor (00=1, 01=2, 10=4)
     input logic [1:0] chunk_base_addr, // Base address for the chunk (10 bits)
 
@@ -166,7 +166,7 @@ module thread_lane_reroute(
                 .DEPTH(2)           // 4 entries deep
             ) fifo_inst (
                 .clk(clk),
-                .rst(rst_n),
+                .rst(rst),
                 
                 // Write interface
                 .push(fifo_push[i]),

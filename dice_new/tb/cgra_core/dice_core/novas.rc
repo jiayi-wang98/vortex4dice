@@ -232,12 +232,12 @@ version = Verdi_X-2025.06
 autoSaveSession = FALSE
 TclAutoSource = 
 SyncBrowserDir = TRUE
-cmd_enter_form = FALSE
 recent_commands_tFlowView = tsViewVHZoomOut,tsNodeJumpToDriver,tsViewPanOff,tsViewPanOn,tsViewVHZoomIn,tsViewFit,tsNodeJumpToDriver,tsViewPanOff,tsViewPanOn,tsViewVHZoomIn
 ColorThemeModern = bright
 version = Verdi_X-2025.06
-recent_commands_Verdi = hbLoadFsdbFile,hbRestoreSession,raiseNextWinAct,hbImpDsg,hbInvokeWave,srcShowFile
-recent_commands_nWave = reread,zoomAll,getSignal,previousEvent,nextEvent,digitalFBin,toggleExpand,raiseNextWinAct,snap,selectStuckSignals
+cmd_enter_form = FALSE
+recent_commands_Verdi = hbLoadFsdbFile,hbRestoreSes1,hbRestoreSession,raiseNextWinAct,hbImpDsg,hbInvokeWave,srcShowFile
+recent_commands_nWave = zoomAll,getSignal,reread,previousEvent,nextEvent,digitalFBin,toggleExpand,raiseNextWinAct,snap,selectStuckSignals
 prevColorThemeModern = bright
 SignalCaseInSensitive = FALSE
 FindBarVisible = nWave
@@ -409,9 +409,9 @@ AMS_MAIN = 634,250,652,690
 restoreSigDlg = 684,376,551,438
 fileWithNote = 632,360,655,543
 FileWithNoteForm_base = 572,243,655,543
-loadFile = 593,298,614,432
-qWaveSignalDialog = 73,89,1654,776
-QwUserAskDlg = 738,488,324,128
+loadFile = 653,290,614,432
+qWaveSignalDialog = 133,118,1654,776
+QwUserAskDlg = 798,479,324,128
 [Safety]
 RegisterObject = ID_RED4
 CoreObject = ID_ORANGE5
@@ -616,7 +616,7 @@ pdmlMacro = ID_BLACK
 font = COURIER12
 annotFont = FIXED12
 [Text.1]
-viewport = 0 27 1800 975 45
+viewport = 0 27 1920 958 45
 [TextPrinter]
 Orientation = Landscape
 Indicator = FALSE
@@ -707,44 +707,44 @@ isOneSearchVisible = TRUE
 [VIA.oneSearch.preference.vgifColumnSettingRC.setting0]
 parRuleSets = ""
 [VIA.oneSearch.preference.vgifColumnSettingRC.setting0.column0]
-name = "Code"
-width = 60
-visualIndex = 3
-isHidden = TRUE
-isUserChangeColumnVisible = FALSE
-isColFilterColorCoding = FALSE
-[VIA.oneSearch.preference.vgifColumnSettingRC.setting0.column1]
-name = "Block's First Line"
-width = 120
-visualIndex = 1
-isHidden = TRUE
-isUserChangeColumnVisible = FALSE
-isColFilterColorCoding = FALSE
-[VIA.oneSearch.preference.vgifColumnSettingRC.setting0.column2]
-name = "Type"
-width = 60
-visualIndex = 4
-isHidden = TRUE
-isUserChangeColumnVisible = FALSE
-isColFilterColorCoding = FALSE
-[VIA.oneSearch.preference.vgifColumnSettingRC.setting0.column3]
 name = "Message"
 width = 2000
 visualIndex = 5
 isHidden = FALSE
 isUserChangeColumnVisible = FALSE
 isColFilterColorCoding = FALSE
-[VIA.oneSearch.preference.vgifColumnSettingRC.setting0.column4]
-name = "Severity"
-width = 60
-visualIndex = 2
-isHidden = FALSE
-isUserChangeColumnVisible = FALSE
-isColFilterColorCoding = FALSE
-[VIA.oneSearch.preference.vgifColumnSettingRC.setting0.column5]
+[VIA.oneSearch.preference.vgifColumnSettingRC.setting0.column1]
 name = "Time"
 width = 60
 visualIndex = 0
+isHidden = FALSE
+isUserChangeColumnVisible = FALSE
+isColFilterColorCoding = FALSE
+[VIA.oneSearch.preference.vgifColumnSettingRC.setting0.column2]
+name = "Code"
+width = 60
+visualIndex = 3
+isHidden = TRUE
+isUserChangeColumnVisible = FALSE
+isColFilterColorCoding = FALSE
+[VIA.oneSearch.preference.vgifColumnSettingRC.setting0.column3]
+name = "Type"
+width = 60
+visualIndex = 4
+isHidden = TRUE
+isUserChangeColumnVisible = FALSE
+isColFilterColorCoding = FALSE
+[VIA.oneSearch.preference.vgifColumnSettingRC.setting0.column4]
+name = "Block's First Line"
+width = 120
+visualIndex = 1
+isHidden = TRUE
+isUserChangeColumnVisible = FALSE
+isColFilterColorCoding = FALSE
+[VIA.oneSearch.preference.vgifColumnSettingRC.setting0.column5]
+name = "Severity"
+width = 60
+visualIndex = 2
 isHidden = FALSE
 isUserChangeColumnVisible = FALSE
 isColFilterColorCoding = FALSE
@@ -824,8 +824,8 @@ AutoApplySeverityColor = TRUE
 scope_to_save_with_macro
 open_file_dir
 open_rc_file_dir
-getSignalForm = 73 89 1654 776 363 684 604 335
-viewPort = 0 11 1800 748 630 65
+getSignalForm = 133 81 1654 776 363 684 604 335
+viewPort = 0 11 1920 494 630 65
 legendBackground = -c ID_BLACK
 valueBackground = -c ID_BLACK
 curveBackground = -c ID_BLACK
@@ -1631,7 +1631,7 @@ AddImportArgument = FALSE
 LineBreakWithScope = TRUE
 StopAfterCompileOption = -s
 [wave.0]
-viewPort = 0 11 1800 748 630 65
+viewPort = 0 11 1920 494 630 65
 [wave.1]
 viewPort = 127 219 960 332 100 65
 [wave.2]

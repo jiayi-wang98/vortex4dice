@@ -1,6 +1,6 @@
 module thread_filter(
     input logic clk,
-    input logic rst_n,
+    input logic rst,
     input logic [1:0] unrolling_factor,     // 0=1, 1=2, 2=4
     
     // Inputs from next_thread_logic_top
@@ -221,7 +221,7 @@ module thread_filter(
                 .DEPTH(4)           // 4 entries deep
             ) fifo_inst (
                 .clk(clk),
-                .rst_n(rst_n),
+                .rst(rst),
                 
                 // Write interface
                 .push(fifo_push[i]),

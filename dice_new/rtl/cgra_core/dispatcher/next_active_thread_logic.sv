@@ -2,7 +2,7 @@ module next_active_thread_logic #(
     parameter int UNROLLING_INDEX = 0       // Index for unrolling lane (0-3)
 )(
     input logic clk,
-    input logic rst_n,
+    input logic rst,
     input logic update,                     // Update signal to advance start position
     input logic [1:0] unrolling_factor,     // 0=1, 1=2, 2=4
     input logic [63:0] active_mask_lane,    // 64-bit active mask for this lane
@@ -33,8 +33,8 @@ module next_active_thread_logic #(
     logic calculate_done;
     
     // Register start position with internal feedback
-    always_ff @(posedge clk or negedge rst_n) begin
-        if (!rst_n) begin
+    always_ff @(posedge clk) begin
+        if (rst) begin
             start_pos <= 6'b0;              // Reset to beginning of lane
         end else begin
             if(restart) begin
@@ -58,8 +58,8 @@ module next_active_thread_logic #(
 
     logic [6:0] sent_count;
 
-    always_ff @(posedge clk or negedge rst_n) begin
-        if (!rst_n) begin
+    always_ff @(posedge clk) begin
+        if (rst) begin
             sent_count <= 7'b0;              // Reset sent count
         end else if (restart) begin
             sent_count <= 7'b0;              // Reset sent count on restart
@@ -79,8 +79,8 @@ module next_active_thread_logic #(
     assign calculate_done = !rev_valid || (fifo_push && (encoded_pos == last_active_thread)) || calculate_done_reg;
 
 
-    always_ff @(posedge clk or negedge rst_n) begin
-        if (!rst_n) begin
+    always_ff @(posedge clk) begin
+        if (rst) begin
             calculate_done_reg <= 1'b0;      // Reset done register
         end else if (restart) begin
             calculate_done_reg <= 1'b0;      // Reset done register on restart
@@ -133,7 +133,7 @@ module next_active_thread_logic #(
         .DEPTH(2)
     ) next_tid_fifo (
         .clk(clk),
-        .rst(rst_n),
+        .rst(rst),
         .push(fifo_push),
         .push_data(active_mask_index),
         .pop(update), // Always pop the data

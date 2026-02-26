@@ -29,7 +29,7 @@ module dispatcher_fsm
     input logic fetch_done,
     input logic thread_chunk_done,
     input logic dispatch_fifo_empty,
-    input logic clk, rst_n
+    input logic clk, rst
 );
     // Intermediate logic
     logic [DICE_NUM_MAX_THREADS_PER_CORE-1:0] latched_active_mask;
@@ -114,7 +114,7 @@ module dispatcher_fsm
         .last_chunk_fin(last_chunk_fin),
         .start_new_cta(start_new_cta),
         .clk(clk),
-        .rst_n(rst_n)
+        .rst(rst)
     );
 
     dispatcher_control dispatcher_ctrl_inst (
@@ -136,7 +136,7 @@ module dispatcher_fsm
         .chunk_counter(chunk_counter),
         .max_chunks(max_chunks),
         .clk(clk),
-        .rst_n(rst_n)
+        .rst(rst)
     );
 
 endmodule

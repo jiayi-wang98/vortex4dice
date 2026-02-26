@@ -18,7 +18,7 @@ module dispatcher_control
     input logic last_chunk_done,
     input logic dispatch_fifo_empty,
     input logic [1:0] chunk_counter, max_chunks,
-    input logic clk, rst_n
+    input logic clk, rst
 );
 
     enum logic [1:0] {
@@ -70,7 +70,7 @@ module dispatcher_control
 
     // Synchronous reset
     always_ff @(posedge clk) begin
-        if (!rst_n)
+        if (rst)
             ps <= IDLE;
         else
             ps <= ns;

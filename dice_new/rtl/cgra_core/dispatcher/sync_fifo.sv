@@ -4,7 +4,7 @@ module sync_fifo #(
     parameter int ADDR_WIDTH = $clog2(DEPTH) // Address width (automatically calculated)
 )(
     input logic clk,                        // Clock
-    input logic rst_n,                      // Active-low reset
+    input logic rst,                      // Active-low reset
     
     // Write interface
     input logic push,                       // Push enable
@@ -41,8 +41,8 @@ module sync_fifo #(
     assign pop_enable = pop && !empty;
     
     // Write pointer logic
-    always_ff @(posedge clk or negedge rst_n) begin
-        if (!rst_n) begin
+    always_ff @(posedge clk) begin
+        if (rst) begin
             write_ptr <= '0;
         end else if (push_enable) begin
             write_ptr <= write_ptr + 1'b1;
@@ -50,8 +50,8 @@ module sync_fifo #(
     end
     
     // Read pointer logic
-    always_ff @(posedge clk or negedge rst_n) begin
-        if (!rst_n) begin
+    always_ff @(posedge clk) begin
+        if (rst) begin
             read_ptr <= '0;
         end else if (pop_enable) begin
             read_ptr <= read_ptr + 1'b1;
@@ -59,8 +59,8 @@ module sync_fifo #(
     end
     
     // Memory write logic
-    always_ff @(posedge clk or negedge rst_n) begin
-        if (!rst_n) begin
+    always_ff @(posedge clk) begin
+        if (rst) begin
             // Reset memory contents (optional, can be omitted)
             for (int i = 0; i < DEPTH; i++) begin
                 mem[i] <= '0;
@@ -71,8 +71,8 @@ module sync_fifo #(
     end
     
     // Registered memory read logic - data becomes valid next cycle after pop
-    always_ff @(posedge clk or negedge rst_n) begin
-        if (!rst_n) begin
+    always_ff @(posedge clk) begin
+        if (rst) begin
             pop_data_reg <= '0;
             pop_data_valid_reg <= 1'b0;
         end else begin
@@ -106,22 +106,22 @@ module sync_fifo #(
     // Assertions for debugging (synthesis will ignore these)
     //`ifdef SIMULATION
     //    // Check for overflow
-    //    assert property (@(posedge clk) disable iff (!rst_n)
+    //    assert property (@(posedge clk) disable iff (!rst)
     //        push |-> !full)
     //    else $error("FIFO overflow: push asserted when FIFO is full");
     //    
     //    // Check for underflow  
-    //    assert property (@(posedge clk) disable iff (!rst_n)
+    //    assert property (@(posedge clk) disable iff (!rst)
     //        pop |-> !empty)
     //    else $error("FIFO underflow: pop asserted when FIFO is empty");
     //    
     //    // Check pointer consistency
-    //    assert property (@(posedge clk) disable iff (!rst_n)
+    //    assert property (@(posedge clk) disable iff (!rst)
     //        count <= DEPTH)
     //    else $error("FIFO count exceeds depth");
     //    
     //    // Check pop_data_valid timing
-    //    assert property (@(posedge clk) disable iff (!rst_n)
+    //    assert property (@(posedge clk) disable iff (!rst)
     //        $rose(pop_data_valid) |-> $past(pop_enable))
     //    else $error("pop_data_valid asserted without previous pop_enable");
     //`endif

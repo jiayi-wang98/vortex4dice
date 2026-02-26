@@ -5,7 +5,7 @@ module dispatcher
            dice_frontend_pkg::*;
 (
     input logic clk_i,
-    input logic rst_n,
+    input logic rst,
 
     // metadata input package
     input logic [$clog2(`DICE_CGRA_MEM_PORTS-1):0][REG_INDEX_WIDTH-1:0] ld_dest_regs,
@@ -136,14 +136,14 @@ module dispatcher
         .fetch_done(fetch_done),
         .thread_chunk_done(thread_chunk_done),
         .dispatch_fifo_empty(dispatch_fifo_empty),
-        .clk(clk),
-        .rst_n(rst_n)
+        .clk(clk_i),
+        .rst(rst)
     );
     
     // Next Thread Logic Top - Updated interface with chunk_done
     next_thread_logic_top next_thread_top (
-        .clk(clk),
-        .rst_n(rst_n),
+        .clk(clk_i),
+        .rst(rst),
         .unrolling_factor(latched_unrolling_factor),
         .active_mask_chunk(current_chunk),
         .chunk_base_addr(chunk_base_addr),
@@ -255,8 +255,8 @@ module dispatcher
                 .THREADS_PER_SCOREBOARD(THREADS_PER_SCOREBOARD),
                 .SCOREBOARD_TID_WIDTH(SCOREBOARD_TID_WIDTH)  
             ) sb (
-                .clk(clk),
-                .rst_n(rst_n),
+                .clk(clk_i),
+                .rst(rst),
                 .input_regs_map(input_register_bitmap), // Direct from input: 32GPR + 2PR (34 bits)
                 .rd_tid(check_tid[i]),
                 .rd_valid(sb_rd_valid[i]),              // Valid signal for read operation
@@ -273,8 +273,8 @@ module dispatcher
     
     // Constant scoreboard for shared constant collision detection
     constant_scoreboard #(.NUM_CONSTANT_REGS(32)) const_sb (
-        .clk(clk),
-        .rst_n(rst_n),
+        .clk(clk_i),
+        .rst(rst),
         .input_const_map(const_bitmap),         // 32-bit constant register map
         .rd_valid(const_rd_valid),              // Valid when any lane needs checking
         .rsv_const_map(const_bitmap),           // Reserve the same constants
@@ -307,8 +307,8 @@ module dispatcher
 
     //flag of if current valid tids are checking collision
     logic is_checking_collision, is_checking_collision_next; //flag of current tids is checking collision and have not been pushed to ready fifo yet
-    always_ff@(posedge clk or negedge rst_n) begin
-        if (!rst_n) begin
+    always_ff@(posedge clk_i) begin
+        if (rst) begin
             is_checking_collision <= 1'b0;
         end else begin
             is_checking_collision <= is_checking_collision_next;
@@ -353,8 +353,8 @@ module dispatcher
                 .DATA_WIDTH(DICE_TID_WIDTH + 1),        // 11 bits: {valid, tid[9:0](DICE_TID_WIDTH)}
                 .DEPTH(4)                               // 4 entries deep
             ) ready_fifo (
-                .clk(clk),
-                .rst_n(rst_n),
+                .clk(clk_i),
+                .rst(rst),
                 .push(ready_fifo_push_en[i]),
                 .push_data(ready_fifo_push_data[i]),
                 .pop(dispatch_fifo_pop),
