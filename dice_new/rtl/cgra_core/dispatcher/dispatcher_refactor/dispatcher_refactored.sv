@@ -1,16 +1,20 @@
+`include "dice_define.vh"
+
 module dispatcher
     import dice_pkg::*, 
            dice_frontend_pkg::*;
 (
-    input logic clk,
+    input logic clk_i,
     input logic rst_n,
 
     // metadata input package
-    input pgraph_meta_t pgraph_meta_i,
+    input logic [$clog2(`DICE_CGRA_MEM_PORTS-1):0][REG_INDEX_WIDTH-1:0] ld_dest_regs,
+    input logic [REG_NUM-1:0] input_register_bitmap,
+    input logic [1:0] unrolling_factor,
 
     // Runtime execution context inputs
     input logic [DICE_NUM_MAX_THREADS_PER_CORE-1:0] active_mask,           // 1024-bit active mask // DICE_NUM_MAX_THREADS_PER_CORE?
-    input cta_size_e cta_size,                 // 0=256, 1=512, 3=1024
+    input [1:0] cta_size,                 // 0=256, 1=512, 3=1024
     input logic fetch_done,                     // Previous stage ready signal
     
     // Write-back interface for scoreboards
@@ -23,7 +27,10 @@ module dispatcher
     
     // Output signals - dispatched threads packed to one bus
     output logic [4*DICE_TID_WIDTH-1:0] dispatch_tid_o, // Combined TID output for all lanes
-    output logic dispatch_valid_o,                      // Combined valid signal for all lanes
+    output logic [3:0] dispatch_valid_o,                      // Combined valid signal for all lanes
+
+    // 
+    output logic [`DICE_GPR_NUM-1:0] gpr_bitmap_o,
     
     // Status outputs
     output logic dispatcher_busy,              // Dispatcher is active
@@ -47,7 +54,7 @@ module dispatcher
     always_comb begin
         ld_dest_regs_bitmap = '0;
         for (int k = 0; k < NUM_LD_DEST_REGS; k++) begin
-            ld_dest_regs_bitmap[pgraph_meta_i.ld_dest_regs[k]] = 1'b1;
+            ld_dest_regs_bitmap[ld_dest_regs[k]] = 1'b1;
         end
     end
 
@@ -64,9 +71,11 @@ module dispatcher
     logic [1:0] latched_unrolling_factor;  // Latched unrolling factor
     
     // Scoreboard signals // BITMAP BASED SCOREBAORD INTERFACE USING METADATA INPUT BITMAP SUBJECT TO CHANGE
-    logic [31:0] gpr_bitmap;                   // GPR portion of input registers
-    logic [31:0] const_bitmap;                 // Constant portion of input registers
-    logic [1:0] pred_bitmap;                   // Predicate portion of input registers
+    logic [`DICE_GPR_NUM-1:0] gpr_bitmap;                   // GPR portion of input registers
+    logic [`DICE_CR_NUM-1:0] const_bitmap;                 // Constant portion of input registers
+    logic [`DICE_PR_NUM-1] pred_bitmap;                   // Predicate portion of input registers
+
+    assign gpr_bitmap_o = gpr_bitmap; // Output the GPR bitmap to the RF controller
 
     logic collision [NUM_SCOREBOARDS];                       // Collision results from regular scoreboards
     logic const_collision;                     // Collision result from constant scoreboard
@@ -117,8 +126,8 @@ module dispatcher
         .restart(restart),
 
         .active_mask(active_mask),
-        .input_register_bitmap(pgraph_meta_i.in_regs_bitmap),
-        .unrolling_factor(pgraph_meta_i.unrolling_factor),
+        .input_register_bitmap(input_register_bitmap),
+        .unrolling_factor(unrolling_factor),
         .cta_size(cta_size),
         .dispatch_valid_0(dispatch_valid_0),
         .dispatch_valid_1(dispatch_valid_1),
@@ -224,14 +233,9 @@ module dispatcher
     assign const_rd_valid = |sb_rd_valid;    // Check constants if any lane needs checking
     assign const_rsv_valid = |sb_rsv_valid;  // Reserve constants if any lane is reserving
     
-    // Distribute 1024-bit wb_tid_bitmap to 4 scoreboards based on upper 2 bits
     // Only pass write-back signals when wb_valid is asserted
     always_comb begin
         if (wb_valid) begin
-            // wb_tid_sb[0] = wb_tid_bitmap[255:0];    // TIDs 0-255   (upper 2 bits = 00)
-            // wb_tid_sb[1] = wb_tid_bitmap[511:256];  // TIDs 256-511 (upper 2 bits = 01)
-            // wb_tid_sb[2] = wb_tid_bitmap[767:512];  // TIDs 512-767 (upper 2 bits = 10)
-            // wb_tid_sb[3] = wb_tid_bitmap[1023:768]; // TIDs 768-1023(upper 2 bits = 11)
             for (int sb = 0; sb < NUM_SCOREBOARDS; sb++) begin
                 wb_tid_sb[sb] = wb_tid_bitmap[sb*THREADS_PER_SCOREBOARD +: THREADS_PER_SCOREBOARD];
             end 
@@ -253,7 +257,7 @@ module dispatcher
             ) sb (
                 .clk(clk),
                 .rst_n(rst_n),
-                .input_regs_map(pgraph_meta_i.in_regs_bitmap), // Direct from input: 32GPR + 2PR (34 bits)
+                .input_regs_map(input_register_bitmap), // Direct from input: 32GPR + 2PR (34 bits)
                 .rd_tid(check_tid[i]),
                 .rd_valid(sb_rd_valid[i]),              // Valid signal for read operation
                 .rsv_tid(reserve_tid[i]),
@@ -375,7 +379,7 @@ module dispatcher
     
     // Set output to one bus and one valid signal
     assign dispatch_tid_o = {dispatch_tid_3, dispatch_tid_2, dispatch_tid_1, dispatch_tid_0};
-    assign dispatch_valid_o = dispatch_valid_3 || dispatch_valid_2 || dispatch_valid_1 || dispatch_valid_0;
+    assign dispatch_valid_o = {dispatch_valid_3, dispatch_valid_2, dispatch_valid_1, dispatch_valid_0};
 
     // Unrolling-aware logic
     logic dispatch_fifo_empty_comb;

@@ -68,7 +68,7 @@ ${DICE_HOME}/rtl/cgra_core/dispatcher/thread_filter.sv
 ${DICE_HOME}/rtl/cgra_core/dispatcher/thread_lane_reroute.sv
 ${DICE_HOME}/rtl/cgra_core/dispatcher/next_active_thread_logic.sv
 ${DICE_HOME}/rtl/cgra_core/dispatcher/next_thread_logic_top.sv
-${DICE_HOME}/rtl/cgra_core/dispatcher/scoreboard.sv
+${DICE_HOME}/rtl/cgra_core/dispatcher/scoreboard_refactor.sv
 ${DICE_HOME}/rtl/cgra_core/dispatcher/constant_scoreboard.sv
 ${DICE_HOME}/rtl/cgra_core/dispatcher/dispatcher_refactor/dispatcher_ctrl.sv
 ${DICE_HOME}/rtl/cgra_core/dispatcher/dispatcher_refactor/dispatcher_df.sv

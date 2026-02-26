@@ -117,7 +117,7 @@ import dice_pkg::*;
     generate 
         for (i = 0; i < NUM_PORTS; i++) begin
             assign cgra_wr_li[i].data = cgra_data_i[i*DATA_WIDTH +: DATA_WIDTH];
-            assign cgra_wr_li[i].wr_bitmap = wr_bitmap_r[i];
+            assign cgra_wr_li[i].mask = wr_bitmap_r[i];
             // Only assign the lowest TID from the cgra_tid_i bus (corresponds to the lowest bits)
             // no unrolling factor for now
             assign cgra_wr_li[i].tid = cgra_tid_i[0 +: TID_WIDTH];

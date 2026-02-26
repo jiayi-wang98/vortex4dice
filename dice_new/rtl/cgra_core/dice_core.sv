@@ -84,9 +84,10 @@ module dice_core
   );
 
   logic dispatch_busy;
+  
 
   dispatcher u_dispatcher (
-      .clk(clk_i),
+      .clk_i(clk_i),
       .rst_n(~rst_i),
       .unrolling_factor(fdr_out_if.data.metadata.unrolling_factor),
       .input_register_bitmap(fdr_out_if.data.metadata.in_regs_bitmap),
@@ -95,16 +96,10 @@ module dice_core
       .fetch_done(fdr_out_if.valid),
       .wb_valid(),          // comes from cgra
       .wb_tid_bitmap(),     // comes from cgra
-      .ld_dest_reg(),       // comes from cgra
+      .ld_dest_regs(fdr_out_if.data.metadata.ld_dest_regs),       // comes from cgra
       .dispatch_fifo_pop('1), // cgra ready
-      .dispatch_tid_0(rd_tid),
-      .dispatch_valid_0(rd_tid_valid),
-      .dispatch_tid_1(),
-      .dispatch_valid_1(),
-      .dispatch_tid_2(),
-      .dispatch_valid_2(),
-      .dispatch_tid_3(),
-      .dispatch_valid_3(),
+      .dispatch_tid_o(rd_tid),
+      .dispatch_valid_o(rd_tid_valid),
       .dispatch_fifo_empty(),
       .gpr_bitmap_o(gpr_bitmap),
       .dispatcher_busy(dispatch_busy),
@@ -113,9 +108,9 @@ module dice_core
 
   assign fdr_out_if.ready = ~dispatch_busy;
 
-  logic [DICE_TID_WIDTH-1:0] rd_tid;
-  logic rd_tid_valid;
-  logic [31:0] gpr_bitmap;
+  logic [4*DICE_TID_WIDTH-1:0] rd_tid;
+  logic [3:0] rd_tid_valid;
+  logic [`DICE_GPR_NUM-1:0] gpr_bitmap;
 
   logic rf_rd_valid_lo;
 
