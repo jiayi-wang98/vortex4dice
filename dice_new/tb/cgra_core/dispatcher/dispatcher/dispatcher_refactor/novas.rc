@@ -236,8 +236,8 @@ SignalCaseInSensitive = FALSE
 ColorThemeModern = bright
 prevColorThemeModern = bright
 version = Verdi_X-2025.06
-recent_commands_Verdi = hbLoadFsdbFile,hbImpDsg,hbReload,textCaretLineEnd,nsFullScreen,srcCompile,aboutFsdb,hbCloseFsdbFile
-recent_commands_nWave = editCut,digitalFUDec,toggleExpand,digitalFHex,zoomIn,zoomOut,getAllSignals,getSignal,getSignal,getSignal
+recent_commands_Verdi = hbReload,hbLoadFsdbFile,hbImpDsg,textCaretLineEnd,nsFullScreen,srcCompile,aboutFsdb,hbCloseFsdbFile
+recent_commands_nWave = editCut,zoomOut,saveSignal,digitalFUDec,toggleExpand,digitalFHex,zoomIn,getAllSignals,getSignal,getSignal
 [GlobalProp]
 ErrWindow_Font = Helvetica_M_R_12
 [Globals]
@@ -274,8 +274,8 @@ PrefetchViewableAnnot = TRUE
 designTreeBgColor = ID_WHITE
 import_default_language = Verilog
 import_from = source
-ShowFileListView = FALSE
 simulation_file_type = *.fsdb;*.vf;*.jf;*.zwd*
+ShowFileListView = FALSE
 [Hier]
 filterTimeout = 1500
 [ImportLiberty]
@@ -396,7 +396,8 @@ CompileDesignUi = 166,174,691,410
 tipViewerDlg = 751,386,398,259
 QwUserAskDlg = 606,380,324,128
 importDesignForm = 410,120,715,574
-loadFile = 461,191,614,432
+loadFile = 653,347,614,432
+saveSigDlg = 684,370,551,386
 [Safety]
 RegisterObject = ID_RED4
 CoreObject = ID_ORANGE5
@@ -697,9 +698,9 @@ isHidden = TRUE
 isUserChangeColumnVisible = FALSE
 isColFilterColorCoding = FALSE
 [VIA.oneSearch.preference.vgifColumnSettingRC.setting0.column1]
-name = "Severity"
+name = "Time"
 width = 60
-visualIndex = 2
+visualIndex = 0
 isHidden = FALSE
 isUserChangeColumnVisible = FALSE
 isColFilterColorCoding = FALSE
@@ -725,9 +726,9 @@ isHidden = FALSE
 isUserChangeColumnVisible = FALSE
 isColFilterColorCoding = FALSE
 [VIA.oneSearch.preference.vgifColumnSettingRC.setting0.column5]
-name = "Time"
+name = "Severity"
 width = 60
-visualIndex = 0
+visualIndex = 2
 isHidden = FALSE
 isUserChangeColumnVisible = FALSE
 isColFilterColorCoding = FALSE
@@ -807,7 +808,6 @@ AutoApplySeverityColor = TRUE
 scope_to_save_with_macro
 open_file_dir
 open_rc_file_dir
-getSignalForm = 217 262 800 479 165 387 391 91
 viewPort = 0 11 1536 410 228 128
 legendBackground = -c ID_BLACK
 valueBackground = -c ID_BLACK
@@ -1008,6 +1008,7 @@ maskFsaCoreRule = TRUE
 maskFsaSfsmRule = TRUE
 maskFsaEcrRule = TRUE
 maskTPropagation = TRUE
+getSignalForm = 217 262 800 479 165 387 391 91
 [compile_design]
 DefaultLang = Verilog
 [cov_hier_name_column]

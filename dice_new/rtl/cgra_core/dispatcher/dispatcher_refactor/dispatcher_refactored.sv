@@ -1,6 +1,7 @@
 module dispatcher
-    import dice_pkg::*, 
-           dice_frontend_pkg::*;
+    import dice_pkg::*,
+           dice_frontend_pkg::*,
+           DE_pkg::*;
 (
     input logic clk_i,
     input logic rst_n,
@@ -23,20 +24,15 @@ module dispatcher
     
     // Output signals - dispatched threads packed to one bus
     output logic [4*DICE_TID_WIDTH-1:0] dispatch_tid_o, // Combined TID output for all lanes
-    output logic dispatch_valid_o,                      // Combined valid signal for all lanes
+    output logic [NUM_LANES-1:0] dispatch_valid_o,                      // Combined valid signal for all lanes
     
     // Status outputs
     output logic dispatcher_busy,              // Dispatcher is active
     output logic dispatcher_done               //  
 );
-    // Local parameters derived from package parameters
-    localparam int NUM_LANES = 4;  // 4-way SIMD dispatcher
-    localparam int NUM_SCOREBOARDS = 4;  // One scoreboard per 256 TIDs
-    localparam int THREADS_PER_SCOREBOARD = DICE_NUM_MAX_THREADS_PER_CORE / NUM_SCOREBOARDS;
-    localparam int SCOREBOARD_TID_WIDTH = $clog2(THREADS_PER_SCOREBOARD);  // 8 bits for 256 threads
-    localparam int CHUNK_SIZE = THREADS_PER_SCOREBOARD;  // 256 threads per chunk
-    localparam int NUM_CHUNKS = DICE_NUM_MAX_THREADS_PER_CORE / CHUNK_SIZE;  // 4 chunks
-    localparam int CHUNK_ADDR_WIDTH = $clog2(NUM_CHUNKS);  // 2 bits for 4 chunks
+    // Local parameters — NUM_LANES, NUM_SCOREBOARDS, CHUNK_SIZE, CHUNK_ADDR_WIDTH from DE_pkg
+    localparam int THREADS_PER_SCOREBOARD = CHUNK_SIZE;            // alias: entries per scoreboard
+    localparam int SCOREBOARD_TID_WIDTH   = $clog2(CHUNK_SIZE);    // TID bit-width within one SB
 
     // load destination registers (ld_dest_reg) bitmap assembly
     localparam int NUM_LD_DEST_REGS = $clog2(`DICE_CGRA_MEM_PORTS-1) + 1; // number of ld_dest entries
@@ -64,9 +60,9 @@ module dispatcher
     logic [1:0] latched_unrolling_factor;  // Latched unrolling factor
     
     // Scoreboard signals // BITMAP BASED SCOREBAORD INTERFACE USING METADATA INPUT BITMAP SUBJECT TO CHANGE
-    logic [31:0] gpr_bitmap;                   // GPR portion of input registers
-    logic [31:0] const_bitmap;                 // Constant portion of input registers
-    logic [1:0] pred_bitmap;                   // Predicate portion of input registers
+    logic [`DICE_GPR_NUM-1:0] gpr_bitmap;                   // GPR portion of input registers
+    logic [`DICE_CR_NUM-1:0] const_bitmap;                 // Constant portion of input registers
+    logic [`DICE_PR_NUM-1:0] pred_bitmap;                   // Predicate portion of input registers
 
     logic collision [NUM_SCOREBOARDS];                       // Collision results from regular scoreboards
     logic const_collision;                     // Collision result from constant scoreboard
@@ -76,7 +72,7 @@ module dispatcher
     logic [NUM_LANES-1:0] sb_rsv_valid;                  // Reserve valid signals for scoreboards
     logic const_rd_valid;                      // Read valid for constant scoreboard
     logic const_rsv_valid;                     // Reserve valid for constant scoreboard
-    logic clear_scoreboard;                    // Signal to clear scoreboards
+    logic start_new_cta;                       // Clears scoreboards on new CTA dispatch
     // syn_keep
     logic [THREADS_PER_SCOREBOARD-1:0] wb_tid_sb [NUM_SCOREBOARDS];               // Write-back bitmaps for each scoreboard
     
@@ -101,10 +97,7 @@ module dispatcher
     // Component Instantiations
     // ============================================================
 
-    dispatcher_fsm #(
-        .CHUNK_SIZE(CHUNK_SIZE),
-        .CHUNK_ADDR_WIDTH(CHUNK_ADDR_WIDTH)
-    ) dispatcher_fsm_inst (
+    dispatcher_fsm dispatcher_fsm_inst (
         .current_chunk(current_chunk),
         .gpr_bitmap(gpr_bitmap),
         .const_bitmap(const_bitmap),
@@ -127,13 +120,13 @@ module dispatcher
         .fetch_done(fetch_done),
         .thread_chunk_done(thread_chunk_done),
         .dispatch_fifo_empty(dispatch_fifo_empty),
-        .clk(clk),
+        .clk(clk_i),
         .rst_n(rst_n)
     );
     
     // Next Thread Logic Top - Updated interface with chunk_done
     next_thread_logic_top next_thread_top (
-        .clk(clk),
+        .clk(clk_i),
         .rst_n(rst_n),
         .unrolling_factor(latched_unrolling_factor),
         .active_mask_chunk(current_chunk),
@@ -242,6 +235,21 @@ module dispatcher
             end
         end
     end
+
+    // For each SB, pick the rd_tid from whichever lane is actually targeting it
+    logic [SCOREBOARD_TID_WIDTH-1:0] sb_rd_tid [NUM_SCOREBOARDS];
+    logic [SCOREBOARD_TID_WIDTH-1:0] sb_rsv_tid [NUM_SCOREBOARDS];
+    always_comb begin
+        for (int sb = 0; sb < NUM_SCOREBOARDS; sb++) begin
+            sb_rd_tid[sb]  = '0;
+            sb_rsv_tid[sb] = '0;
+            for (int lane = 0; lane < NUM_LANES; lane++) begin
+                if (sb_rd_valid_per_sb[sb][lane])  sb_rd_tid[sb]  = check_tid[lane];
+                if (sb_rsv_valid_per_sb[sb][lane]) sb_rsv_tid[sb] = reserve_tid[lane];
+            end
+        end
+    end
+
     
     // Scoreboards for collision detection (4 scoreboards, one for each TID range)
     genvar i;
@@ -251,13 +259,13 @@ module dispatcher
                 .THREADS_PER_SCOREBOARD(THREADS_PER_SCOREBOARD),
                 .SCOREBOARD_TID_WIDTH(SCOREBOARD_TID_WIDTH)  
             ) sb (
-                .clk(clk),
+                .clk(clk_i),
                 .rst_n(rst_n),
                 .input_regs_map(pgraph_meta_i.in_regs_bitmap), // Direct from input: 32GPR + 2PR (34 bits)
-                .rd_tid(check_tid[i]),
+                .rd_tid(sb_rd_tid[i]),
                 .rd_valid(sb_rd_valid[i]),              // Valid signal for read operation
-                .rsv_tid(reserve_tid[i]),
-                .rsv_valid(sb_rsv_valid[i]),            // Valid signal for reserve operation
+                .rsv_tid(sb_rsv_tid[i]),
+                .rsv_valid(|sb_rsv_valid_per_sb[i]),            // Valid signal for reserve operation
                 .wb_tid_bitmap(wb_tid_sb[i]),           // Each scoreboard gets its 256-bit slice
                 .ld_dest_regs_bitmap(ld_dest_regs_bitmap),         // Convert to 7 bits for scoreboard (GPR+Pred only)
                 .wb_valid(wb_valid), 
@@ -268,8 +276,8 @@ module dispatcher
     endgenerate
     
     // Constant scoreboard for shared constant collision detection
-    constant_scoreboard #(.NUM_CONSTANT_REGS(32)) const_sb (
-        .clk(clk),
+    constant_scoreboard #(.NUM_CONSTANT_REGS(`DICE_CR_NUM)) const_sb (
+        .clk(clk_i),
         .rst_n(rst_n),
         .input_const_map(const_bitmap),         // 32-bit constant register map
         .rd_valid(const_rd_valid),              // Valid when any lane needs checking
@@ -303,7 +311,7 @@ module dispatcher
 
     //flag of if current valid tids are checking collision
     logic is_checking_collision, is_checking_collision_next; //flag of current tids is checking collision and have not been pushed to ready fifo yet
-    always_ff@(posedge clk or negedge rst_n) begin
+    always_ff@(posedge clk_i or negedge rst_n) begin
         if (!rst_n) begin
             is_checking_collision <= 1'b0;
         end else begin
@@ -349,7 +357,7 @@ module dispatcher
                 .DATA_WIDTH(DICE_TID_WIDTH + 1),        // 11 bits: {valid, tid[9:0](DICE_TID_WIDTH)}
                 .DEPTH(4)                               // 4 entries deep
             ) ready_fifo (
-                .clk(clk),
+                .clk(clk_i),
                 .rst_n(rst_n),
                 .push(ready_fifo_push_en[i]),
                 .push_data(ready_fifo_push_data[i]),
@@ -375,7 +383,7 @@ module dispatcher
     
     // Set output to one bus and one valid signal
     assign dispatch_tid_o = {dispatch_tid_3, dispatch_tid_2, dispatch_tid_1, dispatch_tid_0};
-    assign dispatch_valid_o = dispatch_valid_3 || dispatch_valid_2 || dispatch_valid_1 || dispatch_valid_0;
+    assign dispatch_valid_o = {dispatch_valid_3, dispatch_valid_2, dispatch_valid_1, dispatch_valid_0};
 
     // Unrolling-aware logic
     logic dispatch_fifo_empty_comb;

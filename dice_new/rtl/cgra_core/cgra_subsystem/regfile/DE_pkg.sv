@@ -9,6 +9,16 @@ parameter int DICE_REG_DATA_WIDTH = 32;
 parameter int DICE_NUM_BANKS = 32;
 parameter int DICE_NUM_REGS = 32;
 parameter int DICE_REG_ADDR_WIDTH = $clog2(DICE_NUM_REG_BANK)-1;
+
+// =========================================================
+// Dispatcher architecture constants
+// =========================================================
+parameter int NUM_SCOREBOARDS  = 4;
+parameter int NUM_LANES        = 4;
+parameter int CHUNK_SIZE       = `DICE_NUM_MAX_THREADS_PER_CORE / NUM_SCOREBOARDS;
+parameter int CHUNK_ADDR_WIDTH = $clog2(NUM_SCOREBOARDS);
+parameter int LANE_SIZE        = CHUNK_SIZE / NUM_LANES;
+parameter int LANE_WIDTH       = $clog2(LANE_SIZE);
 typedef struct packed {
     logic[$clog2(`DICE_NUM_MAX_THREADS_PER_CORE)-1:0]  tid;
     logic[DICE_REG_DATA_WIDTH-1:0] data;

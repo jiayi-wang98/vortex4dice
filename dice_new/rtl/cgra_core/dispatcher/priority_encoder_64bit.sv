@@ -1,53 +1,55 @@
-module priority_encoder_64bit(
-    input logic [63:0] data_in,         // 64-bit input data
-    input logic [5:0] start_pos,        // Starting position for search (0-63)
-    
-    output logic [5:0] encoded_out,     // 6-bit encoded position (0-63)
-    output logic valid                  // Valid output (1 if any bit found)
+module priority_encoder_64bit
+    import DE_pkg::*;
+(
+    input logic [LANE_SIZE-1:0] data_in,        // Lane-wide input data
+    input logic [LANE_WIDTH-1:0] start_pos,     // Starting position for search
+
+    output logic [LANE_WIDTH-1:0] encoded_out,  // Encoded position of first set bit
+    output logic valid                           // Valid output (1 if any bit found)
 );
 
-    // Break down start_pos into chunk index and bit index
-    wire [2:0] start_chunk = start_pos[5:3];  // Which 8-bit chunk to start from (0-7)
-    wire [2:0] start_bit = start_pos[2:0];    // Which bit within the chunk to start from (0-7)
-    
+    // Number of 8-bit chunks that make up the lane
+    localparam int NUM_CHUNKS = LANE_SIZE / 8;
+
+    // Break down start_pos into chunk index and bit-within-chunk
+    wire [$clog2(NUM_CHUNKS)-1:0] start_chunk = start_pos[LANE_WIDTH-1:3];
+    wire [2:0]                    start_bit    = start_pos[2:0];
+
     // Signals for 8-bit priority encoders
-    logic [7:0] chunk_data [8];         // 8 chunks of 8-bit data
-    logic [2:0] chunk_start_pos [8];    // Start position for each chunk
-    logic [2:0] chunk_encoded [8];      // Encoded output from each chunk
-    logic chunk_valid [8];              // Valid output from each chunk
-    
+    logic [7:0]                    chunk_data      [NUM_CHUNKS];
+    logic [2:0]                    chunk_start_pos [NUM_CHUNKS];
+    logic [2:0]                    chunk_encoded   [NUM_CHUNKS];
+    logic                          chunk_valid     [NUM_CHUNKS];
+
     // Second stage signals
-    logic [7:0] chunk_valid_mask;       // Valid mask for second stage priority encoder
-    logic [2:0] winning_chunk;          // Which chunk has the result
-    logic second_stage_valid;           // Valid output from second stage
-    
-    // Split 64-bit data into 8 chunks of 8 bits
+    logic [NUM_CHUNKS-1:0]         chunk_valid_mask;
+    logic [$clog2(NUM_CHUNKS)-1:0] winning_chunk;
+    logic                          second_stage_valid;
+
+    // Split data_in into NUM_CHUNKS chunks of 8 bits
     always_comb begin
-        for (int i = 0; i < 8; i++) begin
+        for (int i = 0; i < NUM_CHUNKS; i++) begin
             chunk_data[i] = data_in[i*8 +: 8];
         end
     end
-    
+
     // Set start positions for each chunk
     always_comb begin
-        for (int i = 0; i < 8; i++) begin
+        for (int i = 0; i < NUM_CHUNKS; i++) begin
             if (i < start_chunk) begin
-                // Chunks before start_chunk are not searched
-                chunk_start_pos[i] = 3'b111;  // Invalid start position
+                chunk_start_pos[i] = 3'b111;  // Skip chunks before start_chunk
             end else if (i == start_chunk) begin
-                // Start chunk uses the specified start bit
                 chunk_start_pos[i] = start_bit;
             end else begin
-                // Chunks after start_chunk start from bit 0
                 chunk_start_pos[i] = 3'b000;
             end
         end
     end
-    
-    // Generate 8-bit priority encoders
+
+    // Generate 8-bit priority encoders for each chunk
     genvar i;
     generate
-        for (i = 0; i < 8; i++) begin : gen_8bit_encoders
+        for (i = 0; i < NUM_CHUNKS; i++) begin : gen_8bit_encoders
             priority_encoder_8bit pe8 (
                 .data_in(chunk_data[i]),
                 .start_pos(chunk_start_pos[i]),
@@ -56,11 +58,11 @@ module priority_encoder_64bit(
             );
         end
     endgenerate
-    
+
     // Create valid mask for second stage, masking out chunks before start_chunk
     always_comb begin
-        chunk_valid_mask = 8'b0;
-        for (int i = 0; i < 8; i++) begin
+        chunk_valid_mask = {NUM_CHUNKS{1'b0}};
+        for (int i = 0; i < NUM_CHUNKS; i++) begin
             if (i >= start_chunk) begin
                 chunk_valid_mask[i] = chunk_valid[i];
             end else begin
@@ -68,28 +70,25 @@ module priority_encoder_64bit(
             end
         end
     end
-    
-    // Second stage: use 8-bit priority encoder to select among valid chunks
+
+    // Second stage: 8-bit priority encoder selects among valid chunks
     logic [2:0] second_stage_start_pos;
-    
-    // Start position for second stage should be start_chunk
-    assign second_stage_start_pos = start_chunk;
-    
-    // Second stage priority encoder
+    assign second_stage_start_pos = start_chunk[$clog2(NUM_CHUNKS)-1:0];
+
     priority_encoder_8bit second_stage_pe (
-        .data_in(chunk_valid_mask),
+        .data_in(chunk_valid_mask[7:0]),        // NOTE: works for NUM_CHUNKS <= 8 (LANE_SIZE <= 64)
         .start_pos(second_stage_start_pos),
-        .encoded_out(winning_chunk),
+        .encoded_out(winning_chunk[$clog2(NUM_CHUNKS)-1:0]),
         .valid(second_stage_valid)
     );
-    
+
     // Final output generation
     always_comb begin
         if (second_stage_valid) begin
             encoded_out = {winning_chunk, chunk_encoded[winning_chunk]};
             valid = 1'b1;
         end else begin
-            encoded_out = 6'b000000;
+            encoded_out = {LANE_WIDTH{1'b0}};
             valid = 1'b0;
         end
     end
