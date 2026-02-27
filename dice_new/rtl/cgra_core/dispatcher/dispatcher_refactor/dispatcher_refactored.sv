@@ -320,14 +320,20 @@ module dispatcher
     end
 
     always_comb begin
+        // Default:
+        is_checking_collision_next = is_checking_collision;
         // Determine if there are any valid TIDs checking collision
         if (is_checking_collision == 1'b0) begin
-            if (thread_fifo_pop) is_checking_collision_next = 1'b1;
-            else is_checking_collision_next = 1'b0;
+            if (thread_fifo_pop) 
+                is_checking_collision_next = 1'b1;
+            else 
+                is_checking_collision_next = 1'b0;
         end else begin //clear or maintain the flag
-            if(all_lane_can_dispatch && ready_fifo_not_full) begin
-                if(thread_fifo_pop) is_checking_collision_next = 1'b1; //next valid tid coming, maintain the flag
-                else is_checking_collision_next = 1'b0; //clear, no more valid tids
+            if (all_lane_can_dispatch && ready_fifo_not_full) begin
+                if(thread_fifo_pop) 
+                    is_checking_collision_next = 1'b1; //next valid tid coming, maintain the flag
+                else 
+                    is_checking_collision_next = 1'b0; //clear, no more valid tids
             end
         end
     end
