@@ -4,6 +4,7 @@
 // Package imports
 $DICE_HOME/rtl/dice_pkg.sv
 $DICE_HOME/rtl/dice_frontend_pkg.sv
+$DICE_HOME/rtl/cgra_core/cgra_subsystem/regfile/DE_pkg.sv
 
 // Test integrated fsm with other modules
 $DICE_HOME/rtl/cgra_core/dispatcher/scoreboard_refactor.sv
