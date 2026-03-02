@@ -38,6 +38,20 @@ module dice_core
   logic                       eblock_flush_valid;
   logic [EBLOCK_ID_WIDTH-1:0] eblock_flush_id;
 
+
+
+  logic [4*DICE_TID_WIDTH-1:0] rd_tid;
+  logic [3:0] rd_tid_valid;
+  logic [`DICE_GPR_NUM-1:0] gpr_bitmap;
+
+  logic rf_rd_valid_lo;
+
+  logic [DICE_NUM_BANKS*DICE_REG_DATA_WIDTH-1:0] rd_data_lo;
+
+  logic cgra_v_lo;
+logic [DICE_NUM_BANKS*DICE_REG_DATA_WIDTH-1:0] cgra_data_lo;
+  logic [DICE_TID_WIDTH-1:0] cgra_tid_lo;
+
   cta_schedule_stage u_cta_schedule_stage (
       .clk_i                   (clk_i),
       .rst_i                   (rst_i),
@@ -108,13 +122,6 @@ module dice_core
 
   assign fdr_out_if.ready = ~dispatch_busy;
 
-  logic [4*DICE_TID_WIDTH-1:0] rd_tid;
-  logic [3:0] rd_tid_valid;
-  logic [`DICE_GPR_NUM-1:0] gpr_bitmap;
-
-  logic rf_rd_valid_lo;
-
-  logic [DICE_NUM_BANKS*DICE_REG_DATA_WIDTH-1:0] rd_data_lo;
 dice_rf_ctrl #(
     .NUM_PORTS(DICE_NUM_BANKS),
     .DATA_WIDTH(DICE_REG_DATA_WIDTH),
@@ -176,9 +183,7 @@ dice_rf_ctrl #(
 
 // add dummy cgra
 
-logic cgra_v_lo;
-logic [DICE_NUM_BANKS*DICE_REG_DATA_WIDTH-1:0] cgra_data_lo;
-logic [DICE_TID_WIDTH-1:0] cgra_tid_lo;
+
 
 dummy_cgra u_dummy_cgra (
   .clk_i(clk_i),

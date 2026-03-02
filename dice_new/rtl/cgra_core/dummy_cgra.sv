@@ -76,10 +76,15 @@ module dummy_cgra
             v_pipe_r[i]    <= 1'b0;
           end
         end else begin
-          // Stage 0: latch the SIMD-computed result
-          data_pipe_r[0] <= computed_data;
-          tid_pipe_r[0]  <= tid_i;
+          // Stage 0: latch the SIMD-computed result only when valid
           v_pipe_r[0]    <= v_i;
+          if (v_i) begin
+            data_pipe_r[0] <= computed_data;
+            tid_pipe_r[0]  <= tid_i;
+          end else begin
+            data_pipe_r[0] <= '0;
+            tid_pipe_r[0]  <= '0;
+          end
 
           // Stages 1..latency_p-1: shift through pipeline
           for (int i = 1; i < latency_p; i++) begin
