@@ -161,8 +161,8 @@ module tb_parameterized_dispatcher
         int idle_cycles = 0;
         int extra_drain_cycles;
 
-        // Stage 1: Wait for dispatcher_done
-        while (!dispatcher_done && timeout > 0) begin
+        // Stage 1: Wait for dispatcher to finish (busy goes low)
+        while (dispatcher_busy && timeout > 0) begin
             // Pop whenever ANY data is available
             if (!dispatch_fifo_empty) begin
                 pop_and_count();
@@ -172,10 +172,10 @@ module tb_parameterized_dispatcher
                 idle_cycles++;
 
                 // If idle for too long but not done, something is stuck
-                if (idle_cycles > 100 && !dispatcher_done) begin
+                if (idle_cycles > 100 && dispatcher_busy) begin
                     $display("WARNING: Idle for 100 cycles but not done");
-                    $display("  dispatcher_done=%b, dispatch_fifo_empty=%b",
-                            dispatcher_done, dispatch_fifo_empty);
+                    $display("  dispatcher_busy=%b, dispatch_fifo_empty=%b",
+                            dispatcher_busy, dispatch_fifo_empty);
                     $display("  ready_fifo_empty=%b", {dut.ready_fifo_empty[3], dut.ready_fifo_empty[2],
                                                         dut.ready_fifo_empty[1], dut.ready_fifo_empty[0]});
                 end
@@ -384,11 +384,11 @@ module tb_parameterized_dispatcher
         $display("CTA 1 completed: %0d threads dispatched", cta1_count);
 
         // Verify state before next CTA
-        if (!dispatcher_done) begin
-            $display("ERROR: dispatcher_done should be asserted after CTA 1");
+        if (dispatcher_busy) begin
+            $display("ERROR: dispatcher should not be busy after CTA 1");
             tests_failed++;
         end else begin
-            $display("PASS: dispatcher_done asserted after CTA 1");
+            $display("PASS: dispatcher idle after CTA 1");
             tests_passed++;
         end
 
@@ -414,11 +414,11 @@ module tb_parameterized_dispatcher
         $display("CTA 2 completed: %0d threads dispatched", cta2_count);
 
         // Verify state before next CTA
-        if (!dispatcher_done) begin
-            $display("ERROR: dispatcher_done should be asserted after CTA 2");
+        if (dispatcher_busy) begin
+            $display("ERROR: dispatcher should not be busy after CTA 2");
             tests_failed++;
         end else begin
-            $display("PASS: dispatcher_done asserted after CTA 2");
+            $display("PASS: dispatcher idle after CTA 2");
             tests_passed++;
         end
 

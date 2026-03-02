@@ -222,7 +222,7 @@ Selection-LineWidth = 1
 [FSM_Dlg-Print]
 Orientation = Landscape
 [FileBrowser]
-LoadSimulationResults = "\"/data/amanoj3/vortex4dice/dice_new/tb/cgra_core/dice_core/tb_dice_core.fsdb\""
+LoadSimulationResults = "\"/home/jami3jun/vortex4dice/dice_new/tb/cgra_core/dispatcher/dispatcher/dispatcher_basic.fsdb\""
 [Form]
 version = Verdi_X-2025.06
 [General]
@@ -230,13 +230,13 @@ autoSaveSession = FALSE
 TclAutoSource = 
 cmd_enter_form = FALSE
 SyncBrowserDir = TRUE
-recent_commands_nWave = reread,getSignal,traceDriver,scrollDown,zoomAll
-SignalCaseInSensitive = FALSE
+recent_commands_nWave = editCut,getAllSignals,getSignal,getSignal,getSignal
 FindBarVisible = 
+SignalCaseInSensitive = FALSE
 ColorThemeModern = bright
 prevColorThemeModern = bright
 version = Verdi_X-2025.06
-recent_commands_Verdi = hbReload,hbLoadFsdbFile
+recent_commands_Verdi = hbLoadFsdbFile,hbImpDsg,srcCompile,aboutFsdb,hbCloseFsdbFile
 [GlobalProp]
 ErrWindow_Font = Helvetica_M_R_12
 [Globals]
@@ -268,12 +268,13 @@ windowLayout = 0 0 804 500 182 214 804 148
 import_filter = *.v; *.vc; *.f
 designTreeFont = *-adobe-courier-medium-r-*-*-12-*-*-*-*-*-iso8859-*
 import_filter_vhdl = *.vhd; *.vhdl; *.f
-import_default_language = Verilog
 import_filter_verilog = *.v; *.vc; *.f
 PrefetchViewableAnnot = TRUE
 designTreeBgColor = ID_WHITE
-simulation_file_type = *.fsdb;*.vf;*.jf;*.zwd*
+import_default_language = Verilog
+import_from = source
 ShowFileListView = FALSE
+simulation_file_type = *.fsdb;*.vf;*.jf;*.zwd*
 [Hier]
 filterTimeout = 1500
 [ImportLiberty]
@@ -333,6 +334,7 @@ containerHeight = 800
 HB_designTreeFont = *-adobe-courier-medium-r-*-*-12-*-*-*-*-*-iso8859-*
 Text_font = COURIER12
 nMemory_font = Fixed 14
+schematics_fixFontSize = False
 Wave_legend_window_font = -f COURIER12 -c ID_CYAN5
 Wave_value_window_font = -f COURIER12 -c ID_CYAN5
 Wave_curve_window_font = -f COURIER12 -c ID_CYAN5
@@ -342,7 +344,6 @@ Wave_analog_ruler_value_font = -f COURIER12 -c ID_CYAN5
 Wave_comment_string_font = -f COURIER12 -c ID_RED5
 Wave_getsignal_form_font = -f COURIER12
 Text_annotFont = FIXED12
-schematics_fixFontSize = False
 [OtherEditor]
 cmd1 = "xterm -font 9x15 -fg black -bg gray -e"
 name = "vi"
@@ -387,10 +388,13 @@ saveWaveformStat = TRUE
 savePropStat = FALSE
 savePropDtl = TRUE
 [QtDialog]
-qWaveSignalDialog = 500,275,800,479
-QwWarnMsgDlg = 650,396,600,250
-QwUserAskDlg = 798,479,324,128
-loadFile = 458,173,614,432
+qWaveSignalDialog = 217,262,800,479
+QwQuestionMsgDlg = 404,406,406,101
+QwInfoMsgDlg = 232,297,750,250
+CompileDesignUi = 166,174,691,410
+importDesignForm = 154,92,715,574
+QwUserAskDlg = 596,282,324,128
+loadFile = 461,161,614,432
 [Safety]
 RegisterObject = ID_RED4
 CoreObject = ID_ORANGE5
@@ -404,7 +408,7 @@ HighlightSafetyObject = TRUE
 3 = string (session file name)
 4 = string (session file name)
 5 = string (session file name)
-1 = /data/amanoj3/vortex4dice/dice_new/tb/cgra_core/dice_core/verdiLog/novas_autosave.ses
+1 = /home/jami3jun/verdiLog/novas_autosave.ses
 [Signal List]
 sigListBackgroundColor = ID_WHITE
 [Simulation]
@@ -593,7 +597,7 @@ pdmlMacro = ID_BLACK
 font = COURIER12
 annotFont = FIXED12
 [Text.1]
-viewport = 0 27 1920 958 45
+viewport = 0 27 1024 704 45
 [TextPrinter]
 Orientation = Landscape
 Indicator = FALSE
@@ -684,44 +688,44 @@ DefaultLogTimeUnit = "1.000000ns"
 [VIA.oneSearch.preference.vgifColumnSettingRC.setting0]
 parRuleSets = ""
 [VIA.oneSearch.preference.vgifColumnSettingRC.setting0.column0]
-name = "Code"
-width = 60
-visualIndex = 3
-isHidden = TRUE
-isUserChangeColumnVisible = FALSE
-isColFilterColorCoding = FALSE
-[VIA.oneSearch.preference.vgifColumnSettingRC.setting0.column1]
-name = "Type"
-width = 60
-visualIndex = 4
-isHidden = TRUE
-isUserChangeColumnVisible = FALSE
-isColFilterColorCoding = FALSE
-[VIA.oneSearch.preference.vgifColumnSettingRC.setting0.column2]
 name = "Message"
 width = 2000
 visualIndex = 5
 isHidden = FALSE
 isUserChangeColumnVisible = FALSE
 isColFilterColorCoding = FALSE
-[VIA.oneSearch.preference.vgifColumnSettingRC.setting0.column3]
+[VIA.oneSearch.preference.vgifColumnSettingRC.setting0.column1]
+name = "Block's First Line"
+width = 120
+visualIndex = 1
+isHidden = TRUE
+isUserChangeColumnVisible = FALSE
+isColFilterColorCoding = FALSE
+[VIA.oneSearch.preference.vgifColumnSettingRC.setting0.column2]
 name = "Severity"
 width = 60
 visualIndex = 2
 isHidden = FALSE
 isUserChangeColumnVisible = FALSE
 isColFilterColorCoding = FALSE
-[VIA.oneSearch.preference.vgifColumnSettingRC.setting0.column4]
+[VIA.oneSearch.preference.vgifColumnSettingRC.setting0.column3]
 name = "Time"
 width = 60
 visualIndex = 0
 isHidden = FALSE
 isUserChangeColumnVisible = FALSE
 isColFilterColorCoding = FALSE
+[VIA.oneSearch.preference.vgifColumnSettingRC.setting0.column4]
+name = "Code"
+width = 60
+visualIndex = 3
+isHidden = TRUE
+isUserChangeColumnVisible = FALSE
+isColFilterColorCoding = FALSE
 [VIA.oneSearch.preference.vgifColumnSettingRC.setting0.column5]
-name = "Block's First Line"
-width = 120
-visualIndex = 1
+name = "Type"
+width = 60
+visualIndex = 4
 isHidden = TRUE
 isUserChangeColumnVisible = FALSE
 isColFilterColorCoding = FALSE
@@ -798,7 +802,11 @@ ShowDeltaTime = TRUE
 WaveExtendLastTick = TRUE
 displayMessageLabelOnly = TRUE
 AutoApplySeverityColor = TRUE
-viewPort = 0 11 1920 731 832 65
+scope_to_save_with_macro
+open_file_dir
+open_rc_file_dir
+getSignalForm = 217 262 800 479 165 387 391 91
+viewPort = 0 11 1024 276 100 65
 legendBackground = -c ID_BLACK
 valueBackground = -c ID_BLACK
 curveBackground = -c ID_BLACK
@@ -938,7 +946,6 @@ displayDeltaY = FALSE
 signal_rc_abspath = TRUE
 signal_rc_no_natural_bus_range = FALSE
 save_scope_with_macro = FALSE
-scope_to_save_with_macro
 FitAnaByBusSize = FALSE
 DisplayVerticalZoomTools = FALSE
 DisplayIndicateBar = FALSE
@@ -965,10 +972,8 @@ printBasic = 1 0 0 TRUE FALSE
 printDest = -printer {}
 printSignature = {%f %h %t} {}
 curveWindow_Drag&Drop_Mode = TRUE
-RecentFile1 = "\"/data/amanoj3/vortex4dice/dice_new/tb/cgra_core/dice_core/tb_dice_core.fsdb\""
+RecentFile1 = "\"/home/jami3jun/vortex4dice/dice_new/tb/cgra_core/dispatcher/dispatcher/dispatcher_basic.fsdb\""
 open_file_time_range = FALSE
-open_file_dir
-open_rc_file_dir
 legend_window_font = -f COURIER12 -c ID_CYAN5
 value_window_font = -f COURIER12 -c ID_CYAN5
 curve_window_font = -f COURIER12 -c ID_CYAN5
@@ -1000,7 +1005,8 @@ maskFsaCoreRule = TRUE
 maskFsaSfsmRule = TRUE
 maskFsaEcrRule = TRUE
 maskTPropagation = TRUE
-getSignalForm = 500 275 800 479 165 387 391 149
+[compile_design]
+DefaultLang = Verilog
 [cov_hier_name_column]
 justify = TRUE
 [coverageColors]
@@ -1068,6 +1074,7 @@ ShowMergeMenuItem = FALSE
 fsmScoreMode = Transition
 lazyLoadingPrompt = TRUE
 [eco]
+NameRule = 
 IsFreezeSilicon = FALSE
 cellQuantityManagement = FALSE
 ManageMode = INSTANCE_NAME
@@ -1075,10 +1082,9 @@ SpareCellsPinsManagement = TRUE
 LogCommitReport = FALSE
 InputPinStatus = 1
 OutputPinStatus = 2
-NameRule = 
 RevisedComponentColor = ID_BLUE5
 SpareCellColor = ID_RED5
-UserName = amanoj3
+UserName = jami3jun
 CommentFormat = Novas ECO updated by ${UserName} ${Date} ${Time}
 PrefixN = eco_n
 PrefixP = eco_p
@@ -1198,6 +1204,11 @@ RtlaDbPath =
 [schematics]
 viewport = 178 262 638 516
 ComputedAnnotColor = ID_PURPLE5
+AutoMergeSettingFile = 
+PowerMapFile = 
+GroundMapFile = 
+CopyScopeNameDelimiter = 
+RegNamingRule = 
 schBackgroundColor = ID_BLACK lineSolid 1
 schBackgroundColor_qt = #000000 qt_solidLine 1
 schBodyColor = ID_ORANGE6 lineSolid 1
@@ -1454,7 +1465,6 @@ AMSTraceFullPath = False
 AMSTraceDiodePropagating = Bidirectional
 shortName = True
 AutoMerge = False
-AutoMergeSettingFile = 
 ShowPowerTip = True
 schModuleName = True
 DisplayLengthwiseTransistor = False
@@ -1486,13 +1496,9 @@ DetailLevel = 4
 RecogFSM = True
 ExpandGenBlock = True
 RecogMem = True
-PowerMapFile = 
-GroundMapFile = 
-CopyScopeNameDelimiter = 
 sdfDelayScale = Default
 sdfDelayType = Typical
 sdfDelayPrecision = 0.01
-RegNamingRule = 
 MagnifierSize = Medium
 MagnifierRatio = X4
 HideUnusedPin = True
@@ -1605,7 +1611,7 @@ AddImportArgument = FALSE
 LineBreakWithScope = TRUE
 StopAfterCompileOption = -s
 [wave.0]
-viewPort = 0 11 1920 731 832 65
+viewPort = 0 11 1024 276 100 65
 [wave.1]
 viewPort = 127 219 960 332 100 65
 [wave.2]

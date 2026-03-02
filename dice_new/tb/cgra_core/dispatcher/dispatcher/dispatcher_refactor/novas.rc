@@ -229,15 +229,15 @@ version = Verdi_X-2025.06
 [General]
 autoSaveSession = FALSE
 TclAutoSource = 
-cmd_enter_form = FALSE
 SyncBrowserDir = TRUE
 FindBarVisible = 
 SignalCaseInSensitive = FALSE
 ColorThemeModern = bright
 prevColorThemeModern = bright
 version = Verdi_X-2025.06
-recent_commands_Verdi = hbReload,hbLoadFsdbFile,hbImpDsg,textCaretLineEnd,nsFullScreen,srcCompile,aboutFsdb,hbCloseFsdbFile
-recent_commands_nWave = editCut,zoomOut,saveSignal,digitalFUDec,toggleExpand,digitalFHex,zoomIn,getAllSignals,getSignal,getSignal
+recent_commands_Verdi = hbRestoreSession,hbReload,hbLoadFsdbFile,hbImpDsg,textCaretLineEnd,nsFullScreen,srcCompile,aboutFsdb,hbCloseFsdbFile
+cmd_enter_form = FALSE
+recent_commands_nWave = gpSimulateDrop_bindKey,editCut,zoomOut,saveSignal,digitalFUDec,toggleExpand,digitalFHex,zoomIn,getAllSignals,getSignal
 [GlobalProp]
 ErrWindow_Font = Helvetica_M_R_12
 [Globals]
@@ -398,6 +398,8 @@ QwUserAskDlg = 606,380,324,128
 importDesignForm = 410,120,715,574
 loadFile = 653,347,614,432
 saveSigDlg = 684,370,551,386
+FileWithNoteForm_base = 632,232,655,543
+QwWarnMsgDlg = 650,394,600,250
 [Safety]
 RegisterObject = ID_RED4
 CoreObject = ID_ORANGE5
@@ -691,45 +693,45 @@ DefaultLogTimeUnit = "1.000000ns"
 [VIA.oneSearch.preference.vgifColumnSettingRC.setting0]
 parRuleSets = ""
 [VIA.oneSearch.preference.vgifColumnSettingRC.setting0.column0]
+name = "Severity"
+width = 60
+visualIndex = 2
+isHidden = FALSE
+isUserChangeColumnVisible = FALSE
+isColFilterColorCoding = FALSE
+[VIA.oneSearch.preference.vgifColumnSettingRC.setting0.column1]
 name = "Block's First Line"
 width = 120
 visualIndex = 1
 isHidden = TRUE
 isUserChangeColumnVisible = FALSE
 isColFilterColorCoding = FALSE
-[VIA.oneSearch.preference.vgifColumnSettingRC.setting0.column1]
-name = "Time"
-width = 60
-visualIndex = 0
-isHidden = FALSE
-isUserChangeColumnVisible = FALSE
-isColFilterColorCoding = FALSE
 [VIA.oneSearch.preference.vgifColumnSettingRC.setting0.column2]
-name = "Code"
-width = 60
-visualIndex = 3
-isHidden = TRUE
-isUserChangeColumnVisible = FALSE
-isColFilterColorCoding = FALSE
-[VIA.oneSearch.preference.vgifColumnSettingRC.setting0.column3]
 name = "Type"
 width = 60
 visualIndex = 4
 isHidden = TRUE
 isUserChangeColumnVisible = FALSE
 isColFilterColorCoding = FALSE
-[VIA.oneSearch.preference.vgifColumnSettingRC.setting0.column4]
+[VIA.oneSearch.preference.vgifColumnSettingRC.setting0.column3]
 name = "Message"
 width = 2000
 visualIndex = 5
 isHidden = FALSE
 isUserChangeColumnVisible = FALSE
 isColFilterColorCoding = FALSE
-[VIA.oneSearch.preference.vgifColumnSettingRC.setting0.column5]
-name = "Severity"
+[VIA.oneSearch.preference.vgifColumnSettingRC.setting0.column4]
+name = "Time"
 width = 60
-visualIndex = 2
+visualIndex = 0
 isHidden = FALSE
+isUserChangeColumnVisible = FALSE
+isColFilterColorCoding = FALSE
+[VIA.oneSearch.preference.vgifColumnSettingRC.setting0.column5]
+name = "Code"
+width = 60
+visualIndex = 3
+isHidden = TRUE
 isUserChangeColumnVisible = FALSE
 isColFilterColorCoding = FALSE
 [VIA.ruleHistory]
@@ -1127,14 +1129,14 @@ LineBreakWithScope = FALSE
 StopAfterCompileOption = -i
 [fusa]
 tooltip_summary = TRUE
-Name_Show = TRUE
-Coverage_Show = TRUE
-Test_Cov_Show = TRUE
-Fault_Cov_Show = TRUE
-Undetected_Show = TRUE
-Num_of_Fault_Show = TRUE
 Num_of_Displayed_Fault_Show = FALSE
-Num_of_Inst_Show = TRUE
+Name_Show = FALSE
+Coverage_Show = FALSE
+Test_Cov_Show = FALSE
+Fault_Cov_Show = FALSE
+Undetected_Show = FALSE
+Num_of_Fault_Show = FALSE
+Num_of_Inst_Show = FALSE
 [hvpsetting]
 importExcelXMLOptions = 
 use_test_loca_as_source = FALSE

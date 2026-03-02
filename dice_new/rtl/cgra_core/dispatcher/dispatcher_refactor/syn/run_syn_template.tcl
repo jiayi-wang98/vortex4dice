@@ -29,9 +29,9 @@ set_db max_cpus_per_server 32
 set_db hdl_auto_sync_set_reset true
 set_db hdl_unconnected_value none
 set_db hdl_language sv
-set_db lp_clock_gating_infer_enable true
+set_db lp_clock_gating_infer_enable false
 set_db lp_clock_gating_prefix {CKG}
-set_db lp_insert_clock_gating true
+set_db lp_insert_clock_gating false
 
 set_db hdl_track_filename_row_col true
 set_db lp_power_unit mW
@@ -62,11 +62,11 @@ read_mmmc $mmmc_file
 read_hdl -f $filelist
 elaborate $design
 init_design -top $top_module
-set_db root: .auto_ungroup none
+#set_db root: .auto_ungroup none
 
-set_db lp_clock_gating_hierarchical true
+set_db lp_clock_gating_hierarchical false
 #set_db lp_insert_clock_gating_incremental true
-set_db lp_clock_gating_register_aware true
+set_db lp_clock_gating_register_aware false
 
 check_timing_intent
 

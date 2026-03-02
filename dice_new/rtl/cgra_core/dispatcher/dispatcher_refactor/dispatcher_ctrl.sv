@@ -67,7 +67,7 @@ module dispatcher_control
 
     // Status outputs 
     assign dispatcher_busy = (ps == DISPATCHING);
-    assign dispatcher_done = (ps == DONE);
+    assign dispatcher_done = (ps == DISPATCHING) && (ns == DONE);
 
     // Synchronous reset
     always_ff @(posedge clk) begin
