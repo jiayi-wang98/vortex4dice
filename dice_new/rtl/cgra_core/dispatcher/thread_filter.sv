@@ -245,6 +245,14 @@ module thread_filter(
     assign fifo_data_1 = fifo_data[1];
     assign fifo_data_2 = fifo_data[2];
     assign fifo_data_3 = fifo_data[3];
+    //assign fifo_data_0[9:0] = fifo_data[0][9:0];
+    //assign fifo_data_1[9:0] = fifo_data[1][9:0];
+    //assign fifo_data_2[9:0] = fifo_data[2][9:0];
+    //assign fifo_data_3[9:0] = fifo_data[3][9:0];
+    //assign fifo_data_0[10] = fifo_data[0][10] && !fifo_empty_individual[0];
+    //assign fifo_data_1[10] = fifo_data[1][10] && !fifo_empty_individual[1];
+    //assign fifo_data_2[10] = fifo_data[2][10] && !fifo_empty_individual[2];
+    //assign fifo_data_3[10] = fifo_data[3][10] && !fifo_empty_individual[3];
     assign fifo_data_valid = sync_fifo_data_valid[0] | sync_fifo_data_valid[1] |
                              sync_fifo_data_valid[2] | sync_fifo_data_valid[3];
 

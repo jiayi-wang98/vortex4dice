@@ -5,6 +5,7 @@
 // Global architectural configuration constants
 // =========================================================
 
+`define DICE_MAX_KERNEL_SIZE         65536
 // Available registers
 `define DICE_GPR_NUM                 16 // General Purpose Registers
 `define DICE_PR_NUM                  8  // Predicate Registers
@@ -26,5 +27,12 @@
 `define DICE_L1_LINE_SIZE            128   // in Bytes
 `define DICE_L2_LINE_SIZE            128   // in Bytes
 `define DICE_L3_LINE_SIZE            128   // in Bytes
+
+// P-graph configuration
+`define DICE_MAX_PGRAPHS              256   // Maximum p-graphs per kernel
+`define DICE_METADATA_WIDTH          256   // Must match line size — one metadata per cache line
+
+// SIMT Stack configuration
+`define DICE_SIMT_STACK_DEPTH        32    // Maximum SIMT stack depth per CTA
 
 `endif // DICE_CONFIG_VH

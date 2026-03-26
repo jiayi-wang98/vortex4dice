@@ -4,7 +4,7 @@ module sync_fifo_read_unreg #(
     parameter int ADDR_WIDTH = $clog2(DEPTH) // Address width (automatically calculated)
 )(
     input logic clk,                        // Clock
-    input logic rst_n,                      // Active-low reset
+    input logic rst,                      // Active-low reset
     
     // Write interface
     input logic push,                       // Push enable
@@ -37,8 +37,8 @@ module sync_fifo_read_unreg #(
     assign pop_enable = pop && !empty;
     
     // Write pointer logic
-    always_ff @(posedge clk or negedge rst_n) begin
-        if (!rst_n) begin
+    always_ff @(posedge clk) begin
+        if (rst) begin
             write_ptr <= '0;
         end else if (push_enable) begin
             write_ptr <= write_ptr + 1'b1;
@@ -46,8 +46,8 @@ module sync_fifo_read_unreg #(
     end
     
     // Read pointer logic
-    always_ff @(posedge clk or negedge rst_n) begin
-        if (!rst_n) begin
+    always_ff @(posedge clk) begin
+        if (rst) begin
             read_ptr <= '0;
         end else if (pop_enable) begin
             read_ptr <= read_ptr + 1'b1;
@@ -55,8 +55,8 @@ module sync_fifo_read_unreg #(
     end
     
     // Memory write logic
-    always_ff @(posedge clk or negedge rst_n) begin
-        if (!rst_n) begin
+    always_ff @(posedge clk) begin
+        if (rst) begin
             // Reset memory contents (optional, can be omitted)
             for (int i = 0; i < DEPTH; i++) begin
                 mem[i] <= '0;
