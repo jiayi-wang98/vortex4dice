@@ -1,0 +1,5 @@
+xcelium.d/
+*.log
+*.history
+*.vcd
+vc_hdrs.h
