@@ -32,7 +32,7 @@ module scoreboard_tid_entry(
 endmodule
 
 
-module scoreboard(
+module scoreboard_old(
     input logic clk,
     input logic rst_n,
     

@@ -4,7 +4,7 @@ module sync_fifo_read_unreg #(
     parameter int ADDR_WIDTH = $clog2(DEPTH) // Address width (automatically calculated)
 )(
     input logic clk,                        // Clock
-    input logic rst_n,                      // Active-low reset
+    input logic rst,                    // Active-low reset
     
     // Write interface
     input logic push,                       // Push enable
@@ -14,7 +14,7 @@ module sync_fifo_read_unreg #(
     input logic pop,                        // Pop enable
     output logic [DATA_WIDTH-1:0] pop_data, // Data output (valid next cycle after pop)
     output logic pop_data_valid,            // Indicates pop_data is valid
-    
+
     // Status signals
     output logic empty,                     // FIFO is empty
     output logic full,                      // FIFO is full
@@ -23,40 +23,40 @@ module sync_fifo_read_unreg #(
 
     // Internal memory array
     logic [DATA_WIDTH-1:0] mem [0:DEPTH-1];
-    
+
     // Internal pointers
     logic [ADDR_WIDTH:0] write_ptr;         // Write pointer (extra bit for full/empty detection)
     logic [ADDR_WIDTH:0] read_ptr;          // Read pointer (extra bit for full/empty detection)
-    
+
     // Internal control signals
     logic push_enable;
     logic pop_enable;
-    
+
     // Push and pop enable logic (prevent overflow/underflow)
     assign push_enable = push && !full;
     assign pop_enable = pop && !empty;
-    
+
     // Write pointer logic
-    always_ff @(posedge clk or negedge rst_n) begin
-        if (!rst_n) begin
+    always_ff @(posedge clk) begin
+        if (!rst) begin
             write_ptr <= '0;
         end else if (push_enable) begin
             write_ptr <= write_ptr + 1'b1;
         end
     end
-    
+
     // Read pointer logic
-    always_ff @(posedge clk or negedge rst_n) begin
-        if (!rst_n) begin
+    always_ff @(posedge clk) begin
+        if (!rst) begin
             read_ptr <= '0;
         end else if (pop_enable) begin
             read_ptr <= read_ptr + 1'b1;
         end
     end
-    
+
     // Memory write logic
-    always_ff @(posedge clk or negedge rst_n) begin
-        if (!rst_n) begin
+    always_ff @(posedge clk) begin
+        if (!rst) begin
             // Reset memory contents (optional, can be omitted)
             for (int i = 0; i < DEPTH; i++) begin
                 mem[i] <= '0;
