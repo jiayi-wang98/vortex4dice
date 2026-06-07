@@ -219,7 +219,7 @@ module VX_stream_xbar #(
 
     `BUFFER(per_cycle_collision_r, per_cycle_collision);
     `POP_COUNT(collision_count, per_cycle_collision_r);
-
+    
     always @(posedge clk) begin
         if (reset) begin
             collisions_r <= '0;
