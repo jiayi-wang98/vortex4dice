@@ -9,6 +9,16 @@
 +incdir+${DICE_HOME}/../hw/rtl/mem
 +incdir+${DICE_HOME}/rtl/cgra_core/cgra_subsystem/regfile
 
+// ==== BaseJump STL (for cgra_bitstream_buf_serial + credit converter) ====
+// TODO(deps): dice_ready_to_credit_flow_converter `include "bsg_defines.v" (.v),
+// but the file is bsg_defines.sv. Reconcile the include extension if it errors.
++incdir+${DICE_HOME}/../../dora/dora.py/external/basejump_stl/bsg_misc
+-y ${DICE_HOME}/../../dora/dora.py/external/basejump_stl/bsg_misc
+
+// ==== BUILT DORA CGRA fabric (dice_top + submodules) ====
+-y ${DICE_HOME}/../../dora/examples/devices/dice-isca/dice/build/rtl
+-y ${DICE_HOME}/../../dora/examples/devices/dice-isca/dice/build/rtl/cvfpu
+
 // ==== Vortex base RTL (configs, packages, interfaces) ====
 ${DICE_HOME}/../hw/rtl/VX_config.vh
 ${DICE_HOME}/../hw/rtl/VX_define.vh
@@ -84,11 +94,46 @@ ${DICE_HOME}/rtl/cgra_core/cgra_subsystem/regfile/dice_register_file.sv
 ${DICE_HOME}/rtl/cgra_core/cgra_subsystem/regfile/dice_rd_ctrl_bank.sv
 ${DICE_HOME}/rtl/cgra_core/cgra_subsystem/regfile/dice_read_org.sv
 ${DICE_HOME}/rtl/cgra_core/cgra_subsystem/regfile/dice_wr_ctrl_bank.sv
-${DICE_HOME}/rtl/cgra_core/cgra_subsystem/regfile/dice_special_reg.sv
+// dice_special_reg removed from the flattened build: the CGRA fabric (dice_top)
+// now takes threadIdx/blockIdx/blockDim/gridDim on dedicated inputs.
 ${DICE_HOME}/rtl/cgra_core/cgra_subsystem/regfile/dice_rf_ctrl.sv
 
-// ==== Dummy CGRA ====
-${DICE_HOME}/rtl/cgra_core/dummy_cgra.sv
+// ==== NEW: predicate register file (dice_pred_rf) ====
+${DICE_HOME}/rtl/cgra_core/cgra_subsystem/regfile/dice_pred_rf_ctrl_new.sv
+
+// ==== Backend glue (ported from Mini_Dice) ====
+${DICE_HOME}/rtl/cgra_core/cgra_subsystem/regfile/dice_shift_reg.sv
+${DICE_HOME}/rtl/cgra_core/dispatcher/dice_ready_to_credit_flow_converter.sv
+${DICE_HOME}/rtl/cgra_core/cgra_subsystem/cgra_bitstream_buf_serial.sv
+
+// ==== Commit / block-retire table (unified: vector hw_cta_pending) ====
+${DICE_HOME}/rtl/cgra_core/commit_stage/block_commit_table.sv
+${DICE_HOME}/rtl/cgra_core/commit_stage/dice_brt.sv
+
+// ==== Load/Store: TMCU memory chain ====
+// 4x temporal_coalescing_unit -> VX_cache_4temporal (VX_cache_top NUM_REQS=4
+// request crossbar + round-robin response merge). The coalesced line is written
+// to the RF + its threads released in one cycle (DE_pkg gen_wb_tid_bitmap) — no
+// serial response expander.
+${DICE_HOME}/rtl/cgra_core/ldst_unit/memory_cmd_coalesce_buffer.sv
+${DICE_HOME}/rtl/cgra_core/ldst_unit/temporal_coalescing_unit.sv
+${DICE_HOME}/rtl/cgra_core/ldst_unit/VX_cache_4temporal.sv
+// VX_cache_4temporal instantiates VX_cache_top (EXTERNAL Vortex module). Add the
+// Vortex cache RTL dir to the search path so VX_cache_top + submodules elaborate.
+-y ${DICE_HOME}/../hw/rtl/cache
+
+// ==== Modularized backend (dice_core split into FE/BE wrappers + leaf modules) ====
+// dice_core = dice_frontend + dice_backend (Mini_Dice-style 2-child top).
+// Leaf modules extracted from the former flat dice_core:
+${DICE_HOME}/rtl/cgra_core/cgra_subsystem/dice_eblock_tracker.sv
+${DICE_HOME}/rtl/cgra_core/cgra_subsystem/dice_cgra_prog.sv
+${DICE_HOME}/rtl/cgra_core/cgra_subsystem/dice_cgra_rf.sv
+${DICE_HOME}/rtl/cgra_core/dispatcher/dice_mem_dispatch_credit.sv
+${DICE_HOME}/rtl/cgra_core/ldst_unit/dice_tmcu_mem_edge.sv
+${DICE_HOME}/rtl/cgra_core/ldst_unit/dice_ldst_retire.sv
+// FE/BE wrappers:
+${DICE_HOME}/rtl/cgra_core/dice_frontend.sv
+${DICE_HOME}/rtl/cgra_core/dice_backend.sv
 
 // ==== DUT ====
 ${DICE_HOME}/rtl/cgra_core/dice_core.sv

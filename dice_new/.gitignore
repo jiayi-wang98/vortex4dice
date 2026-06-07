@@ -26,3 +26,4 @@ rtl/cgra_core/cgra_subsystem/regfile/temp/*
 **/*.log
 **/verdiLog/
 **/__pycache__/
+**/.claude/

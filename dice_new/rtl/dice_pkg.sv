@@ -24,6 +24,14 @@ package dice_pkg;
   parameter int DICE_SMEM_SIZE_WIDTH          = $clog2(`DICE_SMEM_SIZE_PER_CORE);
   parameter int DICE_BITSTREAM_SIZE           = 2048;  // 256 bytes max bitstream size
 
+  // Width of one configuration-memory chunk streamed into the CGRA bitstream
+  // buffer (cgra_bitstream_buf_serial). Integration decision (Option A): this is
+  // the bitstream/config-memory line width actually delivered by the FDR over
+  // cgra_cm_if, which is VX_gpu_pkg::VX_MEM_DATA_WIDTH. Matching it here makes
+  // cgra_bitstream_buf_serial's chunk width (CmChunkCount) line up with the
+  // cgra_cm_if CHUNK_COUNT so cm0_if/cm1_if can be wired directly.
+  parameter int DICE_MEM_DATA_WIDTH           = VX_gpu_pkg::VX_MEM_DATA_WIDTH;
+
   parameter int DICE_DATA_WIDTH               = 32;
   parameter int DICE_NUMBER_OF_MAX_COALESCED_COMMANDS = 8;
   parameter int DICE_CACHE_LINE_SIZE          = 32;
@@ -31,6 +39,24 @@ package dice_pkg;
   parameter int DICE_BASE_TID_ADDRESS_OFFSET  = $clog2(DICE_NUMBER_OF_MAX_COALESCED_COMMANDS);
   parameter int DICE_TID_BITMAP_WIDTH         = DICE_NUMBER_OF_MAX_COALESCED_COMMANDS;
   parameter int DICE_MAX_REG_WIDTH            = `DICE_CR_NUM;
+
+  // =========================================================
+  // Data-cache (VX_cache_4temporal) tag geometry — SHARED so the TMCU memory
+  // edge (dice_tmcu_mem_edge), the load-response retire (dice_ldst_retire), and
+  // the backend wiring all agree on the core-response / memory tag widths and the
+  // response-tag packing. Mirrors the widths VX_cache_4temporal computes from
+  // these same constants (keep in sync if the cache geometry changes).
+  // =========================================================
+  parameter int DCACHE_MSHR_SIZE  = 16;
+  parameter int DCACHE_MSHR_BITS  = $clog2(DCACHE_MSHR_SIZE);
+  parameter int DCACHE_OUTCMD_TAG_WIDTH =
+        (DICE_NUMBER_OF_MAX_COALESCED_COMMANDS * DICE_BASE_ADDRESS_OFFSET)
+      + DICE_EBLOCK_ID_WIDTH
+      + DICE_TID_WIDTH
+      + DICE_TID_BITMAP_WIDTH
+      + DICE_MAX_REG_WIDTH;
+  parameter int DCACHE_MEM_TAG_WIDTH  = DCACHE_OUTCMD_TAG_WIDTH + DCACHE_MSHR_BITS;
+  parameter int DCACHE_MEM_ADDR_WIDTH = DICE_ADDR_WIDTH - $clog2(DICE_CACHE_LINE_SIZE);
 
   // =========================================================
   // Type definitions
@@ -103,6 +129,20 @@ package dice_pkg;
   typedef struct packed {
     logic [DICE_NUM_MAX_CTA_PER_CORE-1:0] hw_cta_pending;
   } block_retire_status_t;  // Block retire status descriptor
+
+  // Unpacked view of the cache core-response tag (MSB-first pack order, matching
+  // VX_cache_4temporal's outcmd_tag_t): {block_id, base_tid, tid_bitmap,
+  // ld_dest_reg, address_map}. Used by dice_ldst_retire to recover the returning
+  // threads / dest reg / coalesce map of a completed line. Total width must equal
+  // DCACHE_OUTCMD_TAG_WIDTH above.
+  typedef struct packed {
+    logic [DICE_EBLOCK_ID_WIDTH-1:0]   outcmd_block_id;
+    logic [DICE_TID_WIDTH-1:0]         outcmd_base_tid;
+    logic [DICE_TID_BITMAP_WIDTH-1:0]  outcmd_tid_bitmap;
+    logic [DICE_MAX_REG_WIDTH-1:0]     outcmd_ld_dest_reg;
+    logic [DICE_NUMBER_OF_MAX_COALESCED_COMMANDS-1:0]
+          [DICE_BASE_ADDRESS_OFFSET-1:0] outcmd_address_map;
+  } dcache_outcmd_tag_t;
 
 endpackage
 
